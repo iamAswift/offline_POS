@@ -1,0 +1,19 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'user_profile_dao.dart';
+
+// ignore_for_file: type=lint
+mixin _$UserProfileDaoMixin on DatabaseAccessor<AppDatabase> {
+  $UsersTable get users => attachedDatabase.users;
+  $UserProfilesTable get userProfiles => attachedDatabase.userProfiles;
+  UserProfileDaoManager get managers => UserProfileDaoManager(this);
+}
+
+class UserProfileDaoManager {
+  final _$UserProfileDaoMixin _db;
+  UserProfileDaoManager(this._db);
+  $$UsersTableTableManager get users =>
+      $$UsersTableTableManager(_db.attachedDatabase, _db.users);
+  $$UserProfilesTableTableManager get userProfiles =>
+      $$UserProfilesTableTableManager(_db.attachedDatabase, _db.userProfiles);
+}
