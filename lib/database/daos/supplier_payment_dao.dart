@@ -1,37 +1,49 @@
 //lib/database/daos/supplier_payment_dao.dart
 
-
 import 'package:drift/drift.dart';
 
 import '../app_database.dart';
 import '../tables/supplier_payment_table.dart';
 import '../tables/supplier_table.dart';
 
+import '../models/supplier_payment_model.dart';
+
 part 'supplier_payment_dao.g.dart';
 
-@DriftAccessor(
-  tables: [
-    SupplierPayments,
-    Suppliers,
-  ],
-)
-class SupplierPaymentDao
-    extends DatabaseAccessor<AppDatabase>
+@DriftAccessor(tables: [SupplierPayments, Suppliers])
+class SupplierPaymentDao extends DatabaseAccessor<AppDatabase>
     with _$SupplierPaymentDaoMixin {
   SupplierPaymentDao(super.db);
+
+  //===========================================================
+  // GET ALL SUPPLIER PAYMENTS FOR SNAPSHOT
+  //===========================================================
+
+  Future<List<SupplierPaymentModel>> getAllSupplierPaymentsForSnapshot() async {
+    final rows = await select(supplierPayments).get();
+
+    return rows
+        .map(
+          (row) => SupplierPaymentModel(
+            id: row.id,
+            supplierId: row.supplierId,
+            paymentDate: row.paymentDate,
+            amount: row.amount,
+            paymentMethod: row.paymentMethod,
+            reference: row.reference,
+            notes: row.notes,
+          ),
+        )
+        .toList();
+  }
 
   // ============================================================
   // INSERT PAYMENT
   // ============================================================
 
-  Future<int> insertPayment(
-    SupplierPaymentsCompanion payment,
-  ) async {
-    if (payment.amount.present &&
-        payment.amount.value <= 0) {
-      throw Exception(
-        'Supplier payment amount must be greater than zero.',
-      );
+  Future<int> insertPayment(SupplierPaymentsCompanion payment) async {
+    if (!payment.amount.present || payment.amount.value <= 0) {
+      throw Exception('Supplier payment amount must be greater than zero.');
     }
 
     return into(supplierPayments).insert(payment);
@@ -41,12 +53,10 @@ class SupplierPaymentDao
   // GET PAYMENT BY ID
   // ============================================================
 
-  Future<SupplierPayment?> getPaymentById(
-    int id,
-  ) {
-    return (select(supplierPayments)
-          ..where((p) => p.id.equals(id)))
-        .getSingleOrNull();
+  Future<SupplierPayment?> getPaymentById(int id) {
+    return (select(
+      supplierPayments,
+    )..where((p) => p.id.equals(id))).getSingleOrNull();
   }
 
   // ============================================================
@@ -54,17 +64,11 @@ class SupplierPaymentDao
   // ============================================================
 
   Future<List<SupplierPayment>> getAllPayments() {
-    return (select(supplierPayments)
-          ..orderBy([
-            (p) => OrderingTerm(
-                  expression: p.paymentDate,
-                  mode: OrderingMode.desc,
-                ),
-            (p) => OrderingTerm(
-                  expression: p.id,
-                  mode: OrderingMode.desc,
-                ),
-          ]))
+    return (select(supplierPayments)..orderBy([
+          (p) =>
+              OrderingTerm(expression: p.paymentDate, mode: OrderingMode.desc),
+          (p) => OrderingTerm(expression: p.id, mode: OrderingMode.desc),
+        ]))
         .get();
   }
 
@@ -72,25 +76,15 @@ class SupplierPaymentDao
   // PAYMENTS FOR SUPPLIER
   // ============================================================
 
-  Future<List<SupplierPayment>>
-      getPaymentsForSupplier(
-    int supplierId,
-  ) {
+  Future<List<SupplierPayment>> getPaymentsForSupplier(int supplierId) {
     return (select(supplierPayments)
-          ..where(
-            (p) => p.supplierId.equals(
-              supplierId,
-            ),
-          )
+          ..where((p) => p.supplierId.equals(supplierId))
           ..orderBy([
             (p) => OrderingTerm(
-                  expression: p.paymentDate,
-                  mode: OrderingMode.desc,
-                ),
-            (p) => OrderingTerm(
-                  expression: p.id,
-                  mode: OrderingMode.desc,
-                ),
+              expression: p.paymentDate,
+              mode: OrderingMode.desc,
+            ),
+            (p) => OrderingTerm(expression: p.id, mode: OrderingMode.desc),
           ]))
         .get();
   }
@@ -99,34 +93,28 @@ class SupplierPaymentDao
   // PAYMENTS WITH SUPPLIER
   // ============================================================
 
-  Future<List<SupplierPaymentWithSupplier>>
-      getPaymentsWithSuppliers() {
+  Future<List<SupplierPaymentWithSupplier>> getPaymentsWithSuppliers() {
     final query =
         select(supplierPayments).join([
-      innerJoin(
-        suppliers,
-        suppliers.id.equalsExp(
-          supplierPayments.supplierId,
-        ),
-      ),
-    ])
-      ..orderBy([
-        OrderingTerm(
-          expression: supplierPayments.paymentDate,
-          mode: OrderingMode.desc,
-        ),
-        OrderingTerm(
-          expression: supplierPayments.id,
-          mode: OrderingMode.desc,
-        ),
-      ]);
+          innerJoin(
+            suppliers,
+            suppliers.id.equalsExp(supplierPayments.supplierId),
+          ),
+        ])..orderBy([
+          OrderingTerm(
+            expression: supplierPayments.paymentDate,
+            mode: OrderingMode.desc,
+          ),
+          OrderingTerm(
+            expression: supplierPayments.id,
+            mode: OrderingMode.desc,
+          ),
+        ]);
 
     return query.map((row) {
       return SupplierPaymentWithSupplier(
-        payment:
-            row.readTable(supplierPayments),
-        supplier:
-            row.readTable(suppliers),
+        payment: row.readTable(supplierPayments),
+        supplier: row.readTable(suppliers),
       );
     }).get();
   }
@@ -135,39 +123,27 @@ class SupplierPaymentDao
   // UPDATE PAYMENT
   // ============================================================
 
-  Future<bool> updatePayment(
-    SupplierPayment payment,
-  ) {
+  Future<bool> updatePayment(SupplierPayment payment) {
     if (payment.amount <= 0) {
-      throw Exception(
-        'Supplier payment amount must be greater than zero.',
-      );
+      throw Exception('Supplier payment amount must be greater than zero.');
     }
 
-    return update(
-      supplierPayments,
-    ).replace(payment);
+    return update(supplierPayments).replace(payment);
   }
 
   // ============================================================
   // DELETE PAYMENT
   // ============================================================
 
-  Future<int> deletePayment(
-    int id,
-  ) {
-    return (delete(supplierPayments)
-          ..where((p) => p.id.equals(id)))
-        .go();
+  Future<int> deletePayment(int id) {
+    return (delete(supplierPayments)..where((p) => p.id.equals(id))).go();
   }
 
   // ============================================================
   // TOTAL PAID TO SUPPLIER
   // ============================================================
 
-  Future<double> getSupplierPaymentTotal(
-    int supplierId,
-  ) async {
+  Future<double> getSupplierPaymentTotal(int supplierId) async {
     final result = await customSelect(
       '''
       SELECT
@@ -176,25 +152,17 @@ class SupplierPaymentDao
       FROM supplier_payments
       WHERE supplier_id = ?
       ''',
-      variables: [
-        Variable.withInt(supplierId),
-      ],
-      readsFrom: {
-        supplierPayments,
-      },
+      variables: [Variable.withInt(supplierId)],
+      readsFrom: {supplierPayments},
     ).getSingle();
 
-    final value =
-        result.data['total_paid'];
+    final value = result.data['total_paid'];
 
     if (value is num) {
       return value.toDouble();
     }
 
-    return double.tryParse(
-          value?.toString() ?? '',
-        ) ??
-        0;
+    return double.tryParse(value?.toString() ?? '') ?? 0;
   }
 
   // ============================================================
@@ -209,22 +177,16 @@ class SupplierPaymentDao
         AS total_paid
       FROM supplier_payments
       ''',
-      readsFrom: {
-        supplierPayments,
-      },
+      readsFrom: {supplierPayments},
     ).getSingle();
 
-    final value =
-        result.data['total_paid'];
+    final value = result.data['total_paid'];
 
     if (value is num) {
       return value.toDouble();
     }
 
-    return double.tryParse(
-          value?.toString() ?? '',
-        ) ??
-        0;
+    return double.tryParse(value?.toString() ?? '') ?? 0;
   }
 }
 

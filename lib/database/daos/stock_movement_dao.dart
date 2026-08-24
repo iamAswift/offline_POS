@@ -6,6 +6,8 @@ import '../app_database.dart';
 import '../tables/stock_movement_table.dart';
 import '../tables/product_table.dart';
 import '../tables/supplier_table.dart';
+import '../models/stock_movement_model.dart'; 
+
 
 part 'stock_movement_dao.g.dart';
 
@@ -19,6 +21,24 @@ part 'stock_movement_dao.g.dart';
 class StockMovementDao extends DatabaseAccessor<AppDatabase>
     with _$StockMovementDaoMixin {
   StockMovementDao(super.db);
+
+  // ============================================================
+  // SNAPSHOT
+  // ============================================================
+  Future<List<StockMovementModel>> getAllStockMovementsForSnapshot() async {
+    final rows = await select(stockMovements).get();
+
+    return rows.map((row) => StockMovementModel(
+          id: row.id,
+          productId: row.productId,
+          supplierId: row.supplierId,
+          type: row.type,
+          deliveryId: row.deliveryId,
+          quantity: row.quantity,
+          unitPrice: row.unitPrice,
+          date: row.date,
+        )).toList();
+  }
 
   // ============================================================
   // STOCK UPDATE
@@ -344,6 +364,9 @@ class StockMovementDao extends DatabaseAccessor<AppDatabase>
 
     return total;
   }
+
+  
+
 
   // ============================================================
   // PRODUCT LEDGER

@@ -4,6 +4,9 @@ import 'package:drift/drift.dart';
 
 import '../app_database.dart';
 import '../tables/user_table.dart';
+import '../models/user_model.dart';
+
+
 
 part 'user_dao.g.dart';
 
@@ -13,12 +16,31 @@ class UserDao extends DatabaseAccessor<AppDatabase>
   UserDao(super.db);
 
   // ============================================================
+  // GET ALL USERS FOR SNAPSHOT
+  // ============================================================
+  Future<List<UserModel>> getAllUsersForSnapshot() async {
+    final rows = await select(users).get();
+    return rows.map((row) => UserModel(
+      id: row.id,
+      name: row.name,
+      loginId: row.loginId,
+      email: row.email,
+      password: row.password,
+      isActive: row.isActive,
+      role: row.role,
+    )).toList();
+  }
+
+
+  // ============================================================
   // CREATE USER
   // ============================================================
 
   Future<int> insertUser(UsersCompanion user) {
     return into(users).insert(user);
   }
+
+  
 
   // ============================================================
   // GET USER COUNT

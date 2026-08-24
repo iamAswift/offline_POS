@@ -1,3 +1,5 @@
+//lib/database/tables/supplier_payment_table.dart
+
 import 'package:drift/drift.dart';
 
 import 'supplier_table.dart';

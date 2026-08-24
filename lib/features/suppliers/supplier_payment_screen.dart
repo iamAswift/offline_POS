@@ -10,6 +10,8 @@ import '../../database/app_database.dart';
 import '../../database/daos/supplier_payment_dao.dart';
 import '../../database/daos/supplier_payment_allocation_dao.dart';
 import '../../database/daos/supplier_delivery_dao.dart';
+import '../../features/suppliers/supplier_payment_allocation_screen.dart';
+import 'supplier_statement_screen.dart';
 
 import 'supplier_delivery_screen.dart';
 
@@ -87,13 +89,11 @@ class _SupplierPaymentScreenState
 
       for (final payment in payments) {
         final allocated =
-            await _allocationDao
-                .getAllocatedAmountForPayment(
+            await _allocationDao.getAllocatedAmountForPayment(
           payment.id,
         );
 
-        final remaining =
-            payment.amount - allocated;
+        final remaining = payment.amount - allocated;
 
         if (remaining > 0) {
           unallocated += remaining;
@@ -278,8 +278,7 @@ class _SupplierPaymentScreenState
         backgroundColor: AppColors.accent,
         foregroundColor: Colors.white,
 
-        onPressed:
-            _showAddPaymentDialog,
+        onPressed: _showAddPaymentDialog,
 
         icon: const Icon(
           Icons.payment,
@@ -382,8 +381,8 @@ class _SupplierPaymentScreenState
                           maxLines: 1,
                           overflow:
                               TextOverflow.ellipsis,
-                          style: AppTextStyles
-                              .bodySecondary,
+                          style:
+                              AppTextStyles.bodySecondary,
                         ),
                       ),
                     ],
@@ -655,7 +654,8 @@ class _SupplierPaymentScreenState
                 await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => SupplierDeliveriesScreen(
+                    builder: (_) =>
+                        SupplierDeliveriesScreen(
                       supplier: widget.supplier,
                     ),
                   ),
@@ -674,8 +674,13 @@ class _SupplierPaymentScreenState
               subtitle:
                   'Match payments',
               onTap: () {
-                _showComingSoon(
-                  'Payment allocations',
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        SupplierPaymentAllocationScreen(
+                      supplier: widget.supplier,
+                    ),
+                  ),
                 );
               },
             ),
@@ -694,15 +699,22 @@ class _SupplierPaymentScreenState
             ),
 
             _actionCard(
-              icon:
-                  Icons.receipt_long_outlined,
+              icon: Icons.receipt_long_outlined,
               title: 'Statement',
-              subtitle:
-                  'View account history',
-              onTap: () {
-                _showComingSoon(
-                  'Supplier statement',
+              subtitle: 'View account history',
+              onTap: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => SupplierStatementScreen(
+                      supplier: widget.supplier,
+                    ),
+                  ),
                 );
+
+                if (!mounted) return;
+
+                await _loadDashboard();
               },
             ),
           ],
@@ -1077,14 +1089,27 @@ class _SupplierPaymentScreenState
   // STATEMENT BUTTON
   // ============================================================
 
+  // ============================================================
+  // STATEMENT BUTTON
+  // ============================================================
+
   Widget _buildStatementButton(
     bool isTablet,
   ) {
     return OutlinedButton.icon(
-      onPressed: () {
-        _showComingSoon(
-          'Supplier statement',
+      onPressed: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SupplierStatementScreen(
+              supplier: widget.supplier,
+            ),
+          ),
         );
+
+        if (!mounted) return;
+
+        await _loadDashboard();
       },
 
       icon: const Icon(
@@ -1092,33 +1117,25 @@ class _SupplierPaymentScreenState
       ),
 
       label: Padding(
-        padding:
-            EdgeInsets.symmetric(
-          vertical:
-              isTablet ? 16 : 14,
+        padding: EdgeInsets.symmetric(
+          vertical: isTablet ? 16 : 14,
         ),
 
         child: const Text(
           'View Supplier Statement',
-          style:
-              AppTextStyles.body,
+          style: AppTextStyles.body,
         ),
       ),
 
-      style:
-          OutlinedButton.styleFrom(
-        foregroundColor:
-            AppColors.primary,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.primary,
 
         side: const BorderSide(
-          color:
-              AppColors.primary,
+          color: AppColors.primary,
         ),
 
-        shape:
-            RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.circular(12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
     );
@@ -1239,329 +1256,19 @@ class _SupplierPaymentScreenState
   // ============================================================
 
   Future<void> _showAddPaymentDialog() async {
-    final amountController =
-        TextEditingController();
-
-    final referenceController =
-        TextEditingController();
-
-    final notesController =
-        TextEditingController();
-
-    String paymentMethod = 'cash';
-
-    final formKey =
-        GlobalKey<FormState>();
-
-    final result =
-        await showDialog<bool>(
+    final result = await showDialog<bool>(
       context: context,
-
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (
-            context,
-            setDialogState,
-          ) {
-            return AlertDialog(
-              title: const Text(
-                'Record Supplier Payment',
-                style:
-                    AppTextStyles.title,
-              ),
-
-              content: SizedBox(
-                width: 450,
-
-                child: Form(
-                  key: formKey,
-
-                  child:
-                      SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize:
-                          MainAxisSize.min,
-
-                      children: [
-                        _dialogTextField(
-                          controller:
-                              amountController,
-                          label:
-                              'Amount',
-                          hint:
-                              '0.00',
-                          keyboardType:
-                              const TextInputType
-                                  .numberWithOptions(
-                            decimal: true,
-                          ),
-                          validator:
-                              (value) {
-                            final amount =
-                                double.tryParse(
-                              value ?? '',
-                            );
-
-                            if (amount ==
-                                    null ||
-                                amount <= 0) {
-                              return 'Enter a valid amount';
-                            }
-
-                            return null;
-                          },
-                        ),
-
-                        const SizedBox(
-                          height: 14,
-                        ),
-
-                        DropdownButtonFormField<
-                            String>(
-                          value:
-                              paymentMethod,
-
-                          decoration:
-                              const InputDecoration(
-                            labelText:
-                                'Payment Method',
-                            border:
-                                OutlineInputBorder(),
-                          ),
-
-                          items:
-                              const [
-                            DropdownMenuItem(
-                              value:
-                                  'cash',
-                              child:
-                                  Text(
-                                'Cash',
-                              ),
-                            ),
-                            DropdownMenuItem(
-                              value:
-                                  'transfer',
-                              child:
-                                  Text(
-                                'Bank Transfer',
-                              ),
-                            ),
-                            DropdownMenuItem(
-                              value:
-                                  'pos',
-                              child:
-                                  Text(
-                                'POS',
-                              ),
-                            ),
-                            DropdownMenuItem(
-                              value:
-                                  'other',
-                              child:
-                                  Text(
-                                'Other',
-                              ),
-                            ),
-                          ],
-
-                          onChanged:
-                              (value) {
-                            if (value ==
-                                null) {
-                              return;
-                            }
-
-                            setDialogState(
-                              () {
-                                paymentMethod =
-                                    value;
-                              },
-                            );
-                          },
-                        ),
-
-                        const SizedBox(
-                          height: 14,
-                        ),
-
-                        _dialogTextField(
-                          controller:
-                              referenceController,
-                          label:
-                              'Reference',
-                          hint:
-                              'Optional',
-                        ),
-
-                        const SizedBox(
-                          height: 14,
-                        ),
-
-                        _dialogTextField(
-                          controller:
-                              notesController,
-                          label:
-                              'Notes',
-                          hint:
-                              'Optional',
-                          maxLines: 3,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(
-                      dialogContext,
-                      false,
-                    );
-                  },
-                  child:
-                      const Text(
-                    'Cancel',
-                  ),
-                ),
-
-                ElevatedButton.icon(
-                  onPressed:
-                      () async {
-                    if (!formKey
-                        .currentState!
-                        .validate()) {
-                      return;
-                    }
-
-                    final amount =
-                        double.parse(
-                      amountController
-                          .text
-                          .trim(),
-                    );
-
-                    try {
-                      await _paymentDao
-                          .insertPayment(
-                        SupplierPaymentsCompanion(
-                          supplierId:
-                              Value(
-                            widget
-                                .supplier
-                                .id,
-                          ),
-
-                          amount:
-                              Value(
-                            amount,
-                          ),
-
-                          paymentMethod:
-                              Value(
-                            paymentMethod,
-                          ),
-
-                          reference:
-                              referenceController
-                                      .text
-                                      .trim()
-                                      .isEmpty
-                                  ? const Value
-                                      .absent()
-                                  : Value(
-                                      referenceController
-                                          .text
-                                          .trim(),
-                                    ),
-
-                          notes:
-                              notesController
-                                      .text
-                                      .trim()
-                                      .isEmpty
-                                  ? const Value
-                                      .absent()
-                                  : Value(
-                                      notesController
-                                          .text
-                                          .trim(),
-                                    ),
-                        ),
-                      );
-
-                      if (!dialogContext
-                          .mounted) {
-                        return;
-                      }
-
-                      Navigator.pop(
-                        dialogContext,
-                        true,
-                      );
-                    } catch (e) {
-                      _showError(
-                        'Unable to record payment.\n$e',
-                      );
-                    }
-                  },
-
-                  icon:
-                      const Icon(
-                    Icons.check,
-                  ),
-
-                  label:
-                      const Text(
-                    'Record Payment',
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      builder: (_) => _SupplierPaymentDialog(
+        supplierId: widget.supplier.id,
+        paymentDao: _paymentDao,
+      ),
     );
 
-    amountController.dispose();
-    referenceController.dispose();
-    notesController.dispose();
+    if (!mounted) return;
 
     if (result == true) {
       await _loadDashboard();
     }
-  }
-
-  // ============================================================
-  // FORM FIELD
-  // ============================================================
-
-  Widget _dialogTextField({
-    required TextEditingController
-        controller,
-    required String label,
-    required String hint,
-    TextInputType? keyboardType,
-    String? Function(String?)?
-        validator,
-    int maxLines = 1,
-  }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      validator: validator,
-      maxLines: maxLines,
-
-      decoration:
-          InputDecoration(
-        labelText: label,
-        hintText: hint,
-        border:
-            const OutlineInputBorder(),
-      ),
-    );
   }
 
   // ============================================================
@@ -1634,5 +1341,353 @@ class _SupplierPaymentScreenState
             SnackBarBehavior.floating,
       ),
     );
+  }
+}
+
+// ============================================================
+// SUPPLIER PAYMENT DIALOG
+// ============================================================
+
+class _SupplierPaymentDialog extends StatefulWidget {
+  final int supplierId;
+  final SupplierPaymentDao paymentDao;
+
+  const _SupplierPaymentDialog({
+    required this.supplierId,
+    required this.paymentDao,
+  });
+
+  @override
+  State<_SupplierPaymentDialog> createState() =>
+      _SupplierPaymentDialogState();
+}
+
+class _SupplierPaymentDialogState
+    extends State<_SupplierPaymentDialog> {
+  late final TextEditingController _amountController;
+  late final TextEditingController _referenceController;
+  late final TextEditingController _notesController;
+
+  final _formKey = GlobalKey<FormState>();
+
+  String _paymentMethod = 'cash';
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _amountController =
+        TextEditingController();
+
+    _referenceController =
+        TextEditingController();
+
+    _notesController =
+        TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _referenceController.dispose();
+    _notesController.dispose();
+
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text(
+        'Record Supplier Payment',
+        style: AppTextStyles.title,
+      ),
+
+      content: SizedBox(
+        width: 450,
+
+        child: Form(
+          key: _formKey,
+
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize:
+                  MainAxisSize.min,
+
+              children: [
+                TextFormField(
+                  controller:
+                      _amountController,
+
+                  enabled: !_saving,
+
+                  keyboardType:
+                      const TextInputType
+                          .numberWithOptions(
+                    decimal: true,
+                  ),
+
+                  decoration:
+                      const InputDecoration(
+                    labelText: 'Amount',
+                    hintText: '0.00',
+                    border:
+                        OutlineInputBorder(),
+                  ),
+
+                  validator: (value) {
+                    final amount =
+                        double.tryParse(
+                      value?.trim() ?? '',
+                    );
+
+                    if (amount == null ||
+                        amount <= 0) {
+                      return 'Enter a valid amount';
+                    }
+
+                    return null;
+                  },
+                ),
+
+                const SizedBox(
+                  height: 14,
+                ),
+
+                DropdownButtonFormField<
+                    String>(
+                  value: _paymentMethod,
+
+                  decoration:
+                      const InputDecoration(
+                    labelText:
+                        'Payment Method',
+                    border:
+                        OutlineInputBorder(),
+                  ),
+
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'cash',
+                      child:
+                          Text('Cash'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'transfer',
+                      child:
+                          Text(
+                        'Bank Transfer',
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'pos',
+                      child:
+                          Text('POS'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'other',
+                      child:
+                          Text('Other'),
+                    ),
+                  ],
+
+                  onChanged: _saving
+                      ? null
+                      : (value) {
+                          if (value ==
+                              null) {
+                            return;
+                          }
+
+                          setState(() {
+                            _paymentMethod =
+                                value;
+                          });
+                        },
+                ),
+
+                const SizedBox(
+                  height: 14,
+                ),
+
+                TextFormField(
+                  controller:
+                      _referenceController,
+
+                  enabled: !_saving,
+
+                  decoration:
+                      const InputDecoration(
+                    labelText:
+                        'Reference',
+                    hintText:
+                        'Optional',
+                    border:
+                        OutlineInputBorder(),
+                  ),
+                ),
+
+                const SizedBox(
+                  height: 14,
+                ),
+
+                TextFormField(
+                  controller:
+                      _notesController,
+
+                  enabled: !_saving,
+
+                  maxLines: 3,
+
+                  decoration:
+                      const InputDecoration(
+                    labelText: 'Notes',
+                    hintText:
+                        'Optional',
+                    border:
+                        OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+
+      actions: [
+        TextButton(
+          onPressed: _saving
+              ? null
+              : () {
+                  Navigator.of(context)
+                      .pop(false);
+                },
+
+          child:
+              const Text('Cancel'),
+        ),
+
+        ElevatedButton.icon(
+          onPressed:
+              _saving
+                  ? null
+                  : _savePayment,
+
+          icon: _saving
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child:
+                      CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Icon(
+                  Icons.check,
+                ),
+
+          label: Text(
+            _saving
+                ? 'Saving...'
+                : 'Record Payment',
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // SAVE PAYMENT
+  // ============================================================
+
+  Future<void> _savePayment() async {
+    if (_saving) return;
+
+    if (!_formKey.currentState!
+        .validate()) {
+      return;
+    }
+
+    final amount =
+        double.tryParse(
+      _amountController.text.trim(),
+    );
+
+    if (amount == null ||
+        amount <= 0) {
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+    });
+
+    try {
+      await widget.paymentDao
+          .insertPayment(
+        SupplierPaymentsCompanion(
+          supplierId: Value(
+            widget.supplierId,
+          ),
+
+          amount: Value(
+            amount,
+          ),
+
+          paymentMethod: Value(
+            _paymentMethod,
+          ),
+
+          reference:
+              _referenceController
+                      .text
+                      .trim()
+                      .isEmpty
+                  ? const Value.absent()
+                  : Value(
+                      _referenceController
+                          .text
+                          .trim(),
+                    ),
+
+          notes:
+              _notesController
+                      .text
+                      .trim()
+                      .isEmpty
+                  ? const Value.absent()
+                  : Value(
+                      _notesController
+                          .text
+                          .trim(),
+                    ),
+        ),
+      );
+
+      if (!mounted) return;
+
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _saving = false;
+      });
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        SnackBar(
+          content: Text(
+            'Unable to record payment.\n$e',
+          ),
+          backgroundColor:
+              AppColors.danger,
+          behavior:
+              SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 }

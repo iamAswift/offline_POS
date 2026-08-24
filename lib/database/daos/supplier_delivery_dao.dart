@@ -10,6 +10,8 @@ import '../tables/supplier_table.dart';
 import '../tables/product_table.dart';
 import '../tables/stock_movement_table.dart';
 
+import '../models/supplier_delivery_model.dart';
+
 part 'supplier_delivery_dao.g.dart';
 
 @DriftAccessor(
@@ -26,12 +28,31 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
   SupplierDeliveryDao(super.db);
 
   // ============================================================
+  // GET ALL SUPPLIER DELIVERIES FOR SNAPSHOT
+  // ============================================================
+  Future<List<SupplierDeliveryModel>>
+  getAllSupplierDeliveriesForSnapshot() async {
+    final rows = await select(supplierDeliveries).get();
+
+    return rows
+        .map(
+          (row) => SupplierDeliveryModel(
+            id: row.id,
+            supplierId: row.supplierId,
+            deliveryDate: row.deliveryDate,
+            invoiceNumber: row.invoiceNumber,
+            totalAmount: row.totalAmount,
+            notes: row.notes,
+          ),
+        )
+        .toList();
+  }
+
+  // ============================================================
   // CREATE DELIVERY HEADER
   // ============================================================
 
-  Future<int> insertDelivery(
-    SupplierDeliveriesCompanion delivery,
-  ) {
+  Future<int> insertDelivery(SupplierDeliveriesCompanion delivery) {
     return into(supplierDeliveries).insert(delivery);
   }
 
@@ -40,9 +61,9 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
   // ============================================================
 
   Future<SupplierDelivery?> getDeliveryById(int id) {
-    return (select(supplierDeliveries)
-          ..where((d) => d.id.equals(id)))
-        .getSingleOrNull();
+    return (select(
+      supplierDeliveries,
+    )..where((d) => d.id.equals(id))).getSingleOrNull();
   }
 
   // ============================================================
@@ -50,17 +71,11 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
   // ============================================================
 
   Future<List<SupplierDelivery>> getAllDeliveries() {
-    return (select(supplierDeliveries)
-          ..orderBy([
-            (d) => OrderingTerm(
-                  expression: d.deliveryDate,
-                  mode: OrderingMode.desc,
-                ),
-            (d) => OrderingTerm(
-                  expression: d.id,
-                  mode: OrderingMode.desc,
-                ),
-          ]))
+    return (select(supplierDeliveries)..orderBy([
+          (d) =>
+              OrderingTerm(expression: d.deliveryDate, mode: OrderingMode.desc),
+          (d) => OrderingTerm(expression: d.id, mode: OrderingMode.desc),
+        ]))
         .get();
   }
 
@@ -68,20 +83,15 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
   // GET DELIVERIES FOR SUPPLIER
   // ============================================================
 
-  Future<List<SupplierDelivery>> getDeliveriesForSupplier(
-    int supplierId,
-  ) {
+  Future<List<SupplierDelivery>> getDeliveriesForSupplier(int supplierId) {
     return (select(supplierDeliveries)
           ..where((d) => d.supplierId.equals(supplierId))
           ..orderBy([
             (d) => OrderingTerm(
-                  expression: d.deliveryDate,
-                  mode: OrderingMode.desc,
-                ),
-            (d) => OrderingTerm(
-                  expression: d.id,
-                  mode: OrderingMode.desc,
-                ),
+              expression: d.deliveryDate,
+              mode: OrderingMode.desc,
+            ),
+            (d) => OrderingTerm(expression: d.id, mode: OrderingMode.desc),
           ]))
         .get();
   }
@@ -90,26 +100,23 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
   // GET DELIVERIES WITH SUPPLIER
   // ============================================================
 
-  Future<List<SupplierDeliveryWithSupplier>>
-      getDeliveriesWithSuppliers() {
-    final query = select(supplierDeliveries).join([
-      innerJoin(
-        suppliers,
-        suppliers.id.equalsExp(
-          supplierDeliveries.supplierId,
-        ),
-      ),
-    ])
-      ..orderBy([
-        OrderingTerm(
-          expression: supplierDeliveries.deliveryDate,
-          mode: OrderingMode.desc,
-        ),
-        OrderingTerm(
-          expression: supplierDeliveries.id,
-          mode: OrderingMode.desc,
-        ),
-      ]);
+  Future<List<SupplierDeliveryWithSupplier>> getDeliveriesWithSuppliers() {
+    final query =
+        select(supplierDeliveries).join([
+          innerJoin(
+            suppliers,
+            suppliers.id.equalsExp(supplierDeliveries.supplierId),
+          ),
+        ])..orderBy([
+          OrderingTerm(
+            expression: supplierDeliveries.deliveryDate,
+            mode: OrderingMode.desc,
+          ),
+          OrderingTerm(
+            expression: supplierDeliveries.id,
+            mode: OrderingMode.desc,
+          ),
+        ]);
 
     return query.map((row) {
       return SupplierDeliveryWithSupplier(
@@ -123,9 +130,7 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
   // UPDATE DELIVERY
   // ============================================================
 
-  Future<bool> updateDelivery(
-    SupplierDelivery delivery,
-  ) {
+  Future<bool> updateDelivery(SupplierDelivery delivery) {
     return update(supplierDeliveries).replace(delivery);
   }
 
@@ -139,14 +144,12 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
       // VERIFY DELIVERY EXISTS
       // ==========================================================
 
-      final delivery = await (select(supplierDeliveries)
-            ..where((d) => d.id.equals(id)))
-          .getSingleOrNull();
+      final delivery = await (select(
+        supplierDeliveries,
+      )..where((d) => d.id.equals(id))).getSingleOrNull();
 
       if (delivery == null) {
-        throw Exception(
-          'Supplier delivery with ID $id was not found.',
-        );
+        throw Exception('Supplier delivery with ID $id was not found.');
       }
 
       // ==========================================================
@@ -173,25 +176,23 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
       // that have NOT been posted/received into stock.
       // ==========================================================
 
-      await (delete(stockMovements)
-            ..where((m) => m.deliveryId.equals(id)))
-          .go();
+      await (delete(
+        stockMovements,
+      )..where((m) => m.deliveryId.equals(id))).go();
 
       // ==========================================================
       // DELETE DELIVERY ITEMS
       // ==========================================================
 
-      await (delete(supplierDeliveryItems)
-            ..where((i) => i.deliveryId.equals(id)))
-          .go();
+      await (delete(
+        supplierDeliveryItems,
+      )..where((i) => i.deliveryId.equals(id))).go();
 
       // ==========================================================
       // DELETE DELIVERY HEADER
       // ==========================================================
 
-      return (delete(supplierDeliveries)
-            ..where((d) => d.id.equals(id)))
-          .go();
+      return (delete(supplierDeliveries)..where((d) => d.id.equals(id))).go();
     });
   }
 
@@ -199,9 +200,7 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
   // ADD DELIVERY ITEM
   // ============================================================
 
-  Future<int> insertDeliveryItem(
-    SupplierDeliveryItemsCompanion item,
-  ) {
+  Future<int> insertDeliveryItem(SupplierDeliveryItemsCompanion item) {
     return into(supplierDeliveryItems).insert(item);
   }
 
@@ -209,14 +208,10 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
   // GET DELIVERY ITEMS
   // ============================================================
 
-  Future<List<SupplierDeliveryItem>> getDeliveryItems(
-    int deliveryId,
-  ) {
+  Future<List<SupplierDeliveryItem>> getDeliveryItems(int deliveryId) {
     return (select(supplierDeliveryItems)
           ..where((i) => i.deliveryId.equals(deliveryId))
-          ..orderBy([
-            (i) => OrderingTerm.asc(i.id),
-          ]))
+          ..orderBy([(i) => OrderingTerm.asc(i.id)]))
         .get();
   }
 
@@ -224,28 +219,18 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
   // GET DELIVERY ITEMS WITH PRODUCTS
   // ============================================================
 
-  Future<List<SupplierDeliveryItemWithProduct>>
-      getDeliveryItemsWithProducts(
+  Future<List<SupplierDeliveryItemWithProduct>> getDeliveryItemsWithProducts(
     int deliveryId,
   ) {
-    final query = select(supplierDeliveryItems).join([
-      innerJoin(
-        products,
-        products.id.equalsExp(
-          supplierDeliveryItems.productId,
-        ),
-      ),
-    ])
-      ..where(
-        supplierDeliveryItems.deliveryId.equals(
-          deliveryId,
-        ),
-      )
-      ..orderBy([
-        OrderingTerm.asc(
-          supplierDeliveryItems.id,
-        ),
-      ]);
+    final query =
+        select(supplierDeliveryItems).join([
+            innerJoin(
+              products,
+              products.id.equalsExp(supplierDeliveryItems.productId),
+            ),
+          ])
+          ..where(supplierDeliveryItems.deliveryId.equals(deliveryId))
+          ..orderBy([OrderingTerm.asc(supplierDeliveryItems.id)]);
 
     return query.map((row) {
       return SupplierDeliveryItemWithProduct(
@@ -259,21 +244,17 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
   // DELETE DELIVERY ITEM
   // ============================================================
 
-  Future<int> deleteDeliveryItem(
-    int itemId,
-  ) {
-    return (delete(supplierDeliveryItems)
-          ..where((i) => i.id.equals(itemId)))
-        .go();
+  Future<int> deleteDeliveryItem(int itemId) {
+    return (delete(
+      supplierDeliveryItems,
+    )..where((i) => i.id.equals(itemId))).go();
   }
 
   // ============================================================
   // SUPPLIER PURCHASE TOTAL
   // ============================================================
 
-  Future<double> getSupplierPurchaseTotal(
-    int supplierId,
-  ) async {
+  Future<double> getSupplierPurchaseTotal(int supplierId) async {
     final result = await customSelect(
       '''
       SELECT
@@ -282,17 +263,11 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
       FROM supplier_deliveries
       WHERE supplier_id = ?
       ''',
-      variables: [
-        Variable.withInt(supplierId),
-      ],
-      readsFrom: {
-        supplierDeliveries,
-      },
+      variables: [Variable.withInt(supplierId)],
+      readsFrom: {supplierDeliveries},
     ).getSingle();
 
-    return _readDouble(
-      result.data['total_purchases'],
-    );
+    return _readDouble(result.data['total_purchases']);
   }
 
   // ============================================================
@@ -307,33 +282,22 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
         AS total_purchases
       FROM supplier_deliveries
       ''',
-      readsFrom: {
-        supplierDeliveries,
-      },
+      readsFrom: {supplierDeliveries},
     ).getSingle();
 
-    return _readDouble(
-      result.data['total_purchases'],
-    );
+    return _readDouble(result.data['total_purchases']);
   }
 
   // ============================================================
   // DELIVERY COUNT
   // ============================================================
 
-  Future<int> getDeliveryCount(
-    int supplierId,
-  ) async {
-    final expression =
-        supplierDeliveries.id.count();
+  Future<int> getDeliveryCount(int supplierId) async {
+    final expression = supplierDeliveries.id.count();
 
     final query = selectOnly(supplierDeliveries)
       ..addColumns([expression])
-      ..where(
-        supplierDeliveries.supplierId.equals(
-          supplierId,
-        ),
-      );
+      ..where(supplierDeliveries.supplierId.equals(supplierId));
 
     final row = await query.getSingle();
 
@@ -344,19 +308,12 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
   // TOTAL ITEMS IN DELIVERY
   // ============================================================
 
-  Future<int> getDeliveryItemCount(
-    int deliveryId,
-  ) async {
-    final expression =
-        supplierDeliveryItems.id.count();
+  Future<int> getDeliveryItemCount(int deliveryId) async {
+    final expression = supplierDeliveryItems.id.count();
 
     final query = selectOnly(supplierDeliveryItems)
       ..addColumns([expression])
-      ..where(
-        supplierDeliveryItems.deliveryId.equals(
-          deliveryId,
-        ),
-      );
+      ..where(supplierDeliveryItems.deliveryId.equals(deliveryId));
 
     final row = await query.getSingle();
 
@@ -391,34 +348,25 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
     // ------------------------------------------------------------
 
     if (!delivery.supplierId.present) {
-      throw Exception(
-        'A supplier is required for the delivery.',
-      );
+      throw Exception('A supplier is required for the delivery.');
     }
 
     if (delivery.supplierId.value <= 0) {
-      throw Exception(
-        'Invalid supplier selected.',
-      );
+      throw Exception('Invalid supplier selected.');
     }
 
     if (items.isEmpty) {
-      throw Exception(
-        'A delivery must contain at least one item.',
-      );
+      throw Exception('A delivery must contain at least one item.');
     }
 
     // ------------------------------------------------------------
     // VALIDATE DELIVERY TOTAL
     // ------------------------------------------------------------
 
-    final calculatedTotal =
-        calculateDeliveryTotal(items);
+    final calculatedTotal = calculateDeliveryTotal(items);
 
     if (calculatedTotal < 0) {
-      throw Exception(
-        'Delivery total cannot be negative.',
-      );
+      throw Exception('Delivery total cannot be negative.');
     }
 
     // ------------------------------------------------------------
@@ -430,13 +378,10 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
       // VERIFY SUPPLIER
       // ==========================================================
 
-      final supplier = await (select(suppliers)
-            ..where(
-              (s) => s.id.equals(
-                delivery.supplierId.value,
-              ),
-            ))
-          .getSingleOrNull();
+      final supplier =
+          await (select(suppliers)
+                ..where((s) => s.id.equals(delivery.supplierId.value)))
+              .getSingleOrNull();
 
       if (supplier == null) {
         throw Exception(
@@ -450,10 +395,7 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
       // CREATE DELIVERY HEADER
       // ==========================================================
 
-      final deliveryId =
-          await into(supplierDeliveries).insert(
-        delivery,
-      );
+      final deliveryId = await into(supplierDeliveries).insert(delivery);
 
       // ==========================================================
       // PROCESS DELIVERY ITEMS
@@ -465,56 +407,41 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
         // --------------------------------------------------------
 
         if (!originalItem.productId.present) {
-          throw Exception(
-            'A product is required for every delivery item.',
-          );
+          throw Exception('A product is required for every delivery item.');
         }
 
         if (!originalItem.quantity.present) {
-          throw Exception(
-            'Quantity is required for every delivery item.',
-          );
+          throw Exception('Quantity is required for every delivery item.');
         }
 
         if (!originalItem.unitCost.present) {
-          throw Exception(
-            'Unit cost is required for every delivery item.',
-          );
+          throw Exception('Unit cost is required for every delivery item.');
         }
 
         if (!originalItem.totalCost.present) {
-          throw Exception(
-            'Total cost is required for every delivery item.',
-          );
+          throw Exception('Total cost is required for every delivery item.');
         }
 
         // --------------------------------------------------------
         // READ VALUES
         // --------------------------------------------------------
 
-        final productId =
-            originalItem.productId.value;
+        final productId = originalItem.productId.value;
 
-        final quantity =
-            originalItem.quantity.value;
+        final quantity = originalItem.quantity.value;
 
-        final unitCost =
-            originalItem.unitCost.value;
+        final unitCost = originalItem.unitCost.value;
 
-        final totalCost =
-            originalItem.totalCost.value;
+        final totalCost = originalItem.totalCost.value;
 
-        final expiryDate =
-            originalItem.expiryDate.value;
+        final expiryDate = originalItem.expiryDate.value;
 
         // --------------------------------------------------------
         // VALIDATE PRODUCT
         // --------------------------------------------------------
 
         if (productId <= 0) {
-          throw Exception(
-            'Invalid product selected.',
-          );
+          throw Exception('Invalid product selected.');
         }
 
         // --------------------------------------------------------
@@ -522,9 +449,7 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
         // --------------------------------------------------------
 
         if (quantity <= 0) {
-          throw Exception(
-            'Delivery quantity must be greater than zero.',
-          );
+          throw Exception('Delivery quantity must be greater than zero.');
         }
 
         // --------------------------------------------------------
@@ -532,15 +457,11 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
         // --------------------------------------------------------
 
         if (unitCost < 0) {
-          throw Exception(
-            'Unit cost cannot be negative.',
-          );
+          throw Exception('Unit cost cannot be negative.');
         }
 
         if (totalCost < 0) {
-          throw Exception(
-            'Total cost cannot be negative.',
-          );
+          throw Exception('Total cost cannot be negative.');
         }
 
         // --------------------------------------------------------
@@ -549,11 +470,9 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
         // Use a small tolerance for floating-point arithmetic.
         // --------------------------------------------------------
 
-        final expectedTotal =
-            quantity * unitCost;
+        final expectedTotal = quantity * unitCost;
 
-        if ((totalCost - expectedTotal).abs() >
-            0.000001) {
+        if ((totalCost - expectedTotal).abs() > 0.000001) {
           throw Exception(
             'Invalid total cost for product ID '
             '$productId. '
@@ -566,11 +485,9 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
         // LOAD PRODUCT
         // --------------------------------------------------------
 
-        final product = await (select(products)
-              ..where(
-                (p) => p.id.equals(productId),
-              ))
-            .getSingleOrNull();
+        final product = await (select(
+          products,
+        )..where((p) => p.id.equals(productId))).getSingleOrNull();
 
         if (product == null) {
           throw Exception(
@@ -583,14 +500,9 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
         // INSERT DELIVERY ITEM
         // ========================================================
 
-        final item =
-            originalItem.copyWith(
-          deliveryId: Value(deliveryId),
-        );
+        final item = originalItem.copyWith(deliveryId: Value(deliveryId));
 
-        await into(
-          supplierDeliveryItems,
-        ).insert(item);
+        await into(supplierDeliveryItems).insert(item);
 
         // ========================================================
         // CREATE STOCK MOVEMENT
@@ -599,9 +511,7 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
         await into(stockMovements).insert(
           StockMovementsCompanion(
             productId: Value(productId),
-            supplierId: Value(
-              delivery.supplierId.value,
-            ),
+            supplierId: Value(delivery.supplierId.value),
             deliveryId: Value(deliveryId),
             type: const Value('purchase'),
             quantity: Value(quantity),
@@ -614,8 +524,7 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
         // UPDATE PRODUCT STOCK
         // ========================================================
 
-        final newStock =
-            product.stock + quantity;
+        final newStock = product.stock + quantity;
 
         if (newStock < 0) {
           throw Exception(
@@ -628,11 +537,7 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
         // UPDATE PRODUCT
         // ========================================================
 
-        await (update(products)
-              ..where(
-                (p) => p.id.equals(productId),
-              ))
-            .write(
+        await (update(products)..where((p) => p.id.equals(productId))).write(
           ProductsCompanion(
             stock: Value(newStock),
 
@@ -659,16 +564,12 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
   // CALCULATE DELIVERY TOTAL FROM ITEMS
   // ============================================================
 
-  double calculateDeliveryTotal(
-    List<SupplierDeliveryItemsCompanion> items,
-  ) {
+  double calculateDeliveryTotal(List<SupplierDeliveryItemsCompanion> items) {
     double total = 0;
 
     for (final item in items) {
       if (!item.totalCost.present) {
-        throw Exception(
-          'Every delivery item must have a total cost.',
-        );
+        throw Exception('Every delivery item must have a total cost.');
       }
 
       total += item.totalCost.value;
@@ -686,10 +587,7 @@ class SupplierDeliveryDao extends DatabaseAccessor<AppDatabase>
       return value.toDouble();
     }
 
-    return double.tryParse(
-          value?.toString() ?? '',
-        ) ??
-        0;
+    return double.tryParse(value?.toString() ?? '') ?? 0;
   }
 }
 

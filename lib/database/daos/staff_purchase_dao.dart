@@ -12,6 +12,7 @@ import '../tables/stock_movement_table.dart';
 import '../tables/settings_table.dart';
 import '../tables/staff_debt_payment_table.dart';
 
+import '../models/staff_purchase_model.dart';
 part 'staff_purchase_dao.g.dart';
 
 @DriftAccessor(
@@ -30,10 +31,36 @@ class StaffPurchaseDao extends DatabaseAccessor<AppDatabase>
   StaffPurchaseDao(super.db);
 
   // ============================================================
+  // GET ALL STAFF PURCHASES FOR SNAPSHOT
+  // ============================================================
+
+  Future<List<StaffPurchaseModel>> getAllStaffPurchasesForSnapshot() async {
+    final rows = await select(staffPurchases).get();
+
+    return rows.map((row) => StaffPurchaseModel(
+          id: row.id,
+          staffId: row.staffId,
+          productId: row.productId,
+          quantity: row.quantity,
+          unitPrice: row.unitPrice,
+          totalAmount: row.totalAmount,
+          paymentType: row.paymentType,
+          amountPaid: row.amountPaid,
+          debtAmount: row.debtAmount,
+          saleId: row.saleId,
+          note: row.note,
+          createdAt: row.createdAt,
+        )).toList();
+  }
+
+  // ============================================================
   // DEFAULT STAFF DEBT LIMIT
   // ============================================================
 
   static const double defaultMaxStaffDebt = 50000.0;
+
+  
+
 
   // ============================================================
   // GET MAXIMUM STAFF DEBT

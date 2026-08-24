@@ -8,6 +8,8 @@ import '../tables/supplier_delivery_item_table.dart';
 import '../tables/supplier_delivery_table.dart';
 import '../tables/product_table.dart';
 
+import '../models/supplier_delivery_item_model.dart';
+
 part 'supplier_delivery_item_dao.g.dart';
 
 @DriftAccessor(
@@ -22,6 +24,25 @@ class SupplierDeliveryItemDao
     with _$SupplierDeliveryItemDaoMixin {
   SupplierDeliveryItemDao(super.db);
 
+
+  // ============================================================
+  // GET ALL ITEMS FOR SNAPSHOT
+  // ============================================================
+
+  Future<List<SupplierDeliveryItemModel>> getAllSupplierDeliveryItemsForSnapshot() async {
+    final rows = await select(supplierDeliveryItems).get();
+
+    return rows.map((row) => SupplierDeliveryItemModel(
+          id: row.id,
+          deliveryId: row.deliveryId,
+          productId: row.productId,
+          quantity: row.quantity,
+          unitCost: row.unitCost,
+          totalCost: row.totalCost,
+          expiryDate: row.expiryDate,
+        )).toList();
+  }
+
   // ============================================================
   // INSERT
   // ============================================================
@@ -31,6 +52,8 @@ class SupplierDeliveryItemDao
   ) {
     return into(supplierDeliveryItems).insert(item);
   }
+
+
 
   // ============================================================
   // GET BY ID

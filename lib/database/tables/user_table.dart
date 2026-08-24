@@ -19,5 +19,6 @@ class Users extends Table {
   // Roles: owner, manager, staff
   TextColumn get role => text().withDefault(const Constant('staff'))();
 
- 
 }
+
+

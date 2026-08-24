@@ -7,6 +7,9 @@ import '../tables/staff_debt_payment_table.dart';
 import '../tables/staff_purchase_table.dart';
 import '../tables/user_table.dart';
 
+import '../models/staff_debt_payment_model.dart';
+
+
 part 'staff_debt_payment_dao.g.dart';
 
 @DriftAccessor(
@@ -20,6 +23,26 @@ class StaffDebtPaymentDao
     extends DatabaseAccessor<AppDatabase>
     with _$StaffDebtPaymentDaoMixin {
   StaffDebtPaymentDao(super.db);
+
+  // ============================================================
+  // GET ALL STAFF DEBT PAYMENTS FOR SNAPSHOT
+  // ============================================================
+  Future<List<StaffDebtPaymentModel>> getAllStaffDebtPaymentsForSnapshot() async {
+    final rows = await select(staffDebtPayments).get();
+    final result = rows.map((row) => StaffDebtPaymentModel(
+      id: row.id,
+      staffId: row.staffId,
+      amount: row.amount,
+      paymentMethod: row.paymentMethod,
+      note: row.note,
+      recordedBy: row.recordedBy,
+      createdAt: row.createdAt,
+    )).toList();
+
+    // ✅ Explicitly declare as non-nullable list
+    return List<StaffDebtPaymentModel>.from(result);
+  }
+
 
   // ============================================================
   // RECORD DEBT PAYMENT

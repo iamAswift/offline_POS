@@ -5,7 +5,7 @@ import 'package:drift/drift.dart';
 import '../app_database.dart';
 import '../tables/attendance_table.dart';
 import '../tables/user_table.dart';
-
+import '../models/attendance_model.dart';
 part 'attendance_dao.g.dart';
 
 /// Combined attendance + employee record used by attendance screens.
@@ -64,6 +64,27 @@ class AttendanceDao extends DatabaseAccessor<AppDatabase>
 
     return record;
   }
+
+
+  // ============================================================
+  // GET ALL ATTENDANCE FOR SNAPSHOT
+  // ============================================================
+  Future<List<AttendanceModel>> getAllAttendanceForSnapshot() async {
+  final rows = await select(attendance).get();
+
+  return rows.map((row) => AttendanceModel(
+        id: row.id,
+        userId: row.userId,
+        clockIn: row.clockIn,
+        clockOut: row.clockOut,
+        notes: row.notes,
+        createdAt: row.createdAt,
+        correctedByUserId: row.correctedByUserId,
+        correctedAt: row.correctedAt,
+        correctionNote: row.correctionNote,
+      )).toList();
+}
+
 
   // ============================================================
   // CLOCK OUT

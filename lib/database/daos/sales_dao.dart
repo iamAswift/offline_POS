@@ -7,6 +7,7 @@ import '../tables/product_table.dart';
 import '../tables/sales_table.dart';
 import '../tables/stock_movement_table.dart';
 import '../tables/category_table.dart';
+import '../models/sale_model.dart';
 
 part 'sales_dao.g.dart';
 
@@ -21,6 +22,30 @@ part 'sales_dao.g.dart';
 class SalesDao extends DatabaseAccessor<AppDatabase>
     with _$SalesDaoMixin {
   SalesDao(super.db);
+
+  // ----------------------------------------------------------
+      // Snapshot of all sales for reporting purposes
+      // ----------------------------------------------------------
+
+      Future<List<SaleModel>> getAllSalesForSnapshot() async {
+        final rows = await select(sales).get();
+
+        return rows.map((row) => SaleModel(
+              id: row.id,
+              productId: row.productId,
+              quantity: row.quantity,
+              unitPrice: row.unitPrice,
+              costPriceAtSale: row.costPriceAtSale,
+              totalPrice: row.totalPrice,
+              paymentMethod: row.paymentMethod,
+              cashAmount: row.cashAmount,
+              posAmount: row.posAmount,
+              transferAmount: row.transferAmount,
+              status: row.status,
+              staffId: row.staffId,
+              createdAt: row.createdAt,
+            )).toList();
+      }
 
   // ============================================================
   // INSERT SALE
@@ -72,6 +97,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase>
               (p) => p.id.equals(productId),
             ))
           .getSingle();
+
 
       // ----------------------------------------------------------
       // CHECK STOCK

@@ -7,6 +7,9 @@ import '../tables/product_table.dart';
 import '../tables/sales_table.dart';
 import '../tables/stock_movement_table.dart';
 
+import '../models/product_model.dart';
+
+
 import '../../models/reconciliation_row.dart';
 
 part 'product_dao.g.dart';
@@ -21,6 +24,25 @@ part 'product_dao.g.dart';
 class ProductDao extends DatabaseAccessor<AppDatabase>
     with _$ProductDaoMixin {
   ProductDao(super.db);
+
+  Future<List<ProductModel>> getAllProductsForSnapshot() async {
+    final rows = await select(products).get();
+
+    return rows.map((row) => ProductModel(
+          id: row.id,
+          barcode: row.barcode,
+          name: row.name,
+          brand: row.brand,
+          categoryId: row.categoryId,
+          unit: row.unit,
+          costPrice: row.costPrice,
+          sellingPrice: row.sellingPrice,
+          stock: row.stock,
+          imagePath: row.imagePath,
+          expiryDate: row.expiryDate,
+        )).toList();
+  }
+
 
   // ============================================================
   // BASIC PRODUCT OPERATIONS
