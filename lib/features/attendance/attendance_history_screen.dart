@@ -1,18 +1,20 @@
+
+//lib/features/attendance/attendance_history_screen.dart
 import 'package:flutter/material.dart';
 import 'package:supermarket_inventory/database/daos/attendance_dao.dart';
 
+import '../../core/responsive/responsive.dart';
+import '../../core/theme/styles.dart';
 import '../../database/app_database.dart';
 
-class AttendanceHistoryScreen
-    extends StatefulWidget {
+class AttendanceHistoryScreen extends StatefulWidget {
   const AttendanceHistoryScreen({
     super.key,
   });
 
   @override
-  State<AttendanceHistoryScreen>
-      createState() =>
-          _AttendanceHistoryScreenState();
+  State<AttendanceHistoryScreen> createState() =>
+      _AttendanceHistoryScreenState();
 }
 
 class _AttendanceHistoryScreenState
@@ -63,12 +65,10 @@ class _AttendanceHistoryScreenState
     });
 
     try {
-      final attendanceDao =
-          getAttendanceDao();
+      final attendanceDao = getAttendanceDao();
 
       final records =
-          await attendanceDao
-              .getAttendanceWithUsersBetweenDates(
+          await attendanceDao.getAttendanceWithUsersBetweenDates(
         _startDate,
         _endDate,
       );
@@ -98,25 +98,20 @@ class _AttendanceHistoryScreenState
   // FILTER
   // ============================================================
 
-  List<AttendanceWithUser>
-      get _filteredRecords {
-    final query =
-        _searchQuery.trim().toLowerCase();
+  List<AttendanceWithUser> get _filteredRecords {
+    final query = _searchQuery.trim().toLowerCase();
 
     if (query.isEmpty) {
       return _records;
     }
 
     return _records.where((item) {
-      final name =
-          item.user.name.toLowerCase();
+      final name = item.user.name.toLowerCase();
 
       final loginId =
-          (item.user.loginId ?? '')
-              .toLowerCase();
+          (item.user.loginId ?? '').toLowerCase();
 
-      final role =
-          item.user.role.toLowerCase();
+      final role = item.user.role.toLowerCase();
 
       return name.contains(query) ||
           loginId.contains(query) ||
@@ -129,18 +124,27 @@ class _AttendanceHistoryScreenState
   // ============================================================
 
   Future<void> _selectDateRange() async {
-    final result =
-        await showDateRangePicker(
+    final result = await showDateRangePicker(
       context: context,
       firstDate: DateTime(2020),
       lastDate: DateTime.now().add(
         const Duration(days: 365),
       ),
-      initialDateRange:
-          DateTimeRange(
+      initialDateRange: DateTimeRange(
         start: _startDate,
         end: _endDate,
       ),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: AppColors.primary,
+              secondary: AppColors.accent,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (result == null) {
@@ -149,7 +153,6 @@ class _AttendanceHistoryScreenState
 
     setState(() {
       _startDate = result.start;
-
       _endDate = result.end;
     });
 
@@ -160,9 +163,7 @@ class _AttendanceHistoryScreenState
   // DATE FORMAT
   // ============================================================
 
-  String _formatDate(
-    DateTime date,
-  ) {
+  String _formatDate(DateTime date) {
     const months = [
       'Jan',
       'Feb',
@@ -187,25 +188,20 @@ class _AttendanceHistoryScreenState
   // TIME FORMAT
   // ============================================================
 
-  String _formatTime(
-    DateTime time,
-  ) {
-    final hour =
-        time.hour == 0
-            ? 12
-            : time.hour > 12
-                ? time.hour - 12
-                : time.hour;
+  String _formatTime(DateTime time) {
+    final hour = time.hour == 0
+        ? 12
+        : time.hour > 12
+            ? time.hour - 12
+            : time.hour;
 
-    final minute =
-        time.minute
-            .toString()
-            .padLeft(2, '0');
+    final minute = time.minute
+        .toString()
+        .padLeft(2, '0');
 
-    final period =
-        time.hour >= 12
-            ? 'PM'
-            : 'AM';
+    final period = time.hour >= 12
+        ? 'PM'
+        : 'AM';
 
     return '$hour:$minute $period';
   }
@@ -222,11 +218,9 @@ class _AttendanceHistoryScreenState
     }
 
     final duration =
-        record.clockOut!
-            .difference(record.clockIn);
+        record.clockOut!.difference(record.clockIn);
 
-    final hours =
-        duration.inHours;
+    final hours = duration.inHours;
 
     final minutes =
         duration.inMinutes.remainder(60);
@@ -257,47 +251,47 @@ class _AttendanceHistoryScreenState
   // ============================================================
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
+    final responsive = context.responsive;
+
     return Scaffold(
-      backgroundColor:
-          const Color(0xFFF7F8FA),
+      backgroundColor: AppColors.background,
 
       appBar: AppBar(
         elevation: 0,
-        backgroundColor:
-            Colors.white,
-        foregroundColor:
-            Colors.black87,
-        title: const Text(
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
+        surfaceTintColor: Colors.transparent,
+
+        title: Text(
           'Attendance History',
-          style: TextStyle(
-            fontWeight:
-                FontWeight.w800,
+          style: AppTextStyles.heading.copyWith(
+            fontSize: responsive.isCompact ? 18 : 20,
           ),
         ),
+
         actions: [
           IconButton(
             tooltip: 'Refresh',
             onPressed:
-                _isLoading
-                    ? null
-                    : _loadHistory,
+                _isLoading ? null : _loadHistory,
             icon: const Icon(
               Icons.refresh_outlined,
+              color: AppColors.textSecondary,
             ),
           ),
+
           const SizedBox(
-            width: 8,
+            width: AppSpacing.sm,
           ),
         ],
       ),
 
       body: _isLoading
           ? const Center(
-              child:
-                  CircularProgressIndicator(),
+              child: CircularProgressIndicator(
+                color: AppColors.primary,
+              ),
             )
           : _errorMessage != null
               ? _buildError()
@@ -310,62 +304,70 @@ class _AttendanceHistoryScreenState
   // ============================================================
 
   Widget _buildBody() {
-    final records =
-        _filteredRecords;
+    final responsive = context.responsive;
 
-    final completed =
-        records
-            .where(
-              (item) =>
-                  item.attendance.clockOut !=
-                  null,
-            )
-            .toList();
+    final records = _filteredRecords;
 
-    final currentlyWorking =
-        records
-            .where(
-              (item) =>
-                  item.attendance.clockOut ==
-                  null,
-            )
-            .length;
+    final completed = records
+        .where(
+          (item) =>
+              item.attendance.clockOut != null,
+        )
+        .toList();
 
-    return Padding(
-      padding:
-          const EdgeInsets.all(20),
+    final currentlyWorking = records
+        .where(
+          (item) =>
+              item.attendance.clockOut == null,
+        )
+        .length;
 
-      child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
-        children: [
-          _buildControls(),
+    return SingleChildScrollView(
+      padding: EdgeInsets.symmetric(
+        horizontal: responsive.horizontalPadding,
+        vertical: responsive.verticalPadding,
+      ),
 
-          const SizedBox(
-            height: 16,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: responsive.contentMaxWidth,
           ),
 
-          _buildSummary(
-            total: records.length,
-            completed:
-                completed.length,
-            working:
-                currentlyWorking,
-          ),
+          child: Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
 
-          const SizedBox(
-            height: 16,
-          ),
+            children: [
+              _buildControls(),
 
-          Expanded(
-            child:
-                records.isEmpty
+              const SizedBox(
+                height: AppSpacing.lg,
+              ),
+
+              _buildSummary(
+                total: records.length,
+                completed: completed.length,
+                working: currentlyWorking,
+              ),
+
+              const SizedBox(
+                height: AppSpacing.lg,
+              ),
+
+              SizedBox(
+                height: responsive.isCompact
+                    ? 500
+                    : 560,
+                child: records.isEmpty
                     ? _buildEmptyState()
                     : _buildHistoryTable(
                         records,
                       ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -375,97 +377,142 @@ class _AttendanceHistoryScreenState
   // ============================================================
 
   Widget _buildControls() {
-    return Card(
-      elevation: 0,
-      color: Colors.white,
-      shape:
-          RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.circular(16),
-        side: BorderSide(
-          color:
-              Colors.grey.shade200,
+    final responsive = context.responsive;
+
+    final searchField = TextField(
+      style: AppTextStyles.body.copyWith(
+        fontSize: responsive.isCompact
+            ? 13
+            : 14,
+      ),
+
+      decoration: InputDecoration(
+        hintText: 'Search employee...',
+        hintStyle: AppTextStyles.bodySecondary,
+        prefixIcon: const Icon(
+          Icons.search_outlined,
+          color: AppColors.textSecondary,
+        ),
+
+        filled: true,
+        fillColor: AppColors.surfaceSoft,
+
+        contentPadding:
+            const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+        ),
+
+        border: OutlineInputBorder(
+          borderRadius:
+              BorderRadius.circular(
+            AppRadius.md,
+          ),
+          borderSide: BorderSide.none,
+        ),
+
+        enabledBorder: OutlineInputBorder(
+          borderRadius:
+              BorderRadius.circular(
+            AppRadius.md,
+          ),
+          borderSide: BorderSide.none,
+        ),
+
+        focusedBorder: OutlineInputBorder(
+          borderRadius:
+              BorderRadius.circular(
+            AppRadius.md,
+          ),
+          borderSide: const BorderSide(
+            color: AppColors.primary,
+          ),
         ),
       ),
-      child: Padding(
-        padding:
-            const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                decoration:
-                    InputDecoration(
-                  hintText:
-                      'Search employee...',
-                  prefixIcon:
-                      const Icon(
-                    Icons.search,
-                  ),
-                  filled: true,
-                  fillColor:
-                      const Color(
-                    0xFFF7F8FA,
-                  ),
-                  border:
-                      OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius
-                            .circular(
-                      10,
-                    ),
-                    borderSide:
-                        BorderSide.none,
-                  ),
-                ),
-                onChanged:
-                    (value) {
-                  setState(() {
-                    _searchQuery =
-                        value;
-                  });
-                },
-              ),
-            ),
 
-            const SizedBox(
-              width: 12,
-            ),
+      onChanged: (value) {
+        setState(() {
+          _searchQuery = value;
+        });
+      },
+    );
 
-            OutlinedButton.icon(
-              onPressed:
-                  _selectDateRange,
-              icon:
-                  const Icon(
-                Icons
-                    .calendar_month_outlined,
-              ),
-              label:
-                  Text(
-                '${_formatDate(_startDate)} - '
-                '${_formatDate(_endDate)}',
-              ),
-              style:
-                  OutlinedButton
-                      .styleFrom(
-                minimumSize:
-                    const Size(
-                  230,
-                  48,
-                ),
-                shape:
-                    RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius
-                          .circular(
-                    10,
-                  ),
-                ),
-              ),
-            ),
-          ],
+    final dateButton = OutlinedButton.icon(
+      onPressed: _selectDateRange,
+
+      icon: const Icon(
+        Icons.calendar_month_outlined,
+        size: 19,
+      ),
+
+      label: Text(
+        '${_formatDate(_startDate)} - '
+        '${_formatDate(_endDate)}',
+        overflow: TextOverflow.ellipsis,
+      ),
+
+      style: OutlinedButton.styleFrom(
+        minimumSize: Size(
+          0,
+          responsive.controlHeight,
+        ),
+
+        foregroundColor:
+            AppColors.textPrimary,
+
+        side: const BorderSide(
+          color: AppColors.border,
+        ),
+
+        backgroundColor:
+            AppColors.surface,
+
+        shape: RoundedRectangleBorder(
+          borderRadius:
+              BorderRadius.circular(
+            AppRadius.md,
+          ),
+        ),
+
+        textStyle: AppTextStyles.bodySecondary.copyWith(
+          fontWeight: FontWeight.w600,
         ),
       ),
+    );
+
+    return _buildCard(
+      child: responsive.isCompact
+          ? Column(
+              children: [
+                searchField,
+
+                const SizedBox(
+                  height: AppSpacing.md,
+                ),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: dateButton,
+                ),
+              ],
+            )
+          : Row(
+              children: [
+                Expanded(
+                  child: searchField,
+                ),
+
+                const SizedBox(
+                  width: AppSpacing.md,
+                ),
+
+                SizedBox(
+                  width: responsive.isTablet
+                      ? 240
+                      : 280,
+                  child: dateButton,
+                ),
+              ],
+            ),
     );
   }
 
@@ -478,48 +525,60 @@ class _AttendanceHistoryScreenState
     required int completed,
     required int working,
   }) {
+    final responsive = context.responsive;
+
+    final cards = [
+      _SummaryData(
+        icon: Icons.event_note_outlined,
+        label: 'Attendance Sessions',
+        value: total.toString(),
+        color: AppColors.primary,
+        lightColor: AppColors.primaryLight,
+      ),
+
+      _SummaryData(
+        icon: Icons.check_circle_outline,
+        label: 'Completed',
+        value: completed.toString(),
+        color: AppColors.success,
+        lightColor: AppColors.successLight,
+      ),
+
+      _SummaryData(
+        icon: Icons.work_history_outlined,
+        label: 'Currently Working',
+        value: working.toString(),
+        color: AppColors.warning,
+        lightColor: AppColors.warningLight,
+      ),
+    ];
+
+    if (responsive.isCompact) {
+      return Column(
+        children: [
+          for (var i = 0; i < cards.length; i++) ...[
+            _summaryCard(cards[i]),
+            if (i != cards.length - 1)
+              const SizedBox(
+                height: AppSpacing.md,
+              ),
+          ],
+        ],
+      );
+    }
+
     return Row(
       children: [
-        Expanded(
-          child: _summaryCard(
-            icon:
-                Icons.event_note_outlined,
-            label:
-                'Attendance Sessions',
-            value:
-                total.toString(),
+        for (var i = 0; i < cards.length; i++) ...[
+          Expanded(
+            child: _summaryCard(cards[i]),
           ),
-        ),
 
-        const SizedBox(
-          width: 12,
-        ),
-
-        Expanded(
-          child: _summaryCard(
-            icon:
-                Icons.check_circle_outline,
-            label:
-                'Completed',
-            value:
-                completed.toString(),
-          ),
-        ),
-
-        const SizedBox(
-          width: 12,
-        ),
-
-        Expanded(
-          child: _summaryCard(
-            icon:
-                Icons.work_history_outlined,
-            label:
-                'Currently Working',
-            value:
-                working.toString(),
-          ),
-        ),
+          if (i != cards.length - 1)
+            const SizedBox(
+              width: AppSpacing.md,
+            ),
+        ],
       ],
     );
   }
@@ -528,87 +587,62 @@ class _AttendanceHistoryScreenState
   // SUMMARY CARD
   // ============================================================
 
-  Widget _summaryCard({
-    required IconData icon,
-    required String label,
-    required String value,
-  }) {
-    return Card(
-      elevation: 0,
-      color: Colors.white,
-      shape:
-          RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.circular(14),
-        side: BorderSide(
-          color:
-              Colors.grey.shade200,
-        ),
-      ),
-      child: Padding(
-        padding:
-            const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration:
-                  BoxDecoration(
-                color: Colors.indigo
-                    .withValues(
-                  alpha: 0.08,
-                ),
-                borderRadius:
-                    BorderRadius.circular(
-                  10,
-                ),
-              ),
-              child: Icon(
-                icon,
-                color:
-                    Colors.indigo,
+  Widget _summaryCard(
+    _SummaryData data,
+  ) {
+    return _buildCard(
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+
+            decoration: BoxDecoration(
+              color: data.lightColor,
+              borderRadius:
+                  BorderRadius.circular(
+                AppRadius.md,
               ),
             ),
 
-            const SizedBox(
-              width: 12,
+            child: Icon(
+              data.icon,
+              color: data.color,
+              size: 22,
             ),
+          ),
 
-            Expanded(
-              child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    value,
-                    style:
-                        const TextStyle(
-                      fontSize: 18,
-                      fontWeight:
-                          FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 3,
-                  ),
-                  Text(
-                    label,
-                    overflow:
-                        TextOverflow.ellipsis,
-                    style:
-                        TextStyle(
-                      fontSize: 11,
-                      color: Colors
-                          .grey
-                          .shade600,
-                    ),
-                  ),
-                ],
-              ),
+          const SizedBox(
+            width: AppSpacing.md,
+          ),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+
+              children: [
+                Text(
+                  data.value,
+                  style:
+                      AppTextStyles.dashboardCardValue,
+                ),
+
+                const SizedBox(
+                  height: AppSpacing.xs,
+                ),
+
+                Text(
+                  data.label,
+                  overflow:
+                      TextOverflow.ellipsis,
+                  style:
+                      AppTextStyles.dashboardCardSubtitle,
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -620,48 +654,266 @@ class _AttendanceHistoryScreenState
   Widget _buildHistoryTable(
     List<AttendanceWithUser> records,
   ) {
-    return Card(
-      elevation: 0,
-      color: Colors.white,
-      shape:
-          RoundedRectangleBorder(
+    final responsive = context.responsive;
+
+    return _buildCard(
+      padding: EdgeInsets.zero,
+
+      child: responsive.isCompact
+          ? _buildCompactHistoryList(
+              records,
+            )
+          : Column(
+              children: [
+                _buildTableHeader(),
+
+                const Divider(
+                  height: 1,
+                  color: AppColors.divider,
+                ),
+
+                Expanded(
+                  child: ListView.separated(
+                    itemCount:
+                        records.length,
+
+                    separatorBuilder:
+                        (_, __) =>
+                            const Divider(
+                      height: 1,
+                      color:
+                          AppColors.divider,
+                    ),
+
+                    itemBuilder:
+                        (context, index) {
+                      return _buildHistoryRow(
+                        records[index],
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+
+  // ============================================================
+  // COMPACT HISTORY LIST
+  // ============================================================
+
+  Widget _buildCompactHistoryList(
+    List<AttendanceWithUser> records,
+  ) {
+    return ListView.separated(
+      padding:
+          const EdgeInsets.all(
+        AppSpacing.lg,
+      ),
+
+      itemCount: records.length,
+
+      separatorBuilder: (_, __) =>
+          const SizedBox(
+        height: AppSpacing.md,
+      ),
+
+      itemBuilder: (context, index) {
+        return _buildCompactHistoryCard(
+          records[index],
+        );
+      },
+    );
+  }
+
+  // ============================================================
+  // COMPACT HISTORY CARD
+  // ============================================================
+
+  Widget _buildCompactHistoryCard(
+    AttendanceWithUser item,
+  ) {
+    final record = item.attendance;
+    final user = item.user;
+
+    final corrected = _wasCorrected(record);
+    final working = record.clockOut == null;
+
+    return Container(
+      padding:
+          const EdgeInsets.all(
+        AppSpacing.md,
+      ),
+
+      decoration: BoxDecoration(
+        color: AppColors.surfaceSoft,
+
         borderRadius:
-            BorderRadius.circular(16),
-        side: BorderSide(
-          color:
-              Colors.grey.shade200,
+            BorderRadius.circular(
+          AppRadius.lg,
+        ),
+
+        border:  Border.all(
+          color: AppColors.border,
         ),
       ),
+
       child: Column(
         children: [
-          _buildTableHeader(),
+          Row(
+            children: [
+              _buildAvatar(user.name),
+
+              const SizedBox(
+                width: AppSpacing.md,
+              ),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user.name,
+                      maxLines: 1,
+                      overflow:
+                          TextOverflow.ellipsis,
+                      style:
+                          AppTextStyles.body.copyWith(
+                        fontWeight:
+                            FontWeight.w700,
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: AppSpacing.xs,
+                    ),
+
+                    Text(
+                      user.loginId ?? 'No ID',
+                      style:
+                          AppTextStyles.small,
+                    ),
+                  ],
+                ),
+              ),
+
+              if (corrected)
+                Tooltip(
+                  message:
+                      record.correctionNote ??
+                          'Attendance corrected',
+                  child: const Icon(
+                    Icons.edit_note_outlined,
+                    size: 19,
+                    color: AppColors.warning,
+                  ),
+                ),
+            ],
+          ),
+
+          const SizedBox(
+            height: AppSpacing.md,
+          ),
 
           const Divider(
             height: 1,
+            color: AppColors.divider,
           ),
 
-          Expanded(
-            child: ListView.separated(
-              itemCount:
-                  records.length,
-              separatorBuilder:
-                  (_, __) =>
-                      Divider(
-                height: 1,
-                color: Colors
-                    .grey
-                    .shade200,
+          const SizedBox(
+            height: AppSpacing.md,
+          ),
+
+          Row(
+            children: [
+              Expanded(
+                child: _compactDetail(
+                  'DATE',
+                  _formatDate(
+                    record.clockIn,
+                  ),
+                ),
               ),
-              itemBuilder:
-                  (context, index) {
-                return _buildHistoryRow(
-                  records[index],
-                );
-              },
-            ),
+
+              Expanded(
+                child: _compactDetail(
+                  'CLOCK IN',
+                  _formatTime(
+                    record.clockIn,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(
+            height: AppSpacing.md,
+          ),
+
+          Row(
+            children: [
+              Expanded(
+                child: _compactDetail(
+                  'CLOCK OUT',
+                  record.clockOut == null
+                      ? '—'
+                      : _formatTime(
+                          record.clockOut!,
+                        ),
+                ),
+              ),
+
+              Expanded(
+                child: Align(
+                  alignment:
+                      Alignment.centerRight,
+                  child: _durationBadge(
+                    record,
+                    working,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
+    );
+  }
+
+  // ============================================================
+  // COMPACT DETAIL
+  // ============================================================
+
+  Widget _compactDetail(
+    String label,
+    String value,
+  ) {
+    return Column(
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: AppTextStyles.small.copyWith(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textMuted,
+          ),
+        ),
+
+        const SizedBox(
+          height: AppSpacing.xs,
+        ),
+
+        Text(
+          value,
+          style: AppTextStyles.bodySecondary.copyWith(
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+      ],
     );
   }
 
@@ -673,72 +925,42 @@ class _AttendanceHistoryScreenState
     return Padding(
       padding:
           const EdgeInsets.symmetric(
-        horizontal: 20,
-        vertical: 14,
+        horizontal: AppSpacing.xl,
+        vertical: AppSpacing.md,
       ),
+
       child: Row(
         children: [
           const SizedBox(
-            width: 210,
-            child: Text(
+            width: 240,
+            child: _TableHeaderText(
               'EMPLOYEE',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight:
-                    FontWeight.w800,
-                color: Colors.grey,
-              ),
             ),
           ),
 
           const Expanded(
-            child: Text(
+            child: _TableHeaderText(
               'DATE',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight:
-                    FontWeight.w800,
-                color: Colors.grey,
-              ),
             ),
           ),
 
           const Expanded(
-            child: Text(
+            child: _TableHeaderText(
               'CLOCK IN',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight:
-                    FontWeight.w800,
-                color: Colors.grey,
-              ),
             ),
           ),
 
           const Expanded(
-            child: Text(
+            child: _TableHeaderText(
               'CLOCK OUT',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight:
-                    FontWeight.w800,
-                color: Colors.grey,
-              ),
             ),
           ),
 
           const SizedBox(
-            width: 110,
-            child: Text(
+            width: 120,
+            child: _TableHeaderText(
               'DURATION',
-              textAlign:
-                  TextAlign.right,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight:
-                    FontWeight.w800,
-                color: Colors.grey,
-              ),
+              textAlign: TextAlign.right,
             ),
           ),
         ],
@@ -753,89 +975,60 @@ class _AttendanceHistoryScreenState
   Widget _buildHistoryRow(
     AttendanceWithUser item,
   ) {
-    final record =
-        item.attendance;
+    final record = item.attendance;
+    final user = item.user;
 
-    final user =
-        item.user;
-
-    final corrected =
-        _wasCorrected(record);
-
-    final working =
-        record.clockOut == null;
+    final corrected = _wasCorrected(record);
+    final working = record.clockOut == null;
 
     return Padding(
       padding:
           const EdgeInsets.symmetric(
-        horizontal: 20,
-        vertical: 14,
+        horizontal: AppSpacing.xl,
+        vertical: AppSpacing.md,
       ),
+
       child: Row(
         children: [
           SizedBox(
-            width: 210,
+            width: 240,
+
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 19,
-                  backgroundColor:
-                      Colors.indigo
-                          .withValues(
-                    alpha: 0.08,
-                  ),
-                  child: Text(
-                    user.name.isNotEmpty
-                        ? user.name[0]
-                            .toUpperCase()
-                        : '?',
-                    style:
-                        const TextStyle(
-                      color:
-                          Colors.indigo,
-                      fontWeight:
-                          FontWeight.w800,
-                    ),
-                  ),
-                ),
+                _buildAvatar(user.name),
 
                 const SizedBox(
-                  width: 10,
+                  width: AppSpacing.md,
                 ),
 
                 Expanded(
                   child: Column(
                     crossAxisAlignment:
-                        CrossAxisAlignment
-                            .start,
+                        CrossAxisAlignment.start,
                     children: [
                       Text(
                         user.name,
                         maxLines: 1,
                         overflow:
-                            TextOverflow
-                                .ellipsis,
+                            TextOverflow.ellipsis,
                         style:
-                            const TextStyle(
+                            AppTextStyles.bodySecondary.copyWith(
                           fontWeight:
                               FontWeight.w700,
-                          fontSize: 13,
+                          color:
+                              AppColors.textPrimary,
                         ),
                       ),
 
                       const SizedBox(
-                        height: 2,
+                        height: AppSpacing.xs,
                       ),
 
                       Text(
-                        user.loginId ??
-                            'No ID',
+                        user.loginId ?? 'No ID',
                         style:
-                            TextStyle(
+                            AppTextStyles.small.copyWith(
                           fontSize: 10,
-                          color: Colors
-                              .grey
-                              .shade600,
                         ),
                       ),
                     ],
@@ -851,9 +1044,7 @@ class _AttendanceHistoryScreenState
                 record.clockIn,
               ),
               style:
-                  const TextStyle(
-                fontSize: 12,
-              ),
+                  AppTextStyles.bodySecondary,
             ),
           ),
 
@@ -863,9 +1054,7 @@ class _AttendanceHistoryScreenState
                 record.clockIn,
               ),
               style:
-                  const TextStyle(
-                fontSize: 12,
-              ),
+                  AppTextStyles.bodySecondary,
             ),
           ),
 
@@ -879,26 +1068,24 @@ class _AttendanceHistoryScreenState
                           record.clockOut!,
                         ),
                   style:
-                      const TextStyle(
-                    fontSize: 12,
-                  ),
+                      AppTextStyles.bodySecondary,
                 ),
 
                 if (corrected) ...[
                   const SizedBox(
-                    width: 6,
+                    width: AppSpacing.sm,
                   ),
+
                   Tooltip(
                     message:
                         record.correctionNote ??
                             'Attendance corrected',
-                    child: Icon(
-                      Icons
-                          .edit_note_outlined,
-                      size: 17,
+
+                    child: const Icon(
+                      Icons.edit_note_outlined,
+                      size: 18,
                       color:
-                          Colors.orange
-                              .shade700,
+                          AppColors.warning,
                     ),
                   ),
                 ],
@@ -907,52 +1094,13 @@ class _AttendanceHistoryScreenState
           ),
 
           SizedBox(
-            width: 110,
+            width: 120,
             child: Align(
               alignment:
                   Alignment.centerRight,
-              child: Container(
-                padding:
-                    const EdgeInsets
-                        .symmetric(
-                  horizontal: 9,
-                  vertical: 5,
-                ),
-                decoration:
-                    BoxDecoration(
-                  color: working
-                      ? Colors.green
-                          .withValues(
-                          alpha: 0.08,
-                        )
-                      : Colors.grey
-                          .withValues(
-                          alpha: 0.08,
-                        ),
-                  borderRadius:
-                      BorderRadius
-                          .circular(
-                    7,
-                  ),
-                ),
-                child: Text(
-                  working
-                      ? 'WORKING'
-                      : _formatDuration(
-                          record,
-                        ),
-                  style:
-                      TextStyle(
-                    fontSize: 10,
-                    fontWeight:
-                        FontWeight.w800,
-                    color: working
-                        ? Colors.green
-                            .shade700
-                        : Colors.grey
-                            .shade800,
-                  ),
-                ),
+              child: _durationBadge(
+                record,
+                working,
               ),
             ),
           ),
@@ -962,62 +1110,179 @@ class _AttendanceHistoryScreenState
   }
 
   // ============================================================
+  // AVATAR
+  // ============================================================
+
+  Widget _buildAvatar(
+    String name,
+  ) {
+    return CircleAvatar(
+      radius: 20,
+
+      backgroundColor:
+          AppColors.primaryLight,
+
+      child: Text(
+        name.isNotEmpty
+            ? name[0].toUpperCase()
+            : '?',
+
+        style:
+            AppTextStyles.body.copyWith(
+          color: AppColors.primary,
+          fontWeight:
+              FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // DURATION BADGE
+  // ============================================================
+
+  Widget _durationBadge(
+    AttendanceData record,
+    bool working,
+  ) {
+    final backgroundColor = working
+        ? AppColors.successLight
+        : AppColors.surfaceSoft;
+
+    final textColor = working
+        ? AppColors.success
+        : AppColors.textSecondary;
+
+    return Container(
+      padding:
+          const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
+
+      decoration: BoxDecoration(
+        color: backgroundColor,
+
+        borderRadius:
+            BorderRadius.circular(
+          AppRadius.sm,
+        ),
+      ),
+
+      child: Text(
+        working
+            ? 'WORKING'
+            : _formatDuration(record),
+
+        style: AppTextStyles.small.copyWith(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: textColor,
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // CARD
+  // ============================================================
+
+  Widget _buildCard({
+    required Widget child,
+    EdgeInsetsGeometry? padding,
+  }) {
+    return Card(
+      elevation: 0,
+      color: AppColors.surface,
+      margin: EdgeInsets.zero,
+
+      shape: RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.circular(
+          AppRadius.xl,
+        ),
+
+        side: const BorderSide(
+          color: AppColors.border,
+        ),
+      ),
+
+      child: Padding(
+        padding:
+            padding ??
+                const EdgeInsets.all(
+                  AppSpacing.lg,
+                ),
+
+        child: child,
+      ),
+    );
+  }
+
+  // ============================================================
   // EMPTY
   // ============================================================
 
   Widget _buildEmptyState() {
-    return Card(
-      elevation: 0,
-      color: Colors.white,
-      shape:
-          RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.circular(16),
-        side: BorderSide(
-          color:
-              Colors.grey.shade200,
-        ),
-      ),
+    return _buildCard(
       child: Center(
-        child: Column(
-          mainAxisSize:
-              MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.event_busy_outlined,
-              size: 52,
-              color:
-                  Colors.grey.shade400,
-            ),
+        child: Padding(
+          padding:
+              const EdgeInsets.all(
+            AppSpacing.xxl,
+          ),
 
-            const SizedBox(
-              height: 14,
-            ),
+          child: Column(
+            mainAxisSize:
+                MainAxisSize.min,
 
-            const Text(
-              'No attendance records',
-              style:
-                  TextStyle(
-                fontSize: 18,
-                fontWeight:
-                    FontWeight.w800,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+
+                decoration:
+                    BoxDecoration(
+                  color:
+                      AppColors.surfaceSoft,
+                  borderRadius:
+                      BorderRadius.circular(
+                    AppRadius.lg,
+                  ),
+                ),
+
+                child: const Icon(
+                  Icons.event_busy_outlined,
+                  size: 32,
+                  color:
+                      AppColors.textMuted,
+                ),
               ),
-            ),
 
-            const SizedBox(
-              height: 6,
-            ),
-
-            Text(
-              'No attendance was recorded '
-              'for the selected period.',
-              style:
-                  TextStyle(
-                color:
-                    Colors.grey.shade600,
+              const SizedBox(
+                height: AppSpacing.lg,
               ),
-            ),
-          ],
+
+              Text(
+                'No attendance records',
+                style:
+                    AppTextStyles.title,
+              ),
+
+              const SizedBox(
+                height: AppSpacing.xs,
+              ),
+
+              Text(
+                'No attendance was recorded '
+                'for the selected period.',
+                textAlign:
+                    TextAlign.center,
+                style:
+                    AppTextStyles.bodySecondary,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1029,48 +1294,141 @@ class _AttendanceHistoryScreenState
 
   Widget _buildError() {
     return Center(
-      child: Column(
-        mainAxisSize:
-            MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: 52,
-            color:
-                Colors.red.shade400,
-          ),
+      child: Padding(
+        padding:
+            const EdgeInsets.all(
+          AppSpacing.xxl,
+        ),
 
-          const SizedBox(
-            height: 14,
-          ),
+        child: Column(
+          mainAxisSize:
+              MainAxisSize.min,
 
-          const Text(
-            'Unable to load attendance history',
-            style:
-                TextStyle(
-              fontSize: 18,
-              fontWeight:
-                  FontWeight.w800,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+
+              decoration:
+                  const BoxDecoration(
+                color:
+                    AppColors.dangerLight,
+                shape: BoxShape.circle,
+              ),
+
+              child: const Icon(
+                Icons.error_outline,
+                size: 32,
+                color:
+                    AppColors.danger,
+              ),
             ),
-          ),
 
-          const SizedBox(
-            height: 18,
-          ),
+            const SizedBox(
+              height: AppSpacing.lg,
+            ),
 
-          ElevatedButton.icon(
-            onPressed:
-                _loadHistory,
-            icon:
-                const Icon(
-              Icons.refresh,
+            Text(
+              'Unable to load attendance history',
+              textAlign:
+                  TextAlign.center,
+              style:
+                  AppTextStyles.title,
             ),
-            label:
-                const Text(
-              'Try Again',
+
+            const SizedBox(
+              height: AppSpacing.lg,
             ),
-          ),
-        ],
+
+            ElevatedButton.icon(
+              onPressed:
+                  _loadHistory,
+
+              icon: const Icon(
+                Icons.refresh,
+              ),
+
+              label: const Text(
+                'Try Again',
+              ),
+
+              style:
+                  ElevatedButton.styleFrom(
+                backgroundColor:
+                    AppColors.primary,
+                foregroundColor:
+                    Colors.white,
+                minimumSize:
+                    const Size(
+                  0,
+                  AppSizes.buttonHeight,
+                ),
+
+                padding:
+                    const EdgeInsets.symmetric(
+                  horizontal:
+                      AppSpacing.xl,
+                ),
+
+                shape:
+                    RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.circular(
+                    AppRadius.md,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ================================================================
+// SUMMARY DATA
+// ================================================================
+
+class _SummaryData {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+  final Color lightColor;
+
+  const _SummaryData({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+    required this.lightColor,
+  });
+}
+
+// ================================================================
+// TABLE HEADER TEXT
+// ================================================================
+
+class _TableHeaderText extends StatelessWidget {
+  final String text;
+  final TextAlign textAlign;
+
+  const _TableHeaderText(
+    this.text, {
+    this.textAlign = TextAlign.left,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      textAlign: textAlign,
+      style: AppTextStyles.small.copyWith(
+        fontSize: 10,
+        fontWeight: FontWeight.w800,
+        color: AppColors.textMuted,
+        letterSpacing: 0.4,
       ),
     );
   }

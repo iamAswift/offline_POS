@@ -1,6 +1,7 @@
 //lib/features/products/product_history_screen.dart
 import 'package:flutter/material.dart';
 
+import '../../core/responsive/responsive.dart';
 import '../../core/theme/styles.dart';
 import '../../core/widgets/back_button.dart';
 import '../../core/widgets/inventory_widgets.dart';
@@ -40,6 +41,84 @@ class _ProductHistoryScreenState
     productDao = ProductDao(db);
   }
 
+  // ============================================================
+  // RESPONSIVE HELPERS
+  // ============================================================
+
+  double _pagePadding(BuildContext context) {
+    final responsive = context.responsive;
+
+    if (responsive.isCompact) {
+      return 12;
+    }
+
+    if (responsive.isTablet) {
+      return 16;
+    }
+
+    return 20;
+  }
+
+  double _sectionSpacing(BuildContext context) {
+    final responsive = context.responsive;
+
+    if (responsive.isCompact) {
+      return 16;
+    }
+
+    if (responsive.isTablet) {
+      return 20;
+    }
+
+    return 24;
+  }
+
+  double _cardPadding(BuildContext context) {
+    final responsive = context.responsive;
+
+    if (responsive.isCompact) {
+      return 12;
+    }
+
+    if (responsive.isTablet) {
+      return 14;
+    }
+
+    return 16;
+  }
+
+  double _iconBoxSize(BuildContext context) {
+    final responsive = context.responsive;
+
+    if (responsive.isCompact) {
+      return 42;
+    }
+
+    if (responsive.isTablet) {
+      return 46;
+    }
+
+    return 50;
+  }
+
+  double _movementIconSize(BuildContext context) {
+    final responsive = context.responsive;
+
+    if (responsive.isCompact) {
+      return 38;
+    }
+
+    if (responsive.isTablet) {
+      return 42;
+    }
+
+    return 44;
+  }
+
+  // ============================================================
+  // LOAD HISTORY
+  // ============================================================
+
   Future<_HistoryData> _loadHistory() async {
     final product =
         await productDao.getProductById(
@@ -78,6 +157,10 @@ class _ProductHistoryScreenState
     );
   }
 
+  // ============================================================
+  // FILTER
+  // ============================================================
+
   List<StockMovementLedgerRow> _applyFilter(
     List<StockMovementLedgerRow> movements,
   ) {
@@ -108,15 +191,30 @@ class _ProductHistoryScreenState
     }
   }
 
+  // ============================================================
+  // BUILD
+  // ============================================================
+
   @override
   Widget build(BuildContext context) {
+    final responsive = context.responsive;
+
     return Scaffold(
       backgroundColor: AppColors.background,
+
+      // ==========================================================
+      // APP BAR
+      // ==========================================================
+
       appBar: AppBar(
         leading: const CentralBackButton(),
         title: Text(
           widget.productName,
-          style: AppTextStyles.heading,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppTextStyles.heading.copyWith(
+            fontSize: responsive.isCompact ? 17 : 20,
+          ),
         ),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -152,6 +250,11 @@ class _ProductHistoryScreenState
           ),
         ],
       ),
+
+      // ==========================================================
+      // BODY
+      // ==========================================================
+
       body: FutureBuilder<_HistoryData>(
         future: _loadHistory(),
         builder: (context, snapshot) {
@@ -197,16 +300,18 @@ class _ProductHistoryScreenState
               await _loadHistory();
             },
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(
-                16,
-                18,
-                16,
-                40,
+              padding: EdgeInsets.fromLTRB(
+                _pagePadding(context),
+                responsive.isCompact ? 12 : 16,
+                _pagePadding(context),
+                responsive.isCompact ? 24 : 32,
               ),
               children: [
                 _buildProductSummary(data),
 
-                const SizedBox(height: 24),
+                SizedBox(
+                  height: _sectionSpacing(context),
+                ),
 
                 InventorySectionTitle(
                   title: 'Stock Ledger',
@@ -219,7 +324,7 @@ class _ProductHistoryScreenState
                   ),
                 ),
 
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
 
                 if (movements.isEmpty)
                   const InventoryEmptyState(
@@ -238,118 +343,203 @@ class _ProductHistoryScreenState
     );
   }
 
+  // ============================================================
+  // PRODUCT SUMMARY
+  // ============================================================
+
   Widget _buildProductSummary(
     _HistoryData data,
   ) {
+    final responsive = context.responsive;
+    final iconSize = _iconBoxSize(context);
+    final cardPadding = _cardPadding(context);
+
     return InventoryCard(
-      child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
-                  borderRadius:
-                      BorderRadius.circular(14),
-                ),
-                child: const Icon(
-                  Icons.inventory_2_outlined,
-                  color: AppColors.primary,
-                  size: 27,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.productName,
-                      style: AppTextStyles.title,
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      'Inventory activity',
-                      style:
-                          AppTextStyles.bodySecondary,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+      child: Padding(
+        padding: EdgeInsets.all(cardPadding),
+        child: Column(
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
+          children: [
+            // ======================================================
+            // PRODUCT HEADER
+            // ======================================================
 
-          const SizedBox(height: 22),
-
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.primaryLight,
-              borderRadius:
-                  BorderRadius.circular(12),
-            ),
-            child: Row(
+            Row(
               children: [
-                const Icon(
-                  Icons.inventory_2_outlined,
-                  color: AppColors.primary,
-                ),
-                const SizedBox(width: 10),
-                const Expanded(
-                  child: Text(
-                    'Current Stock',
-                    style: AppTextStyles.bodySecondary,
+                Container(
+                  width: iconSize,
+                  height: iconSize,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius:
+                        BorderRadius.circular(
+                      responsive.isCompact ? 10 : 12,
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.inventory_2_outlined,
+                    color: AppColors.primary,
+                    size:
+                        responsive.isCompact ? 22 : 25,
                   ),
                 ),
-                Text(
-                  '${data.product.stock}',
-                  style: AppTextStyles.price.copyWith(
-                    color: AppColors.primary,
+
+                SizedBox(
+                  width:
+                      responsive.isCompact ? 10 : 12,
+                ),
+
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.productName,
+                        maxLines: 1,
+                        overflow:
+                            TextOverflow.ellipsis,
+                        style:
+                            AppTextStyles.title.copyWith(
+                          fontSize:
+                              responsive.isCompact
+                                  ? 14
+                                  : 16,
+                        ),
+                      ),
+
+                      const SizedBox(height: 2),
+
+                      Text(
+                        'Inventory activity',
+                        style:
+                            AppTextStyles.small.copyWith(
+                          fontSize:
+                              responsive.isCompact
+                                  ? 10
+                                  : 11,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-          ),
 
-          const SizedBox(height: 18),
+            SizedBox(
+              height:
+                  responsive.isCompact ? 14 : 18,
+            ),
 
-          Row(
-            children: [
-              Expanded(
-                child: _summaryItem(
-                  'Received',
-                  '+${data.received}',
-                  Icons.south_west,
-                  AppColors.success,
+            // ======================================================
+            // CURRENT STOCK
+            // ======================================================
+
+            Container(
+              padding: EdgeInsets.symmetric(
+                horizontal:
+                    responsive.isCompact ? 10 : 12,
+                vertical:
+                    responsive.isCompact ? 9 : 11,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                borderRadius:
+                    BorderRadius.circular(
+                  responsive.isCompact ? 9 : 10,
                 ),
               ),
-              Expanded(
-                child: _summaryItem(
-                  'Sold',
-                  '-${data.sold}',
-                  Icons.north_east,
-                  AppColors.danger,
-                ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.inventory_2_outlined,
+                    color: AppColors.primary,
+                    size:
+                        responsive.isCompact ? 18 : 20,
+                  ),
+
+                  SizedBox(
+                    width:
+                        responsive.isCompact ? 7 : 9,
+                  ),
+
+                  Expanded(
+                    child: Text(
+                      'Current Stock',
+                      style:
+                          AppTextStyles.bodySecondary.copyWith(
+                        fontSize:
+                            responsive.isCompact
+                                ? 11
+                                : 12,
+                      ),
+                    ),
+                  ),
+
+                  Text(
+                    '${data.product.stock}',
+                    style:
+                        AppTextStyles.price.copyWith(
+                      fontSize:
+                          responsive.isCompact
+                              ? 15
+                              : 17,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
               ),
-              Expanded(
-                child: _summaryItem(
-                  'Adjustments',
-                  '${data.adjustments}',
-                  Icons.sync_alt,
-                  AppColors.warning,
+            ),
+
+            SizedBox(
+              height:
+                  responsive.isCompact ? 14 : 16,
+            ),
+
+            // ======================================================
+            // SUMMARY STATS
+            // ======================================================
+
+            Row(
+              children: [
+                Expanded(
+                  child: _summaryItem(
+                    'Received',
+                    '+${data.received}',
+                    Icons.south_west,
+                    AppColors.success,
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+
+                Expanded(
+                  child: _summaryItem(
+                    'Sold',
+                    '-${data.sold}',
+                    Icons.north_east,
+                    AppColors.danger,
+                  ),
+                ),
+
+                Expanded(
+                  child: _summaryItem(
+                    'Adjustments',
+                    '${data.adjustments}',
+                    Icons.sync_alt,
+                    AppColors.warning,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
+
+  // ============================================================
+  // SUMMARY ITEM
+  // ============================================================
 
   Widget _summaryItem(
     String title,
@@ -357,6 +547,8 @@ class _ProductHistoryScreenState
     IconData icon,
     Color color,
   ) {
+    final responsive = context.responsive;
+
     return Column(
       crossAxisAlignment:
           CrossAxisAlignment.start,
@@ -364,23 +556,46 @@ class _ProductHistoryScreenState
         Icon(
           icon,
           color: color,
-          size: 19,
+          size:
+              responsive.isCompact ? 16 : 18,
         ),
-        const SizedBox(height: 6),
+
+        SizedBox(
+          height:
+              responsive.isCompact ? 4 : 5,
+        ),
+
         Text(
           value,
-          style: AppTextStyles.title.copyWith(
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style:
+              AppTextStyles.title.copyWith(
             color: color,
+            fontSize:
+                responsive.isCompact ? 13 : 15,
           ),
         ),
-        const SizedBox(height: 2),
+
+        const SizedBox(height: 1),
+
         Text(
           title,
-          style: AppTextStyles.small,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style:
+              AppTextStyles.small.copyWith(
+            fontSize:
+                responsive.isCompact ? 9 : 10,
+          ),
         ),
       ],
     );
   }
+
+  // ============================================================
+  // MOVEMENT LIST
+  // ============================================================
 
   Widget _buildMovementList(
     List<StockMovementLedgerRow> movements,
@@ -392,9 +607,16 @@ class _ProductHistoryScreenState
     );
   }
 
+  // ============================================================
+  // MOVEMENT CARD
+  // ============================================================
+
   Widget _buildMovementCard(
     StockMovementLedgerRow item,
   ) {
+    final responsive = context.responsive;
+    final cardPadding = _cardPadding(context);
+
     final movement = item.movement;
     final type = movement.type.toLowerCase();
 
@@ -413,8 +635,7 @@ class _ProductHistoryScreenState
 
     if (isIncoming) {
       movementColor = AppColors.success;
-      movementIcon =
-          Icons.south_west;
+      movementIcon = Icons.south_west;
 
       movementTitle = type == 'return'
           ? 'Stock Returned'
@@ -426,22 +647,29 @@ class _ProductHistoryScreenState
       movementColor = AppColors.danger;
       movementIcon =
           Icons.shopping_cart_outlined;
+
       movementTitle = 'Sale';
+
       quantityText =
           '-${movement.quantity}';
     } else if (isAdjustment) {
       movementColor = AppColors.warning;
       movementIcon = Icons.sync_alt;
+
       movementTitle = 'Stock Adjustment';
+
       quantityText =
           '${movement.quantity}';
     } else {
       movementColor =
           AppColors.textSecondary;
+
       movementIcon =
           Icons.swap_horiz;
+
       movementTitle =
           movement.type.toUpperCase();
+
       quantityText =
           '${movement.quantity}';
     }
@@ -462,151 +690,284 @@ class _ProductHistoryScreenState
         '${date.minute.toString().padLeft(2, '0')}';
 
     return Padding(
-      padding: const EdgeInsets.only(
-        bottom: 12,
+      padding: EdgeInsets.only(
+        bottom:
+            responsive.isCompact ? 8 : 10,
       ),
       child: InventoryCard(
-        child: Row(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color:
-                    movementColor.withValues(
-                  alpha: 0.10,
+        child: Padding(
+          padding: EdgeInsets.all(cardPadding),
+          child: Row(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              // ======================================================
+              // MOVEMENT ICON
+              // ======================================================
+
+              Container(
+                width:
+                    _movementIconSize(context),
+                height:
+                    _movementIconSize(context),
+                decoration: BoxDecoration(
+                  color:
+                      movementColor.withValues(
+                    alpha: 0.10,
+                  ),
+                  shape: BoxShape.circle,
                 ),
-                shape: BoxShape.circle,
+                child: Icon(
+                  movementIcon,
+                  color: movementColor,
+                  size:
+                      responsive.isCompact
+                          ? 18
+                          : 20,
+                ),
               ),
-              child: Icon(
-                movementIcon,
-                color: movementColor,
+
+              SizedBox(
+                width:
+                    responsive.isCompact
+                        ? 9
+                        : 12,
               ),
-            ),
 
-            const SizedBox(width: 14),
+              // ======================================================
+              // MOVEMENT CONTENT
+              // ======================================================
 
-            Expanded(
-              child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          movementTitle,
-                          style:
-                              AppTextStyles.title.copyWith(
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        quantityText,
-                        style:
-                            AppTextStyles.price.copyWith(
-                          fontSize: 16,
-                          color: movementColor,
-                        ),
-                      ),
-                    ],
-                  ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    // ==================================================
+                    // TITLE + QUANTITY
+                    // ==================================================
 
-                  const SizedBox(height: 5),
-
-                  Text(
-                    '$dateText • $timeText',
-                    style:
-                        AppTextStyles.small,
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child:
-                            _balanceBox(
-                          'Before',
-                          '${item.balanceBefore}',
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child:
-                            _balanceBox(
-                          'After',
-                          '${item.balanceAfter}',
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  if (isIncoming) ...[
-                    const SizedBox(height: 12),
                     Row(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
                       children: [
-                        const Icon(
-                          Icons.local_shipping_outlined,
-                          size: 16,
-                          color:
-                              AppColors.textSecondary,
-                        ),
-                        const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            supplierName,
+                            movementTitle,
+                            maxLines: 1,
+                            overflow:
+                                TextOverflow.ellipsis,
                             style:
-                                AppTextStyles.bodySecondary,
+                                AppTextStyles.title.copyWith(
+                              fontSize:
+                                  responsive.isCompact
+                                      ? 12
+                                      : 14,
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(width: 8),
+
+                        Text(
+                          quantityText,
+                          style:
+                              AppTextStyles.price.copyWith(
+                            fontSize:
+                                responsive.isCompact
+                                    ? 14
+                                    : 16,
+                            color: movementColor,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 5),
-                    Text(
-                      'Unit cost: ₦'
-                      '${movement.unitPrice.toStringAsFixed(2)}',
-                      style:
-                          AppTextStyles.small,
+
+                    SizedBox(
+                      height:
+                          responsive.isCompact
+                              ? 3
+                              : 4,
                     ),
+
+                    // ==================================================
+                    // DATE
+                    // ==================================================
+
+                    Text(
+                      '$dateText • $timeText',
+                      style:
+                          AppTextStyles.small.copyWith(
+                        fontSize:
+                            responsive.isCompact
+                                ? 9
+                                : 10,
+                      ),
+                    ),
+
+                    SizedBox(
+                      height:
+                          responsive.isCompact
+                              ? 8
+                              : 10,
+                    ),
+
+                    // ==================================================
+                    // BEFORE / AFTER
+                    // ==================================================
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _balanceBox(
+                            'Before',
+                            '${item.balanceBefore}',
+                          ),
+                        ),
+
+                        SizedBox(
+                          width:
+                              responsive.isCompact
+                                  ? 6
+                                  : 8,
+                        ),
+
+                        Expanded(
+                          child: _balanceBox(
+                            'After',
+                            '${item.balanceAfter}',
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // ==================================================
+                    // SUPPLIER
+                    // ==================================================
+
+                    if (isIncoming) ...[
+                      SizedBox(
+                        height:
+                            responsive.isCompact
+                                ? 8
+                                : 10,
+                      ),
+
+                      Row(
+                        children: [
+                          Icon(
+                            Icons
+                                .local_shipping_outlined,
+                            size:
+                                responsive.isCompact
+                                    ? 14
+                                    : 15,
+                            color:
+                                AppColors.textSecondary,
+                          ),
+
+                          const SizedBox(width: 5),
+
+                          Expanded(
+                            child: Text(
+                              supplierName,
+                              maxLines: 1,
+                              overflow:
+                                  TextOverflow.ellipsis,
+                              style:
+                                  AppTextStyles.bodySecondary
+                                      .copyWith(
+                                fontSize:
+                                    responsive.isCompact
+                                        ? 10
+                                        : 11,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 3),
+
+                      Text(
+                        'Unit cost: ₦'
+                        '${movement.unitPrice.toStringAsFixed(2)}',
+                        maxLines: 1,
+                        overflow:
+                            TextOverflow.ellipsis,
+                        style:
+                            AppTextStyles.small.copyWith(
+                          fontSize:
+                              responsive.isCompact
+                                  ? 9
+                                  : 10,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
+  // ============================================================
+  // BALANCE BOX
+  // ============================================================
+
   Widget _balanceBox(
     String label,
     String value,
   ) {
+    final responsive = context.responsive;
+
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 8,
+      padding: EdgeInsets.symmetric(
+        horizontal:
+            responsive.isCompact ? 7 : 9,
+        vertical:
+            responsive.isCompact ? 6 : 7,
       ),
       decoration: BoxDecoration(
         color: AppColors.surfaceSoft,
         borderRadius:
-            BorderRadius.circular(8),
+            BorderRadius.circular(
+          responsive.isCompact ? 6 : 8,
+        ),
       ),
       child: Row(
         children: [
-          Text(
-            label,
-            style: AppTextStyles.small,
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow:
+                  TextOverflow.ellipsis,
+              style:
+                  AppTextStyles.small.copyWith(
+                fontSize:
+                    responsive.isCompact
+                        ? 9
+                        : 10,
+              ),
+            ),
           ),
-          const Spacer(),
+
+          const SizedBox(width: 4),
+
           Text(
             value,
-            style: AppTextStyles.body.copyWith(
-              fontWeight: FontWeight.w700,
+            style:
+                AppTextStyles.body.copyWith(
+              fontSize:
+                  responsive.isCompact
+                      ? 10
+                      : 11,
+              fontWeight:
+                  FontWeight.w700,
             ),
           ),
         ],
@@ -614,6 +975,10 @@ class _ProductHistoryScreenState
     );
   }
 }
+
+// ================================================================
+// HISTORY DATA
+// ================================================================
 
 class _HistoryData {
   final Product product;

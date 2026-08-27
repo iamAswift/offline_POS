@@ -79,6 +79,50 @@ class AppColors {
   static const split = Color(0xFFF79009);
 }
 
+// ================================================================
+// APP SPACING
+// ================================================================
+
+class AppSpacing {
+  static const double xs = 4;
+  static const double sm = 8;
+  static const double md = 12;
+  static const double lg = 16;
+  static const double xl = 20;
+  static const double xxl = 24;
+  static const double xxxl = 32;
+  static const double huge = 40;
+  static const double section = 48;
+}
+
+// ================================================================
+// APP RADII
+// ================================================================
+
+class AppRadius {
+  static const double sm = 6;
+  static const double md = 8;
+  static const double lg = 12;
+  static const double xl = 16;
+  static const double round = 999;
+}
+
+// ================================================================
+// APP SIZES
+// ================================================================
+
+class AppSizes {
+  static const double buttonHeight = 48;
+  static const double inputHeight = 52;
+
+  static const double iconButton = 44;
+
+  static const double cardMinHeight = 80;
+
+  static const double maxContentWidth = 1200;
+
+  static const double maxFormWidth = 440;
+}
 
 class AppTextStyles {
   static const heading = TextStyle(
@@ -120,9 +164,76 @@ class AppTextStyles {
     color: AppColors.textPrimary,
   );
 
-  static const EdgeInsets screenPadding =
-      EdgeInsets.all(16);
 
-  static const Color primaryColor =
-      AppColors.primary;
+  // ============================================================
+  // DASHBOARD
+  // ============================================================
+
+  static const dashboardTitle = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 23,
+    fontWeight: FontWeight.w800,
+    color: AppColors.textPrimary,
+  );
+
+  static const dashboardSubtitle = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 13,
+    color: AppColors.textSecondary,
+  );
+
+  static const dashboardCardTitle = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+    color: AppColors.textSecondary,
+  );
+
+  static const dashboardCardValue = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 20,
+    fontWeight: FontWeight.w800,
+    color: AppColors.textPrimary,
+  );
+
+  static const dashboardCardSubtitle = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 11,
+    color: AppColors.textSecondary,
+  );
+
+  static const dashboardSectionTitle = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 17,
+    fontWeight: FontWeight.w800,
+    color: AppColors.textPrimary,
+  );
+
+  static const dashboardSectionSubtitle = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 11,
+    color: AppColors.textSecondary,
+  );
+
+  static const attendanceTitle = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 15,
+    fontWeight: FontWeight.w800,
+    color: AppColors.textPrimary,
+  );
+
+  static const attendanceSubtitle = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 12,
+    color: AppColors.textSecondary,
+  );
+
+  // ============================================================
+  // FORM / OTHER
+  // ============================================================
+
+
+  static const EdgeInsets screenPadding = EdgeInsets.all(16);
+
+  static const Color primaryColor = AppColors.primary;
 }

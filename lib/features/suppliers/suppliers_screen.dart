@@ -1,9 +1,11 @@
 // lib/features/suppliers/suppliers_screen.dart
 
+
 import 'package:flutter/material.dart';
 
 import 'package:supermarket_inventory/core/widgets/back_button.dart';
 
+import '../../core/responsive/responsive.dart';
 import '../../core/theme/styles.dart';
 import '../../database/app_database.dart';
 import '../../database/daos/supplier_dao.dart';
@@ -31,6 +33,10 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
     _supplierSettings = SupplierSettings(getSettingsDao());
   }
 
+  // ============================================================
+  // LOAD SUPPLIERS
+  // ============================================================
+
   Future<List<Supplier>> _loadSuppliers() async {
     final suppliersEnabled =
         await _supplierSettings.suppliersEnabled;
@@ -41,13 +47,15 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
 
     final suppliers = await _supplierDao.getAllSuppliers();
 
-    debugPrint('Loaded ${suppliers.length} suppliers');
+    debugPrint(
+      'Loaded ${suppliers.length} suppliers',
+    );
 
     return suppliers;
   }
 
   // ============================================================
-  // CHECK MASTER SUPPLIER SETTING
+  // CHECK SUPPLIER MODULE
   // ============================================================
 
   Future<bool> _isSuppliersEnabled() async {
@@ -149,8 +157,15 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final responsive = context.responsive;
+
     return Scaffold(
       backgroundColor: AppColors.background,
+
+      // ========================================================
+      // APP BAR
+      // ========================================================
+
       appBar: AppBar(
         leading: const CentralBackButton(),
         title: const Text(
@@ -170,15 +185,27 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
               Icons.refresh,
             ),
           ),
-          const SizedBox(width: 4),
+          SizedBox(
+            width: responsive.isCompact
+                ? AppSpacing.xs
+                : AppSpacing.sm,
+          ),
         ],
       ),
+
+      // ========================================================
+      // BODY
+      // ========================================================
+
       body: FutureBuilder<bool>(
         future: _isSuppliersEnabled(),
-        builder: (context, settingsSnapshot) {
-          // ------------------------------------------------------
+        builder: (
+          context,
+          settingsSnapshot,
+        ) {
+          // ----------------------------------------------------
           // SETTINGS LOADING
-          // ------------------------------------------------------
+          // ----------------------------------------------------
 
           if (settingsSnapshot.connectionState ==
               ConnectionState.waiting) {
@@ -189,9 +216,9 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
             );
           }
 
-          // ------------------------------------------------------
+          // ----------------------------------------------------
           // SETTINGS ERROR
-          // ------------------------------------------------------
+          // ----------------------------------------------------
 
           if (settingsSnapshot.hasError) {
             return _buildErrorState(
@@ -199,9 +226,9 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
             );
           }
 
-          // ------------------------------------------------------
-          // SUPPLIER MODULE DISABLED
-          // ------------------------------------------------------
+          // ----------------------------------------------------
+          // MODULE DISABLED
+          // ----------------------------------------------------
 
           final suppliersEnabled =
               settingsSnapshot.data ?? true;
@@ -210,16 +237,19 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
             return _buildDisabledState();
           }
 
-          // ------------------------------------------------------
-          // SUPPLIERS ENABLED
-          // ------------------------------------------------------
+          // ----------------------------------------------------
+          // SUPPLIERS
+          // ----------------------------------------------------
 
           return FutureBuilder<List<Supplier>>(
             future: _loadSuppliers(),
-            builder: (context, snapshot) {
-              // --------------------------------------------------
+            builder: (
+              context,
+              snapshot,
+            ) {
+              // ------------------------------------------------
               // LOADING
-              // --------------------------------------------------
+              // ------------------------------------------------
 
               if (snapshot.connectionState ==
                   ConnectionState.waiting) {
@@ -230,9 +260,9 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                 );
               }
 
-              // --------------------------------------------------
+              // ------------------------------------------------
               // ERROR
-              // --------------------------------------------------
+              // ------------------------------------------------
 
               if (snapshot.hasError) {
                 return _buildErrorState(
@@ -240,11 +270,12 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                 );
               }
 
-              // --------------------------------------------------
+              // ------------------------------------------------
               // DATA
-              // --------------------------------------------------
+              // ------------------------------------------------
 
-              final suppliers = snapshot.data ?? [];
+              final suppliers =
+                  snapshot.data ?? [];
 
               if (suppliers.isEmpty) {
                 return _buildEmptyState();
@@ -257,10 +288,19 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
           );
         },
       ),
+
+      // ========================================================
+      // ADD SUPPLIER BUTTON
+      // ========================================================
+
       floatingActionButton: FutureBuilder<bool>(
         future: _isSuppliersEnabled(),
-        builder: (context, snapshot) {
-          final enabled = snapshot.data ?? true;
+        builder: (
+          context,
+          snapshot,
+        ) {
+          final enabled =
+              snapshot.data ?? true;
 
           if (!enabled) {
             return const SizedBox.shrink();
@@ -287,149 +327,120 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
   }
 
   // ============================================================
-  // DISABLED STATE
-  // ============================================================
-
-  Widget _buildDisabledState() {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxWidth: 480,
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: AppColors.border,
-              ),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: const BoxDecoration(
-                    color: AppColors.primaryLight,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.business_outlined,
-                    size: 42,
-                    color: AppColors.primary,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Supplier Management Disabled',
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.title,
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Supplier management has been disabled in business settings.',
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.bodySecondary,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
   // SUPPLIER CONTENT
   // ============================================================
 
   Widget _buildSupplierContent(
     List<Supplier> suppliers,
   ) {
-    return LayoutBuilder(
-      builder: (
-        context,
-        constraints,
-      ) {
-        final width = constraints.maxWidth;
+    final responsive = context.responsive;
 
-        final bool isWide = width >= 600;
-        final int columns = isWide ? 2 : 1;
-        final double horizontalPadding =
-            isWide ? 24 : 16;
-        final double maxContentWidth =
-            isWide ? 1200 : double.infinity;
+    final horizontalPadding =
+        responsive.horizontalPadding;
 
-        return Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: maxContentWidth,
+    final maxWidth =
+        responsive.contentMaxWidth;
+
+    // Supplier cards need a little more width than
+    // product cards, so we use supplier-specific columns
+    // while still relying completely on your existing
+    // responsive breakpoints.
+
+    final int columns;
+
+    if (responsive.isCompact) {
+      columns = 1;
+    } else if (responsive.isTablet) {
+      columns = 2;
+    } else if (responsive.isDesktop) {
+      columns = responsive.isLargeDesktop ? 4 : 3;
+    } else {
+      columns = 1;
+    }
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: maxWidth,
+        ),
+        child: CustomScrollView(
+          physics:
+              const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            // ==================================================
+            // PAGE HEADER
+            // ==================================================
+
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                responsive.verticalPadding,
+                horizontalPadding,
+                AppSpacing.md,
+              ),
+              sliver: SliverToBoxAdapter(
+                child: _buildPageHeader(
+                  suppliers.length,
+                ),
+              ),
             ),
-            child: CustomScrollView(
-              physics:
-                  const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    horizontalPadding,
-                    20,
-                    horizontalPadding,
-                    12,
-                  ),
-                  sliver: SliverToBoxAdapter(
-                    child: _buildPageHeader(
+
+            // ==================================================
+            // SUPPLIER GRID
+            // ==================================================
+
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                AppSpacing.xs,
+                horizontalPadding,
+                responsive.isCompact
+                    ? 88
+                    : 100,
+              ),
+              sliver: SliverGrid(
+                delegate:
+                    SliverChildBuilderDelegate(
+                  (context, index) {
+                    final supplier =
+                        suppliers[index];
+
+                    return _SupplierCard(
+                      supplier: supplier,
+                      onTap: () =>
+                          _openSupplierDashboard(
+                        supplier,
+                      ),
+                      onEdit: () =>
+                          _editSupplier(
+                        supplier,
+                      ),
+                    );
+                  },
+                  childCount:
                       suppliers.length,
-                    ),
-                  ),
                 ),
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    horizontalPadding,
-                    4,
-                    horizontalPadding,
-                    100,
-                  ),
-                  sliver: SliverGrid(
-                    delegate:
-                        SliverChildBuilderDelegate(
-                      (context, index) {
-                        final supplier =
-                            suppliers[index];
-
-                        return _SupplierCard(
-                          supplier: supplier,
-                          onTap: () =>
-                              _openSupplierDashboard(
-                            supplier,
-                          ),
-                          onEdit: () =>
-                              _editSupplier(
-                            supplier,
-                          ),
-                        );
-                      },
-                      childCount: suppliers.length,
-                    ),
-                    gridDelegate:
-                        SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: columns,
-                      crossAxisSpacing:
-                          isWide ? 16 : 0,
-                      mainAxisSpacing: 16,
-                      childAspectRatio:
-                          isWide ? 2.15 : 2.8,
-                    ),
-                  ),
+                gridDelegate:
+                    SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columns,
+                  crossAxisSpacing:
+                      responsive.isCompact
+                          ? 0
+                          : AppSpacing.md,
+                  mainAxisSpacing:
+                      AppSpacing.md,
+                  childAspectRatio:
+                      responsive.isCompact
+                          ? 2.35
+                          : responsive.isTablet
+                              ? 2.15
+                              : 2.30,
                 ),
-              ],
+              ),
             ),
-          ),
-        );
-      },
+          ],
+        ),
+      ),
     );
   }
 
@@ -440,42 +451,79 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
   Widget _buildPageHeader(
     int supplierCount,
   ) {
+    final responsive = context.responsive;
+
+    final compact = responsive.isCompact;
+
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(
+        compact
+            ? AppSpacing.lg
+            : AppSpacing.xl,
+      ),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(
+          AppRadius.xl,
+        ),
         border: Border.all(
           color: AppColors.border,
         ),
       ),
       child: Row(
         children: [
+          // ----------------------------------------------------
+          // ICON
+          // ----------------------------------------------------
+
           Container(
-            width: 54,
-            height: 54,
+            width: compact ? 46 : 52,
+            height: compact ? 46 : 52,
             decoration: BoxDecoration(
               color: AppColors.primaryLight,
               borderRadius:
-                  BorderRadius.circular(14),
+                  BorderRadius.circular(
+                compact
+                    ? AppRadius.lg
+                    : AppRadius.xl,
+              ),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.business_outlined,
-              size: 28,
+              size: compact ? 24 : 27,
               color: AppColors.primary,
             ),
           ),
-          const SizedBox(width: 16),
+
+          SizedBox(
+            width: compact
+                ? AppSpacing.md
+                : AppSpacing.lg,
+          ),
+
+          // ----------------------------------------------------
+          // TEXT
+          // ----------------------------------------------------
+
           Expanded(
             child: Column(
               crossAxisAlignment:
                   CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Supplier Management',
-                  style: AppTextStyles.title,
+                  style: compact
+                      ? AppTextStyles.body.copyWith(
+                          fontWeight:
+                              FontWeight.w700,
+                        )
+                      : AppTextStyles.title,
                 ),
-                const SizedBox(height: 4),
+
+                const SizedBox(
+                  height: AppSpacing.xs,
+                ),
+
                 Text(
                   supplierCount == 1
                       ? '1 supplier registered'
@@ -483,14 +531,20 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                   style:
                       AppTextStyles.bodySecondary,
                 ),
-                const SizedBox(height: 2),
-                const Text(
-                  'Manage supplier accounts, deliveries, payments and balances.',
-                  maxLines: 2,
-                  overflow:
-                      TextOverflow.ellipsis,
-                  style: AppTextStyles.small,
+
+                const SizedBox(
+                  height: 2,
                 ),
+
+                if (!compact)
+                  const Text(
+                    'Manage supplier accounts, deliveries, payments and balances.',
+                    maxLines: 2,
+                    overflow:
+                        TextOverflow.ellipsis,
+                    style:
+                        AppTextStyles.small,
+                  ),
               ],
             ),
           ),
@@ -504,86 +558,204 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
   // ============================================================
 
   Widget _buildEmptyState() {
+    final responsive = context.responsive;
+
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(
+          responsive.horizontalPadding,
+        ),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxWidth: 480,
+          constraints: BoxConstraints(
+            maxWidth: responsive.isCompact
+                ? double.infinity
+                : AppSizes.maxFormWidth + 40,
           ),
           child: Container(
-            padding: const EdgeInsets.all(28),
+            padding: EdgeInsets.all(
+              responsive.isCompact
+                  ? AppSpacing.xl
+                  : AppSpacing.xxxl,
+            ),
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius:
-                  BorderRadius.circular(18),
+                  BorderRadius.circular(
+                AppRadius.xl,
+              ),
               border: Border.all(
                 color: AppColors.border,
               ),
             ),
             child: Column(
-              mainAxisSize:
-                  MainAxisSize.min,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 80,
-                  height: 80,
+                  width: responsive.isCompact
+                      ? 68
+                      : 76,
+                  height: responsive.isCompact
+                      ? 68
+                      : 76,
                   decoration:
                       const BoxDecoration(
                     color:
                         AppColors.primaryLight,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.business_outlined,
-                    size: 42,
+                    size: responsive.isCompact
+                        ? 36
+                        : 40,
                     color:
                         AppColors.primary,
                   ),
                 ),
-                const SizedBox(height: 20),
+
+                const SizedBox(
+                  height: AppSpacing.lg,
+                ),
+
                 const Text(
                   'No suppliers yet',
+                  textAlign: TextAlign.center,
                   style: AppTextStyles.title,
                 ),
-                const SizedBox(height: 8),
+
+                const SizedBox(
+                  height: AppSpacing.sm,
+                ),
+
                 const Text(
                   'Add your first supplier to begin managing deliveries, payments and outstanding balances.',
-                  textAlign:
-                      TextAlign.center,
+                  textAlign: TextAlign.center,
                   style:
                       AppTextStyles.bodySecondary,
                 ),
-                const SizedBox(height: 22),
-                ElevatedButton.icon(
-                  onPressed:
-                      _addSupplier,
-                  icon: const Icon(
-                    Icons.add_business_outlined,
-                  ),
-                  label: const Text(
-                    'Add Supplier',
-                  ),
-                  style:
-                      ElevatedButton.styleFrom(
-                    backgroundColor:
-                        AppColors.primary,
-                    foregroundColor:
-                        Colors.white,
-                    padding:
-                        const EdgeInsets
-                            .symmetric(
-                      horizontal: 22,
-                      vertical: 14,
+
+                const SizedBox(
+                  height: AppSpacing.xl,
+                ),
+
+                SizedBox(
+                  height: responsive.buttonHeight,
+                  child: ElevatedButton.icon(
+                    onPressed: _addSupplier,
+                    icon: const Icon(
+                      Icons.add_business_outlined,
                     ),
-                    shape:
-                        RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(
-                        10,
+                    label: const Text(
+                      'Add Supplier',
+                    ),
+                    style:
+                        ElevatedButton.styleFrom(
+                      backgroundColor:
+                          AppColors.primary,
+                      foregroundColor:
+                          Colors.white,
+                      padding:
+                          const EdgeInsets.symmetric(
+                        horizontal:
+                            AppSpacing.xl,
+                      ),
+                      shape:
+                          RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(
+                          AppRadius.md,
+                        ),
                       ),
                     ),
                   ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // DISABLED STATE
+  // ============================================================
+
+  Widget _buildDisabledState() {
+    final responsive = context.responsive;
+
+    return Center(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.all(
+          responsive.horizontalPadding,
+        ),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: responsive.isCompact
+                ? double.infinity
+                : AppSizes.maxFormWidth + 40,
+          ),
+          child: Container(
+            padding: EdgeInsets.all(
+              responsive.isCompact
+                  ? AppSpacing.xl
+                  : AppSpacing.xxxl,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius:
+                  BorderRadius.circular(
+                AppRadius.xl,
+              ),
+              border: Border.all(
+                color: AppColors.border,
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: responsive.isCompact
+                      ? 68
+                      : 76,
+                  height: responsive.isCompact
+                      ? 68
+                      : 76,
+                  decoration:
+                      const BoxDecoration(
+                    color:
+                        AppColors.primaryLight,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.business_outlined,
+                    size: responsive.isCompact
+                        ? 36
+                        : 40,
+                    color:
+                        AppColors.primary,
+                  ),
+                ),
+
+                const SizedBox(
+                  height: AppSpacing.lg,
+                ),
+
+                const Text(
+                  'Supplier Management Disabled',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.title,
+                ),
+
+                const SizedBox(
+                  height: AppSpacing.sm,
+                ),
+
+                const Text(
+                  'Supplier management has been disabled in business settings.',
+                  textAlign: TextAlign.center,
+                  style:
+                      AppTextStyles.bodySecondary,
                 ),
               ],
             ),
@@ -600,30 +772,40 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
   Widget _buildErrorState(
     Object? error,
   ) {
+    final responsive = context.responsive;
+
     return Center(
-      child: Padding(
-        padding:
-            const EdgeInsets.all(24),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.all(
+          responsive.horizontalPadding,
+        ),
         child: ConstrainedBox(
-          constraints:
-              const BoxConstraints(
-            maxWidth: 520,
+          constraints: BoxConstraints(
+            maxWidth: responsive.isCompact
+                ? double.infinity
+                : 520,
           ),
           child: Container(
-            padding:
-                const EdgeInsets.all(24),
+            padding: EdgeInsets.all(
+              responsive.isCompact
+                  ? AppSpacing.xl
+                  : AppSpacing.xxl,
+            ),
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius:
-                  BorderRadius.circular(16),
+                  BorderRadius.circular(
+                AppRadius.xl,
+              ),
               border: Border.all(
-                color: AppColors.danger
-                    .withValues(alpha: 0.25),
+                color:
+                    AppColors.danger.withValues(
+                  alpha: 0.25,
+                ),
               ),
             ),
             child: Column(
-              mainAxisSize:
-                  MainAxisSize.min,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
                   width: 64,
@@ -641,30 +823,44 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                         AppColors.danger,
                   ),
                 ),
-                const SizedBox(height: 16),
+
+                const SizedBox(
+                  height: AppSpacing.lg,
+                ),
+
                 const Text(
                   'Unable to load suppliers',
-                  style:
-                      AppTextStyles.title,
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.title,
                 ),
-                const SizedBox(height: 8),
+
+                const SizedBox(
+                  height: AppSpacing.sm,
+                ),
+
                 Text(
                   '$error',
-                  textAlign:
-                      TextAlign.center,
+                  textAlign: TextAlign.center,
                   style:
                       AppTextStyles.bodySecondary,
                 ),
-                const SizedBox(height: 20),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    setState(() {});
-                  },
-                  icon: const Icon(
-                    Icons.refresh,
-                  ),
-                  label: const Text(
-                    'Try Again',
+
+                const SizedBox(
+                  height: AppSpacing.lg,
+                ),
+
+                SizedBox(
+                  height: responsive.buttonHeight,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      setState(() {});
+                    },
+                    icon: const Icon(
+                      Icons.refresh,
+                    ),
+                    label: const Text(
+                      'Try Again',
+                    ),
                   ),
                 ),
               ],
@@ -690,9 +886,9 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
   }
 }
 
-// ============================================================
+// ================================================================
 // SUPPLIER CARD
-// ============================================================
+// ================================================================
 
 class _SupplierCard extends StatelessWidget {
   final Supplier supplier;
@@ -707,43 +903,70 @@ class _SupplierCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final responsive = context.responsive;
+
+    final compact = responsive.isCompact;
+
     return Material(
       color: AppColors.surface,
-      borderRadius:
-          BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(
+        AppRadius.lg,
+      ),
       child: InkWell(
-        borderRadius:
-            BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(
+          AppRadius.lg,
+        ),
         onTap: onTap,
         child: Container(
-          padding:
-              const EdgeInsets.all(16),
+          padding: EdgeInsets.all(
+            compact
+                ? AppSpacing.md
+                : AppSpacing.lg,
+          ),
           decoration: BoxDecoration(
             borderRadius:
-                BorderRadius.circular(14),
+                BorderRadius.circular(
+              AppRadius.lg,
+            ),
             border: Border.all(
               color: AppColors.border,
             ),
           ),
           child: Row(
             children: [
+              // =================================================
+              // SUPPLIER ICON
+              // =================================================
+
               Container(
-                width: 54,
-                height: 54,
+                width: compact ? 44 : 50,
+                height: compact ? 44 : 50,
                 decoration: BoxDecoration(
                   color:
                       AppColors.primaryLight,
                   borderRadius:
-                      BorderRadius.circular(13),
+                      BorderRadius.circular(
+                    AppRadius.lg,
+                  ),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.business_outlined,
-                  size: 27,
+                  size: compact ? 23 : 25,
                   color:
                       AppColors.primary,
                 ),
               ),
-              const SizedBox(width: 14),
+
+              SizedBox(
+                width: compact
+                    ? AppSpacing.md
+                    : AppSpacing.lg,
+              ),
+
+              // =================================================
+              // SUPPLIER DETAILS
+              // =================================================
+
               Expanded(
                 child: Column(
                   crossAxisAlignment:
@@ -756,12 +979,23 @@ class _SupplierCard extends StatelessWidget {
                       maxLines: 1,
                       overflow:
                           TextOverflow.ellipsis,
-                      style:
-                          AppTextStyles.title,
+                      style: compact
+                          ? AppTextStyles.body.copyWith(
+                              fontWeight:
+                                  FontWeight.w600,
+                            )
+                          : AppTextStyles.title,
                     ),
+
+                    // ------------------------------------------------
+                    // CONTACT
+                    // ------------------------------------------------
+
                     if ((supplier.contact ?? '')
                         .isNotEmpty) ...[
-                      const SizedBox(height: 5),
+                      const SizedBox(
+                        height: AppSpacing.xs,
+                      ),
                       Row(
                         children: [
                           const Icon(
@@ -770,7 +1004,9 @@ class _SupplierCard extends StatelessWidget {
                             color:
                                 AppColors.textSecondary,
                           ),
-                          const SizedBox(width: 5),
+                          const SizedBox(
+                            width: AppSpacing.xs,
+                          ),
                           Expanded(
                             child: Text(
                               supplier.contact!,
@@ -778,16 +1014,22 @@ class _SupplierCard extends StatelessWidget {
                               overflow:
                                   TextOverflow.ellipsis,
                               style:
-                                  AppTextStyles
-                                      .bodySecondary,
+                                  AppTextStyles.small,
                             ),
                           ),
                         ],
                       ),
                     ],
+
+                    // ------------------------------------------------
+                    // ADDRESS
+                    // ------------------------------------------------
+
                     if ((supplier.address ?? '')
                         .isNotEmpty) ...[
-                      const SizedBox(height: 4),
+                      const SizedBox(
+                        height: 2,
+                      ),
                       Row(
                         children: [
                           const Icon(
@@ -797,7 +1039,9 @@ class _SupplierCard extends StatelessWidget {
                             color:
                                 AppColors.textMuted,
                           ),
-                          const SizedBox(width: 5),
+                          const SizedBox(
+                            width: AppSpacing.xs,
+                          ),
                           Expanded(
                             child: Text(
                               supplier.address!,
@@ -814,29 +1058,49 @@ class _SupplierCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              IconButton(
-                tooltip: 'Edit supplier',
-                onPressed: onEdit,
-                icon: const Icon(
-                  Icons.edit_outlined,
-                  size: 21,
+
+              const SizedBox(
+                width: AppSpacing.xs,
+              ),
+
+              // =================================================
+              // EDIT
+              // =================================================
+
+              SizedBox(
+                width: AppSizes.iconButton,
+                height: AppSizes.iconButton,
+                child: IconButton(
+                  tooltip: 'Edit supplier',
+                  onPressed: onEdit,
+                  icon: const Icon(
+                    Icons.edit_outlined,
+                    size: 19,
+                  ),
                   color:
                       AppColors.textSecondary,
+                  padding: EdgeInsets.zero,
                 ),
               ),
+
+              // =================================================
+              // CHEVRON
+              // =================================================
+
               Container(
-                width: 34,
-                height: 34,
+                width: compact ? 30 : 34,
+                height: compact ? 30 : 34,
                 decoration: BoxDecoration(
                   color:
                       AppColors.surfaceSoft,
                   borderRadius:
-                      BorderRadius.circular(9),
+                      BorderRadius.circular(
+                    AppRadius.md,
+                  ),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.chevron_right,
-                  size: 22,
+                  size: compact ? 20 : 22,
                   color:
                       AppColors.textMuted,
                 ),

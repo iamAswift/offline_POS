@@ -1,27 +1,32 @@
-//lib/core/navigation/main_scaffold.dart
+// lib/core/navigation/main_scaffold.dart
 
 // ============================================================
 // MAIN SCAFFOLD
 // ============================================================
-// Role-aware application navigation.
 //
-// Owner / Manager:
-//   Dashboard
-//   Products
-//   Suppliers
-//   Receive Stock
+// Application-wide GoRouter shell.
 //
-// Staff:
-//   Dashboard
-//   Sales
+// Primary navigation:
+//
+// 0 = POS
+// 1 = Dashboard
+// 2 = Products
+// 3 = Categories
+// 4 = Suppliers
+// 5 = Reports
+// 6 = Settings
+// 7 = Users
+//
+// Secondary routes remain available through their own routes.
 // ============================================================
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../theme/styles.dart';
-import '../../database/app_database.dart';
 import '../../core/session.dart';
+import '../../database/app_database.dart';
+import '../theme/styles.dart';
+import '../widgets/dashboard_sidebar.dart';
 
 class MainScaffold extends StatelessWidget {
   final Widget child;
@@ -36,17 +41,28 @@ class MainScaffold extends StatelessWidget {
   // ============================================================
 
   Future<String> _getRole() async {
-    final userDao = getUserDao();
-
-    final email = Session.currentUserEmail ?? "";
+    final email =
+        Session.currentUserEmail ?? '';
 
     if (email.isEmpty) {
-      return "staff";
+      return 'staff';
     }
 
-    final user = await userDao.getUserByEmail(email);
+    try {
+      final userDao = getUserDao();
 
-    return user?.role.trim().toLowerCase() ?? "staff";
+      final user =
+          await userDao.getUserByEmail(
+        email,
+      );
+
+      return user?.role
+              .trim()
+              .toLowerCase() ??
+          'staff';
+    } catch (_) {
+      return 'staff';
+    }
   }
 
   // ============================================================
@@ -55,75 +71,67 @@ class MainScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentIndex = _calculateIndex(context);
-
     return FutureBuilder<String>(
       future: _getRole(),
-      builder: (context, snapshot) {
-        // --------------------------------------------------------
-        // Loading
-        // --------------------------------------------------------
-
-        if (snapshot.connectionState == ConnectionState.waiting) {
+      builder: (
+        context,
+        snapshot,
+      ) {
+        if (snapshot.connectionState ==
+            ConnectionState.waiting) {
           return const Scaffold(
-            backgroundColor: AppColors.background,
+            backgroundColor:
+                AppColors.background,
             body: Center(
-              child: CircularProgressIndicator(
-                color: AppColors.primary,
+              child:
+                  CircularProgressIndicator(
+                color:
+                    AppColors.primary,
               ),
             ),
           );
         }
 
-        // --------------------------------------------------------
-        // Error / fallback
-        // --------------------------------------------------------
-
-        final role = snapshot.data ?? "staff";
+        final role =
+            snapshot.data
+                    ?.trim()
+                    .toLowerCase() ??
+                'staff';
 
         final isPrivileged =
-            role == "owner" || role == "manager";
+            role == 'owner' ||
+            role == 'manager' ||
+            role == 'admin';
 
-        // --------------------------------------------------------
-        // Navigation items
-        // --------------------------------------------------------
-
-        final items = _buildNavigationItems(
-          isPrivileged: isPrivileged,
-        );
-
-        // --------------------------------------------------------
-        // Safety check
-        // --------------------------------------------------------
-
-        final safeIndex =
-            currentIndex >= 0 && currentIndex < items.length
-                ? currentIndex
-                : 0;
+        final currentIndex =
+            _calculateIndex(context);
 
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor:
+              AppColors.background,
+          body: Row(
+            crossAxisAlignment:
+                CrossAxisAlignment.stretch,
+            children: [
+              DashboardSidebar(
+                selectedIndex:
+                    currentIndex,
+                isPrivileged:
+                    isPrivileged,
+                onDestinationSelected:
+                    (index) {
+                  _handleNavigation(
+                    context,
+                    index,
+                    isPrivileged,
+                  );
+                },
+              ),
 
-          // ======================================================
-          // PAGE CONTENT
-          // ======================================================
-
-          body: child,
-
-          // ======================================================
-          // BOTTOM NAVIGATION
-          // ======================================================
-
-          bottomNavigationBar: _ProfessionalBottomNavigation(
-            items: items,
-            currentIndex: safeIndex,
-            onTap: (index) {
-              _handleNavigation(
-                context,
-                index,
-                isPrivileged,
-              );
-            },
+              Expanded(
+                child: child,
+              ),
+            ],
           ),
         );
       },
@@ -131,59 +139,7 @@ class MainScaffold extends StatelessWidget {
   }
 
   // ============================================================
-  // NAVIGATION ITEMS
-  // ============================================================
-
-  List<_NavigationItem> _buildNavigationItems({
-    required bool isPrivileged,
-  }) {
-    if (isPrivileged) {
-      return const [
-        _NavigationItem(
-          label: "Dashboard",
-          icon: Icons.dashboard_outlined,
-          activeIcon: Icons.dashboard_rounded,
-          route: "/dashboard",
-        ),
-        _NavigationItem(
-          label: "Products",
-          icon: Icons.inventory_2_outlined,
-          activeIcon: Icons.inventory_2_rounded,
-          route: "/products",
-        ),
-        _NavigationItem(
-          label: "Suppliers",
-          icon: Icons.local_shipping_outlined,
-          activeIcon: Icons.local_shipping_rounded,
-          route: "/suppliers",
-        ),
-        _NavigationItem(
-          label: "Receive",
-          icon: Icons.add_box_outlined,
-          activeIcon: Icons.add_box_rounded,
-          route: "/receive-stock",
-        ),
-      ];
-    }
-
-    return const [
-      _NavigationItem(
-        label: "Dashboard",
-        icon: Icons.dashboard_outlined,
-        activeIcon: Icons.dashboard_rounded,
-        route: "/dashboard",
-      ),
-      _NavigationItem(
-        label: "Sales",
-        icon: Icons.point_of_sale_outlined,
-        activeIcon: Icons.point_of_sale_rounded,
-        route: "/sales",
-      ),
-    ];
-  }
-
-  // ============================================================
-  // NAVIGATION HANDLER
+  // PRIMARY NAVIGATION
   // ============================================================
 
   void _handleNavigation(
@@ -191,229 +147,178 @@ class MainScaffold extends StatelessWidget {
     int index,
     bool isPrivileged,
   ) {
-    if (isPrivileged) {
-      switch (index) {
-        case 0:
-          context.go("/dashboard");
-          break;
-
-        case 1:
-          context.go("/products");
-          break;
-
-        case 2:
-          context.go("/suppliers");
-          break;
-
-        case 3:
-          context.go("/receive-stock");
-          break;
-      }
-
-      return;
-    }
-
-    // ----------------------------------------------------------
-    // Staff navigation
-    // ----------------------------------------------------------
-
     switch (index) {
+      // --------------------------------------------------------
+      // 0 — POS
+      // --------------------------------------------------------
+
       case 0:
-        context.go("/dashboard");
+        context.go('/sales');
         break;
 
+      // --------------------------------------------------------
+      // 1 — DASHBOARD
+      // --------------------------------------------------------
+
       case 1:
-        context.go("/sales");
+        context.go('/dashboard');
+        break;
+
+      // --------------------------------------------------------
+      // 2 — PRODUCTS
+      // --------------------------------------------------------
+
+      case 2:
+        if (isPrivileged) {
+          context.go('/products');
+        }
+        break;
+
+      // --------------------------------------------------------
+      // 3 — CATEGORIES
+      // --------------------------------------------------------
+
+      case 3:
+        if (isPrivileged) {
+          context.go('/categories');
+        }
+        break;
+
+      // --------------------------------------------------------
+      // 4 — SUPPLIERS
+      // --------------------------------------------------------
+
+      case 4:
+        if (isPrivileged) {
+          context.go('/suppliers');
+        }
+        break;
+
+      // --------------------------------------------------------
+      // 5 — REPORTS
+      // --------------------------------------------------------
+
+      case 5:
+        if (isPrivileged) {
+          context.go('/reports');
+        }
+        break;
+
+      // --------------------------------------------------------
+      // 6 — SETTINGS
+      // --------------------------------------------------------
+
+      case 6:
+        if (isPrivileged) {
+          context.go('/settings');
+        }
+        break;
+
+      // --------------------------------------------------------
+      // 7 — USERS
+      // --------------------------------------------------------
+
+      case 7:
+        if (isPrivileged) {
+          context.go('/users');
+        }
         break;
     }
   }
 
   // ============================================================
-  // CURRENT TAB
+  // CURRENT PRIMARY NAVIGATION INDEX
   // ============================================================
 
-  int _calculateIndex(BuildContext context) {
-    final uri = GoRouter.of(context)
-        .routerDelegate
-        .currentConfiguration
-        .uri;
+  int _calculateIndex(
+    BuildContext context,
+  ) {
+    final uri =
+        GoRouter.of(context)
+            .routerDelegate
+            .currentConfiguration
+            .uri;
 
     final path = uri.path;
 
-    if (path.startsWith("/products")) {
+    // ----------------------------------------------------------
+    // 0 — POS / SALES
+    // ----------------------------------------------------------
+
+    if (path == '/sales' ||
+        path.startsWith('/sales/')) {
+      return 0;
+    }
+
+    // ----------------------------------------------------------
+    // 1 — DASHBOARD
+    // ----------------------------------------------------------
+
+    if (path == '/dashboard' ||
+        path.startsWith('/dashboard/')) {
       return 1;
     }
 
-    if (path.startsWith("/suppliers")) {
+    // ----------------------------------------------------------
+    // 2 — PRODUCTS
+    // ----------------------------------------------------------
+
+    if (path == '/products' ||
+        path.startsWith('/products/')) {
       return 2;
     }
 
-    if (path.startsWith("/receive-stock")) {
+    // ----------------------------------------------------------
+    // 3 — CATEGORIES
+    // ----------------------------------------------------------
+
+    if (path == '/categories' ||
+        path.startsWith('/categories/')) {
       return 3;
     }
 
-    if (path.startsWith("/sales")) {
-      return 1;
+    // ----------------------------------------------------------
+    // 4 — SUPPLIERS
+    // ----------------------------------------------------------
+
+    if (path == '/suppliers' ||
+        path.startsWith('/suppliers/')) {
+      return 4;
     }
 
-    return 0;
-  }
-}
+    // ----------------------------------------------------------
+    // 5 — REPORTS
+    // ----------------------------------------------------------
 
-// ============================================================
-// NAVIGATION ITEM MODEL
-// ============================================================
+    if (path == '/reports' ||
+        path.startsWith('/reports/')) {
+      return 5;
+    }
 
-class _NavigationItem {
-  final String label;
-  final IconData icon;
-  final IconData activeIcon;
-  final String route;
+    // ----------------------------------------------------------
+    // 6 — SETTINGS
+    // ----------------------------------------------------------
 
-  const _NavigationItem({
-    required this.label,
-    required this.icon,
-    required this.activeIcon,
-    required this.route,
-  });
-}
+    if (path == '/settings' ||
+        path.startsWith('/settings/')) {
+      return 6;
+    }
 
-// ============================================================
-// PROFESSIONAL BOTTOM NAVIGATION
-// ============================================================
+    // ----------------------------------------------------------
+    // 7 — USERS
+    // ----------------------------------------------------------
 
-class _ProfessionalBottomNavigation extends StatelessWidget {
-  final List<_NavigationItem> items;
-  final int currentIndex;
-  final ValueChanged<int> onTap;
+    if (path == '/users' ||
+        path.startsWith('/users/')) {
+      return 7;
+    }
 
-  const _ProfessionalBottomNavigation({
-    required this.items,
-    required this.currentIndex,
-    required this.onTap,
-  });
+    // ----------------------------------------------------------
+    // SECONDARY ROUTES
+    //
+    // Dashboard remains selected.
+    // ----------------------------------------------------------
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(
-          top: BorderSide(
-            color: AppColors.border,
-            width: 1,
-          ),
-        ),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            12,
-            8,
-            12,
-            8,
-          ),
-          child: Row(
-            children: List.generate(
-              items.length,
-              (index) {
-                final item = items[index];
-
-                return Expanded(
-                  child: _NavigationButton(
-                    item: item,
-                    selected: index == currentIndex,
-                    onTap: () => onTap(index),
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ============================================================
-// NAVIGATION BUTTON
-// ============================================================
-
-class _NavigationButton extends StatelessWidget {
-  final _NavigationItem item;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _NavigationButton({
-    required this.item,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        padding: const EdgeInsets.symmetric(
-          vertical: 8,
-          horizontal: 8,
-        ),
-        decoration: BoxDecoration(
-          color: selected
-              ? AppColors.primaryLight
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              width: selected ? 42 : 36,
-              height: selected ? 32 : 28,
-              decoration: BoxDecoration(
-                color: selected
-                    ? AppColors.primary
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                selected
-                    ? item.activeIcon
-                    : item.icon,
-                size: selected ? 21 : 20,
-                color: selected
-                    ? Colors.white
-                    : AppColors.textSecondary,
-              ),
-            ),
-
-            const SizedBox(height: 4),
-
-            Text(
-              item.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: "Poppins",
-                fontSize: 11,
-                fontWeight: selected
-                    ? FontWeight.w600
-                    : FontWeight.w500,
-                color: selected
-                    ? AppColors.primary
-                    : AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return 1;
   }
 }

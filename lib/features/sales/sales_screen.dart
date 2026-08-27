@@ -9,6 +9,7 @@ import 'package:supermarket_inventory/core/widgets/back_button.dart';
 
 import '../../core/session.dart';
 import '../../core/theme/styles.dart';
+import '../../core/responsive/responsive.dart';
 import '../../core/business/business_identity.dart';
 import '../../core/pos/pos_settings_service.dart';
 
@@ -44,21 +45,15 @@ class _SalesScreenState extends State<SalesScreen> {
   /// productId -> quantity
   final Map<int, int> cart = {};
 
-  /// Currently selected payment method.
   String paymentMethod = 'cash';
 
-  /// Loaded POS settings.
   PosSettings? _posSettings;
 
-  /// Prevent the POS screen from being used before
-  /// settings have finished loading.
   bool _loadingPosSettings = true;
-
   bool _processingSale = false;
 
   String _searchQuery = '';
 
-  /// null = all categories
   int? _selectedCategoryId;
 
   // ============================================================
@@ -85,81 +80,57 @@ class _SalesScreenState extends State<SalesScreen> {
 
   Future<void> _loadPosSettings() async {
     try {
-      final service = PosSettingsService(
-        settingsDao: settingsDao,
-      );
+      final service = PosSettingsService(settingsDao: settingsDao);
 
       final settings = await service.load();
 
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       setState(() {
         _posSettings = settings;
-
-        paymentMethod =
-            settings.safeDefaultPaymentMethod;
-
+        paymentMethod = settings.safeDefaultPaymentMethod;
         _loadingPosSettings = false;
       });
     } catch (e) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       const fallbackSettings = PosSettings();
 
       setState(() {
         _posSettings = fallbackSettings;
-
-        paymentMethod =
-            fallbackSettings.safeDefaultPaymentMethod;
-
+        paymentMethod = fallbackSettings.safeDefaultPaymentMethod;
         _loadingPosSettings = false;
       });
 
       _showMessage(
-        'Could not load POS settings. '
-        'Using defaults.',
+        'Could not load POS settings. Using defaults.',
         isError: true,
       );
     }
   }
 
   // ============================================================
-  // POS SETTINGS HELPERS
+  // PAYMENT HELPERS
   // ============================================================
 
-  bool _isPaymentMethodEnabled(
-    String method,
-  ) {
+  bool _isPaymentMethodEnabled(String method) {
     final settings = _posSettings;
 
-    if (settings == null) {
-      return false;
-    }
+    if (settings == null) return false;
 
-    return settings.isPaymentMethodEnabled(
-      method,
-    );
+    return settings.isPaymentMethodEnabled(method);
   }
 
   String _getSafePaymentMethod() {
     final settings = _posSettings;
 
-    if (settings == null) {
-      return 'cash';
-    }
+    if (settings == null) return 'cash';
 
     return settings.safeDefaultPaymentMethod;
   }
 
-  String _normalizePaymentMethod(
-    String? value,
-  ) {
-    final method =
-        value?.trim().toLowerCase() ?? '';
+  String _normalizePaymentMethod(String? value) {
+    final method = value?.trim().toLowerCase() ?? '';
 
     switch (method) {
       case 'cash':
@@ -180,9 +151,7 @@ class _SalesScreenState extends State<SalesScreen> {
     }
   }
 
-  String _formatPaymentMethodName(
-    String value,
-  ) {
+  String _formatPaymentMethodName(String value) {
     switch (value.trim().toLowerCase()) {
       case 'cash':
         return 'Cash';
@@ -206,12 +175,9 @@ class _SalesScreenState extends State<SalesScreen> {
   // ============================================================
 
   Future<void> _loadCategories() async {
-    final list =
-        await categoryDao.getAllCategories();
+    final list = await categoryDao.getAllCategories();
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     setState(() {
       categories = list;
@@ -219,12 +185,9 @@ class _SalesScreenState extends State<SalesScreen> {
   }
 
   Future<void> _loadProducts() async {
-    final list =
-        await productDao.getAllProducts();
+    final list = await productDao.getAllProducts();
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     setState(() {
       products = list;
@@ -236,34 +199,20 @@ class _SalesScreenState extends State<SalesScreen> {
   // ============================================================
 
   int get total {
-    return cart.entries.fold<int>(
-      0,
-      (sum, entry) {
-        final product =
-            _findProduct(entry.key);
+    return cart.entries.fold<int>(0, (sum, entry) {
+      final product = _findProduct(entry.key);
 
-        if (product == null) {
-          return sum;
-        }
+      if (product == null) return sum;
 
-        return sum +
-            (entry.value *
-                product.sellingPrice.toInt());
-      },
-    );
+      return sum + (entry.value * product.sellingPrice.toInt());
+    });
   }
 
   int get totalItems {
-    return cart.values.fold<int>(
-      0,
-      (sum, quantity) =>
-          sum + quantity,
-    );
+    return cart.values.fold<int>(0, (sum, quantity) => sum + quantity);
   }
 
-  Product? _findProduct(
-    int productId,
-  ) {
+  Product? _findProduct(int productId) {
     for (final product in products) {
       if (product.id == productId) {
         return product;
@@ -282,51 +231,28 @@ class _SalesScreenState extends State<SalesScreen> {
     double posAmount,
     double transferAmount,
   ) async {
-    if (_processingSale) {
-      return;
-    }
+    if (_processingSale) return;
 
-    if (_loadingPosSettings ||
-        _posSettings == null) {
-      _showMessage(
-        'POS settings are still loading.',
-        isError: true,
-      );
+    if (_loadingPosSettings || _posSettings == null) {
+      _showMessage('POS settings are still loading.', isError: true);
       return;
     }
 
     if (cart.isEmpty) {
-      _showMessage(
-        'Cart is empty.',
-        isError: true,
-      );
+      _showMessage('Cart is empty.', isError: true);
       return;
     }
 
-    final currentUserEmail =
-        Session.currentUserEmail;
+    final currentUserEmail = Session.currentUserEmail;
 
-    if (currentUserEmail == null ||
-        currentUserEmail.trim().isEmpty) {
-      _showMessage(
-        'No logged-in staff found.',
-        isError: true,
-      );
+    if (currentUserEmail == null || currentUserEmail.trim().isEmpty) {
+      _showMessage('No logged-in staff found.', isError: true);
       return;
     }
 
-    // ==========================================================
-    // VALIDATE PAYMENT METHOD
-    // ==========================================================
+    final normalizedPaymentMethod = _normalizePaymentMethod(paymentMethod);
 
-    final normalizedPaymentMethod =
-        _normalizePaymentMethod(
-      paymentMethod,
-    );
-
-    if (!_isPaymentMethodEnabled(
-      normalizedPaymentMethod,
-    )) {
+    if (!_isPaymentMethodEnabled(normalizedPaymentMethod)) {
       _showMessage(
         '${_formatPaymentMethodName(normalizedPaymentMethod)} '
         'is disabled in POS settings.',
@@ -334,22 +260,11 @@ class _SalesScreenState extends State<SalesScreen> {
       );
 
       setState(() {
-        paymentMethod =
-            _getSafePaymentMethod();
+        paymentMethod = _getSafePaymentMethod();
       });
 
       return;
     }
-
-    // The current PaymentSelector supports:
-    //
-    // cash
-    // pos
-    // transfer
-    // split
-    //
-    // We therefore do not allow unsupported methods
-    // to reach the sales database.
 
     if (normalizedPaymentMethod != 'cash' &&
         normalizedPaymentMethod != 'pos' &&
@@ -357,7 +272,7 @@ class _SalesScreenState extends State<SalesScreen> {
         normalizedPaymentMethod != 'split') {
       _showMessage(
         '${_formatPaymentMethodName(normalizedPaymentMethod)} '
-        'is not currently supported by the sales payment selector.',
+        'is not currently supported.',
         isError: true,
       );
       return;
@@ -369,67 +284,38 @@ class _SalesScreenState extends State<SalesScreen> {
 
     try {
       // ========================================================
-      // 1. GET CURRENT STAFF
+      // 1. STAFF
       // ========================================================
 
-      final staff =
-          await getUserDao().getUserByEmail(
-        currentUserEmail,
-      );
+      final staff = await getUserDao().getUserByEmail(currentUserEmail);
 
       if (staff == null) {
-        throw Exception(
-          'No staff record found for the current session.',
-        );
+        throw Exception('No staff record found for the current session.');
       }
 
       // ========================================================
-      // 2. GET SALE TOTAL
+      // 2. TOTAL
       // ========================================================
 
       final cartTotal = total;
 
       if (cartTotal <= 0) {
-        throw Exception(
-          'Sale total must be greater than zero.',
-        );
+        throw Exception('Sale total must be greater than zero.');
       }
 
       // ========================================================
-      // 3. NORMALIZE PAYMENT AMOUNTS
+      // 3. PAYMENT AMOUNTS
       // ========================================================
 
-      final receivedCash =
-          cashAmount < 0
-              ? 0.0
-              : cashAmount;
-
-      final receivedPos =
-          posAmount < 0
-              ? 0.0
-              : posAmount;
-
-      final receivedTransfer =
-          transferAmount < 0
-              ? 0.0
-              : transferAmount;
+      final receivedCash = cashAmount < 0 ? 0.0 : cashAmount;
+      final receivedPos = posAmount < 0 ? 0.0 : posAmount;
+      final receivedTransfer = transferAmount < 0 ? 0.0 : transferAmount;
 
       // ========================================================
       // 4. VALIDATE PAYMENT
       // ========================================================
 
-      if (normalizedPaymentMethod ==
-          'cash') {
-        // Cash can be greater than the sale total.
-        //
-        // Example:
-        //
-        // Sale = ₦7,500
-        // Cash = ₦10,000
-        // Change = ₦2,500
-        //
-        // Only ₦7,500 is recorded against the sale.
-
+      if (normalizedPaymentMethod == 'cash') {
         if (receivedCash < cartTotal) {
           throw Exception(
             'Cash amount is not enough.\n'
@@ -437,39 +323,26 @@ class _SalesScreenState extends State<SalesScreen> {
             'Cash received: ₦${_formatMoney(receivedCash)}',
           );
         }
-      } else if (normalizedPaymentMethod ==
-          'pos') {
-        if ((receivedPos - cartTotal)
-                .abs() >
-            0.01) {
+      } else if (normalizedPaymentMethod == 'pos') {
+        if ((receivedPos - cartTotal).abs() > 0.01) {
           throw Exception(
             'POS amount does not match sale total.\n'
             'Sale total: ₦${_formatMoney(cartTotal)}\n'
             'POS received: ₦${_formatMoney(receivedPos)}',
           );
         }
-      } else if (normalizedPaymentMethod ==
-          'transfer') {
-        if ((receivedTransfer -
-                    cartTotal)
-                .abs() >
-            0.01) {
+      } else if (normalizedPaymentMethod == 'transfer') {
+        if ((receivedTransfer - cartTotal).abs() > 0.01) {
           throw Exception(
             'Transfer amount does not match sale total.\n'
             'Sale total: ₦${_formatMoney(cartTotal)}\n'
             'Transfer received: ₦${_formatMoney(receivedTransfer)}',
           );
         }
-      } else if (normalizedPaymentMethod ==
-          'split') {
-        final paymentTotal =
-            receivedCash +
-            receivedPos +
-            receivedTransfer;
+      } else if (normalizedPaymentMethod == 'split') {
+        final paymentTotal = receivedCash + receivedPos + receivedTransfer;
 
-        if ((paymentTotal - cartTotal)
-                .abs() >
-            0.01) {
+        if ((paymentTotal - cartTotal).abs() > 0.01) {
           throw Exception(
             'Split payment must equal sale total.\n'
             'Sale total: ₦${_formatMoney(cartTotal)}\n'
@@ -477,57 +350,35 @@ class _SalesScreenState extends State<SalesScreen> {
           );
         }
 
-        if (receivedCash > 0 &&
-            !_isPaymentMethodEnabled(
-              'cash',
-            )) {
-          throw Exception(
-            'Cash is disabled in POS settings.',
-          );
+        if (receivedCash > 0 && !_isPaymentMethodEnabled('cash')) {
+          throw Exception('Cash is disabled in POS settings.');
         }
 
-        if (receivedPos > 0 &&
-            !_isPaymentMethodEnabled(
-              'pos',
-            )) {
-          throw Exception(
-            'POS is disabled in POS settings.',
-          );
+        if (receivedPos > 0 && !_isPaymentMethodEnabled('pos')) {
+          throw Exception('POS is disabled in POS settings.');
         }
 
-        if (receivedTransfer > 0 &&
-            !_isPaymentMethodEnabled(
-              'transfer',
-            )) {
-          throw Exception(
-            'Transfer is disabled in POS settings.',
-          );
+        if (receivedTransfer > 0 && !_isPaymentMethodEnabled('transfer')) {
+          throw Exception('Transfer is disabled in POS settings.');
         }
       }
 
       // ========================================================
-      // 5. VALIDATE STOCK
+      // 5. STOCK
       // ========================================================
 
       for (final entry in cart.entries) {
-        final product =
-            _findProduct(entry.key);
+        final product = _findProduct(entry.key);
 
         if (product == null) {
-          throw Exception(
-            'Product ${entry.key} could not be found.',
-          );
+          throw Exception('Product ${entry.key} could not be found.');
         }
 
-        final requestedQty =
-            entry.value;
+        final requestedQty = entry.value;
 
-        if (requestedQty <= 0) {
-          continue;
-        }
+        if (requestedQty <= 0) continue;
 
-        if (requestedQty >
-            product.stock) {
+        if (requestedQty > product.stock) {
           throw Exception(
             'Only ${product.stock} units of '
             '${product.name} are available.',
@@ -536,249 +387,122 @@ class _SalesScreenState extends State<SalesScreen> {
       }
 
       // ========================================================
-      // 6. PAYMENT AMOUNTS APPLIED
+      // 6. PAYMENT ALLOCATION
       // ========================================================
 
       double appliedCash = 0;
       double appliedPos = 0;
       double appliedTransfer = 0;
 
-      if (normalizedPaymentMethod ==
-          'cash') {
-        appliedCash =
-            cartTotal.toDouble();
-      } else if (normalizedPaymentMethod ==
-          'pos') {
-        appliedPos =
-            cartTotal.toDouble();
-      } else if (normalizedPaymentMethod ==
-          'transfer') {
-        appliedTransfer =
-            cartTotal.toDouble();
-      } else if (normalizedPaymentMethod ==
-          'split') {
-        appliedCash =
-            receivedCash;
-
-        appliedPos =
-            receivedPos;
-
-        appliedTransfer =
-            receivedTransfer;
+      if (normalizedPaymentMethod == 'cash') {
+        appliedCash = cartTotal.toDouble();
+      } else if (normalizedPaymentMethod == 'pos') {
+        appliedPos = cartTotal.toDouble();
+      } else if (normalizedPaymentMethod == 'transfer') {
+        appliedTransfer = cartTotal.toDouble();
+      } else if (normalizedPaymentMethod == 'split') {
+        appliedCash = receivedCash;
+        appliedPos = receivedPos;
+        appliedTransfer = receivedTransfer;
       }
 
       // ========================================================
       // 7. INSERT SALES
       // ========================================================
 
-      final List<Sale> completedSales =
-          [];
+      final List<Sale> completedSales = [];
 
-      final entries =
-          cart.entries
-              .where(
-                (entry) =>
-                    entry.value > 0,
-              )
-              .toList();
+      final entries = cart.entries.where((entry) => entry.value > 0).toList();
 
       if (entries.isEmpty) {
-        throw Exception(
-          'No valid products were found in the cart.',
-        );
+        throw Exception('No valid products were found in the cart.');
       }
 
       double processedCash = 0;
       double processedPos = 0;
       double processedTransfer = 0;
 
-      for (
-        int index = 0;
-        index < entries.length;
-        index++
-      ) {
-        final entry =
-            entries[index];
+      for (int index = 0; index < entries.length; index++) {
+        final entry = entries[index];
 
-        final product =
-            _findProduct(entry.key);
+        final product = _findProduct(entry.key);
 
         if (product == null) {
-          throw Exception(
-            'Product ${entry.key} could not be found.',
-          );
+          throw Exception('Product ${entry.key} could not be found.');
         }
 
-        final qty =
-            entry.value;
+        final qty = entry.value;
 
-        if (qty <= 0) {
-          continue;
-        }
+        if (qty <= 0) continue;
 
-        // ======================================================
-        // LINE TOTAL
-        // ======================================================
+        final lineTotal = qty * product.sellingPrice.toInt();
 
-        final lineTotal =
-            qty *
-            product.sellingPrice.toInt();
-
-        // ======================================================
-        // PAYMENT ALLOCATION
-        // ======================================================
-
-        final isLastItem =
-            index ==
-                entries.length - 1;
+        final isLastItem = index == entries.length - 1;
 
         double lineCash;
         double linePos;
         double lineTransfer;
 
         if (isLastItem) {
-          lineCash =
-              appliedCash -
-                  processedCash;
-
-          linePos =
-              appliedPos -
-                  processedPos;
-
-          lineTransfer =
-              appliedTransfer -
-                  processedTransfer;
+          lineCash = appliedCash - processedCash;
+          linePos = appliedPos - processedPos;
+          lineTransfer = appliedTransfer - processedTransfer;
         } else {
-          final ratio =
-              lineTotal /
-                  cartTotal;
+          final ratio = lineTotal / cartTotal;
 
-          lineCash =
-              appliedCash *
-                  ratio;
-
-          linePos =
-              appliedPos *
-                  ratio;
-
-          lineTransfer =
-              appliedTransfer *
-                  ratio;
+          lineCash = appliedCash * ratio;
+          linePos = appliedPos * ratio;
+          lineTransfer = appliedTransfer * ratio;
         }
 
-        // ======================================================
-        // FLOATING POINT PROTECTION
-        // ======================================================
-
-        if (lineCash.abs() <
-            0.005) {
+        if (lineCash.abs() < 0.005) {
           lineCash = 0;
         }
 
-        if (linePos.abs() <
-            0.005) {
+        if (linePos.abs() < 0.005) {
           linePos = 0;
         }
 
-        if (lineTransfer.abs() <
-            0.005) {
+        if (lineTransfer.abs() < 0.005) {
           lineTransfer = 0;
         }
 
-        // ======================================================
-        // INSERT SALE
-        // ======================================================
-
-        final saleId =
-            await salesDao.insertSale(
+        final saleId = await salesDao.insertSale(
           SalesCompanion.insert(
-            productId:
-                product.id,
-
-            quantity:
-                qty,
-
-            unitPrice:
-                product.sellingPrice
-                    .toInt(),
-
-            totalPrice:
-                lineTotal,
-
-            costPriceAtSale:
-                Value(
-              product.costPrice,
-            ),
-
-            paymentMethod:
-                normalizedPaymentMethod,
-
-            cashAmount:
-                Value(lineCash),
-
-            posAmount:
-                Value(linePos),
-
-            transferAmount:
-                Value(lineTransfer),
-
-            status:
-                const Value('paid'),
-
-            staffId:
-                staff.id,
+            productId: product.id,
+            quantity: qty,
+            unitPrice: product.sellingPrice.toInt(),
+            totalPrice: lineTotal,
+            costPriceAtSale: Value(product.costPrice),
+            paymentMethod: normalizedPaymentMethod,
+            cashAmount: Value(lineCash),
+            posAmount: Value(linePos),
+            transferAmount: Value(lineTransfer),
+            status: const Value('paid'),
+            staffId: staff.id,
           ),
         );
 
-        // ======================================================
-        // FETCH SALE FOR RECEIPT
-        // ======================================================
+        final sale = await (salesDao.select(
+          salesDao.sales,
+        )..where((s) => s.id.equals(saleId))).getSingle();
 
-        final sale =
-            await (
-              salesDao.select(
-                salesDao.sales,
-              )
-                ..where(
-                  (s) =>
-                      s.id.equals(
-                    saleId,
-                  ),
-                )
-            ).getSingle();
+        completedSales.add(sale);
 
-        completedSales.add(
-          sale,
-        );
-
-        // ======================================================
-        // PAYMENT TRACKING
-        // ======================================================
-
-        processedCash +=
-            lineCash;
-
-        processedPos +=
-            linePos;
-
-        processedTransfer +=
-            lineTransfer;
+        processedCash += lineCash;
+        processedPos += linePos;
+        processedTransfer += lineTransfer;
       }
 
       // ========================================================
       // 8. CLEAR CART
       // ========================================================
 
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       setState(() {
         cart.clear();
-
-        // Return to configured default.
-        paymentMethod =
-            _getSafePaymentMethod();
+        paymentMethod = _getSafePaymentMethod();
       });
 
       // ========================================================
@@ -788,44 +512,26 @@ class _SalesScreenState extends State<SalesScreen> {
       await _loadProducts();
 
       // ========================================================
-      // 10. SHOW RECEIPT
+      // 10. RECEIPT
       // ========================================================
 
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) =>
-              ReceiptWidget(
-            sales:
-                completedSales,
-
-            cashier:
-                staff,
-
-            products:
-                products,
-
-            settingsDao:
-                settingsDao,
+          builder: (_) => ReceiptWidget(
+            sales: completedSales,
+            cashier: staff,
+            products: products,
+            settingsDao: settingsDao,
           ),
         ),
       );
     } catch (e) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
-      _showMessage(
-        e.toString().replaceFirst(
-          'Exception: ',
-          '',
-        ),
-        isError: true,
-      );
+      _showMessage(e.toString().replaceFirst('Exception: ', ''), isError: true);
     } finally {
       if (mounted) {
         setState(() {
@@ -839,39 +545,21 @@ class _SalesScreenState extends State<SalesScreen> {
   // MESSAGE
   // ============================================================
 
-  void _showMessage(
-    String message, {
-    bool isError = false,
-  }) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
+  void _showMessage(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content:
-            Text(
+        content: Text(
           message,
-          style:
-              const TextStyle(
-            fontFamily:
-                'Poppins',
-            fontSize: 13,
-            fontWeight:
-                FontWeight.w500,
+          style: AppTextStyles.small.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w500,
           ),
         ),
-        backgroundColor:
-            isError
-                ? AppColors.danger
-                : AppColors.primary,
-        behavior:
-            SnackBarBehavior.floating,
-        margin:
-            const EdgeInsets.all(16),
-        shape:
-            RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.circular(
-            10,
-          ),
+        backgroundColor: isError ? AppColors.danger : AppColors.primary,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(AppSpacing.lg),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
         ),
       ),
     );
@@ -883,58 +571,40 @@ class _SalesScreenState extends State<SalesScreen> {
 
   Widget _buildBusinessLogo() {
     return FutureBuilder<String?>(
-      future:
-          BusinessIdentity.getBusinessLogo(
-        settingsDao,
-      ),
-      builder: (
-        context,
-        snapshot,
-      ) {
-        final logoPath =
-            snapshot.data;
+      future: BusinessIdentity.getBusinessLogo(settingsDao),
+      builder: (context, snapshot) {
+        final logoPath = snapshot.data;
 
-        if (logoPath == null ||
-            logoPath.trim().isEmpty) {
+        if (logoPath == null || logoPath.trim().isEmpty) {
           return const Icon(
             Icons.storefront_outlined,
             color: Colors.white,
-            size: 23,
+            size: 22,
           );
         }
 
-        final logoFile =
-            File(logoPath);
+        final logoFile = File(logoPath);
 
         if (!logoFile.existsSync()) {
           return const Icon(
             Icons.storefront_outlined,
             color: Colors.white,
-            size: 23,
+            size: 22,
           );
         }
 
         return ClipRRect(
-          borderRadius:
-              BorderRadius.circular(
-            8,
-          ),
-          child:
-              Image.file(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          child: Image.file(
             logoFile,
-            width: 34,
-            height: 34,
+            width: 32,
+            height: 32,
             fit: BoxFit.contain,
-            errorBuilder: (
-              context,
-              error,
-              stackTrace,
-            ) {
+            errorBuilder: (context, error, stackTrace) {
               return const Icon(
-                Icons
-                    .storefront_outlined,
+                Icons.storefront_outlined,
                 color: Colors.white,
-                size: 23,
+                size: 22,
               );
             },
           ),
@@ -948,274 +618,227 @@ class _SalesScreenState extends State<SalesScreen> {
   // ============================================================
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
-    final email =
-        Session.currentUserEmail ??
-            'Unknown Staff';
+  Widget build(BuildContext context) {
+    final r = context.responsive;
 
     if (_loadingPosSettings) {
       return Scaffold(
-        backgroundColor:
-            AppColors.background,
-        appBar:
-            AppBar(
-          leading:
-              const CentralBackButton(),
-          backgroundColor:
-              AppColors.primary,
-          foregroundColor:
-              Colors.white,
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          leading: const CentralBackButton(),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
           elevation: 0,
-          title:
-              const Text(
+          title: Text(
             'Point of Sale',
+            style: AppTextStyles.title.copyWith(color: Colors.white),
           ),
         ),
-        body:
-            const Center(
-          child:
-              CircularProgressIndicator(
-            color:
-                AppColors.primary,
-          ),
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor:
-          AppColors.background,
-
-      // ========================================================
-      // APP BAR
-      // ========================================================
-
-      appBar:
-          AppBar(
-        leading:
-            const CentralBackButton(),
-
-        backgroundColor:
-            AppColors.primary,
-
-        foregroundColor:
-            Colors.white,
-
-        elevation: 0,
-
-        titleSpacing: 4,
-
-        title:
-            Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration:
-                  BoxDecoration(
-                color:
-                    Colors.white
-                        .withValues(
-                  alpha: 0.12,
-                ),
-                borderRadius:
-                    BorderRadius.circular(
-                  10,
-                ),
-                border:
-                    Border.all(
-                  color:
-                      Colors.white
-                          .withValues(
-                    alpha: 0.12,
-                  ),
-                ),
-              ),
-              child:
-                  _buildBusinessLogo(),
-            ),
-
-            const SizedBox(
-              width: 12,
-            ),
-
-            Expanded(
-              child:
-                  Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                mainAxisAlignment:
-                    MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Point of Sale',
-                    style:
-                        AppTextStyles
-                            .heading
-                            .copyWith(
-                      color:
-                          Colors.white,
-                      fontSize: 19,
-                    ),
-                  ),
-
-                  const SizedBox(
-                    height: 2,
-                  ),
-
-                  Text(
-                    'Cashier: $email',
-                    maxLines: 1,
-                    overflow:
-                        TextOverflow
-                            .ellipsis,
-                    style:
-                        AppTextStyles
-                            .body
-                            .copyWith(
-                      color:
-                          Colors.white70,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            if (totalItems > 0)
-              Container(
-                margin:
-                    const EdgeInsets
-                        .only(
-                  right: 12,
-                ),
-                padding:
-                    const EdgeInsets
-                        .symmetric(
-                  horizontal: 10,
-                  vertical: 7,
-                ),
-                decoration:
-                    BoxDecoration(
-                  color:
-                      Colors.white
-                          .withValues(
-                    alpha: 0.14,
-                  ),
-                  borderRadius:
-                      BorderRadius
-                          .circular(
-                    20,
-                  ),
-                ),
-                child:
-                    Row(
-                  mainAxisSize:
-                      MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons
-                          .shopping_cart_outlined,
-                      size: 18,
-                      color:
-                          Colors.white,
-                    ),
-
-                    const SizedBox(
-                      width: 5,
-                    ),
-
-                    Text(
-                      '$totalItems',
-                      style:
-                          const TextStyle(
-                        color:
-                            Colors.white,
-                        fontWeight:
-                            FontWeight
-                                .w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ),
-      ),
-
-      // ========================================================
-      // BODY
-      // ========================================================
-
-      body:
-          SafeArea(
+      backgroundColor: AppColors.background,
+      appBar: _buildAppBar(r),
+      body: SafeArea(
         top: false,
-        child:
-            LayoutBuilder(
-          builder: (
-            context,
-            constraints,
-          ) {
-            final isWide =
-                constraints.maxWidth >=
-                    850;
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final bool useSplitLayout = constraints.maxWidth >= 900;
 
-            if (isWide) {
-              return Row(
-                crossAxisAlignment:
-                    CrossAxisAlignment
-                        .stretch,
-                children: [
-                  Expanded(
-                    flex: 7,
-                    child:
-                        _buildProductsPanel(),
-                  ),
-
-                  const VerticalDivider(
-                    width: 1,
-                    thickness: 1,
-                    color:
-                        AppColors.border,
-                  ),
-
-                  Expanded(
-                    flex: 3,
-                    child:
-                        _buildCurrentSalePanel(),
-                  ),
-                ],
-              );
+            if (useSplitLayout) {
+              return _buildSplitLayout();
             }
 
-            return Column(
-              children: [
-                Expanded(
-                  child:
-                      _buildProductsPanel(),
-                ),
-
-                const Divider(
-                  height: 1,
-                  thickness: 1,
-                  color:
-                      AppColors.border,
-                ),
-
-                SizedBox(
-                  height:
-                      constraints.maxHeight *
-                          0.48,
-                  child:
-                      _buildCurrentSalePanel(),
-                ),
-              ],
-            );
+            return _buildStackedLayout(constraints, r);
           },
         ),
       ),
+    );
+  }
+
+  // ============================================================
+  // APP BAR
+  // ============================================================
+
+  PreferredSizeWidget _buildAppBar(Responsive r) {
+    final email = Session.currentUserEmail ?? 'Unknown Staff';
+
+    final toolbarHeight = r.isCompact ? 54.0 : 60.0;
+
+    return AppBar(
+      leading: const CentralBackButton(),
+      backgroundColor: AppColors.primary,
+      foregroundColor: Colors.white,
+      elevation: 0,
+      toolbarHeight: toolbarHeight,
+      titleSpacing: AppSpacing.xs,
+      title: Row(
+        children: [
+          Container(
+            width: r.isCompact ? 32 : 36,
+            height: r.isCompact ? 32 : 36,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: _buildBusinessLogo(),
+          ),
+
+          const SizedBox(width: AppSpacing.sm),
+
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Point of Sale',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.heading.copyWith(
+                    color: Colors.white,
+                    fontSize: r.isCompact ? 14 : 17,
+                  ),
+                ),
+                Text(
+                  'Cashier: $email',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.small.copyWith(
+                    color: Colors.white70,
+                    fontSize: r.isCompact ? 8 : 10,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          if (totalItems > 0)
+            Container(
+              margin: EdgeInsets.only(
+                right: r.isCompact ? AppSpacing.xs : AppSpacing.sm,
+              ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: AppSpacing.xs,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(AppRadius.round),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.shopping_cart_outlined,
+                    size: 15,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Text(
+                    '$totalItems',
+                    style: AppTextStyles.small.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // SPLIT LAYOUT
+  // ============================================================
+
+  Widget _buildSplitLayout() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(flex: 7, child: _buildProductsPanel()),
+
+        const VerticalDivider(width: 1, thickness: 1, color: AppColors.border),
+
+        Expanded(flex: 3, child: _buildCurrentSalePanel()),
+      ],
+    );
+  }
+
+  // ============================================================
+  // STACKED LAYOUT
+  // ============================================================
+
+  Widget _buildStackedLayout(BoxConstraints constraints, Responsive r) {
+    final availableHeight = constraints.maxHeight;
+
+    /*
+     * Compact iPad / portrait layout.
+     *
+     * The current-sale section receives enough
+     * room for:
+     *
+     *   1. Cart header
+     *   2. Scrollable cart
+     *   3. Compact payment section
+     *
+     * PaymentSelector itself can scroll internally.
+     */
+
+    final bool veryShort = availableHeight < 600;
+
+    final bool compactHeight = availableHeight < 720;
+
+    final double paymentHeight = veryShort
+        ? 178
+        : compactHeight
+        ? 190
+        : 205;
+
+    final double productHeight = availableHeight - paymentHeight - 1;
+
+    /*
+     * Extremely short window.
+     *
+     * Use a vertical scroll instead of creating
+     * impossible flex constraints.
+     */
+
+    if (productHeight < 240) {
+      return SingleChildScrollView(
+        child: Column(
+          children: [
+            SizedBox(height: 380, child: _buildProductsPanel()),
+
+            const Divider(height: 1, thickness: 1, color: AppColors.border),
+
+            SizedBox(
+              height: 360,
+              child: _buildCurrentSalePanel(forceCompact: true),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        Expanded(child: _buildProductsPanel()),
+
+        const Divider(height: 1, thickness: 1, color: AppColors.border),
+
+        SizedBox(
+          height: paymentHeight,
+          child: _buildCurrentSalePanel(forceCompact: true),
+        ),
+      ],
     );
   }
 
@@ -1225,26 +848,16 @@ class _SalesScreenState extends State<SalesScreen> {
 
   Widget _buildProductsPanel() {
     return Container(
-      color:
-          AppColors.background,
-      child:
-          Column(
+      color: AppColors.background,
+      child: Column(
         children: [
           _buildSearchBar(),
 
           _buildCategoryBar(),
 
-          const Divider(
-            height: 1,
-            thickness: 1,
-            color:
-                AppColors.border,
-          ),
+          const Divider(height: 1, thickness: 1, color: AppColors.border),
 
-          Expanded(
-            child:
-                _buildProductArea(),
-          ),
+          Expanded(child: _buildProductArea()),
         ],
       ),
     );
@@ -1255,123 +868,73 @@ class _SalesScreenState extends State<SalesScreen> {
   // ============================================================
 
   Widget _buildSearchBar() {
+    final r = context.responsive;
+
     return Padding(
-      padding:
-          const EdgeInsets.fromLTRB(
-        16,
-        14,
-        16,
-        8,
+      padding: EdgeInsets.fromLTRB(
+        r.horizontalPadding,
+        r.isCompact ? AppSpacing.xs : AppSpacing.sm,
+        r.horizontalPadding,
+        AppSpacing.xs,
       ),
-      child:
-          TextField(
-        style:
-            AppTextStyles.body
-                .copyWith(
-          fontSize: 14,
+      child: SizedBox(
+        height: r.isCompact ? 38 : 44,
+        child: TextField(
+          style: AppTextStyles.body.copyWith(fontSize: r.isCompact ? 11 : 12),
+          textInputAction: TextInputAction.search,
+          decoration: InputDecoration(
+            hintText: 'Search products or scan barcode...',
+            hintStyle: AppTextStyles.bodySecondary.copyWith(
+              color: AppColors.textMuted,
+              fontSize: r.isCompact ? 10 : 11,
+            ),
+            prefixIcon: const Icon(
+              Icons.search,
+              size: 18,
+              color: AppColors.textSecondary,
+            ),
+            suffixIcon: _searchQuery.isNotEmpty
+                ? IconButton(
+                    tooltip: 'Clear search',
+                    icon: const Icon(
+                      Icons.close,
+                      size: 16,
+                      color: AppColors.textSecondary,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _searchQuery = '';
+                      });
+                    },
+                  )
+                : null,
+            filled: true,
+            fillColor: AppColors.surface,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.sm,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              borderSide: const BorderSide(color: AppColors.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              borderSide: const BorderSide(color: AppColors.border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              borderSide: const BorderSide(
+                color: AppColors.primary,
+                width: 1.2,
+              ),
+            ),
+          ),
+          onChanged: (query) {
+            setState(() {
+              _searchQuery = query.trim().toLowerCase();
+            });
+          },
         ),
-        decoration:
-            InputDecoration(
-          hintText:
-              'Search products or scan barcode...',
-
-          hintStyle:
-              AppTextStyles
-                  .bodySecondary
-                  .copyWith(
-            color:
-                AppColors.textMuted,
-          ),
-
-          prefixIcon:
-              const Icon(
-            Icons.search,
-            color:
-                AppColors
-                    .textSecondary,
-          ),
-
-          suffixIcon:
-              _searchQuery.isNotEmpty
-                  ? IconButton(
-                      tooltip:
-                          'Clear search',
-                      icon:
-                          const Icon(
-                        Icons.close,
-                        size: 20,
-                        color:
-                            AppColors
-                                .textSecondary,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _searchQuery =
-                              '';
-                        });
-                      },
-                    )
-                  : null,
-
-          filled: true,
-
-          fillColor:
-              AppColors.surface,
-
-          contentPadding:
-              const EdgeInsets
-                  .symmetric(
-            vertical: 14,
-            horizontal: 14,
-          ),
-
-          border:
-              OutlineInputBorder(
-            borderRadius:
-                BorderRadius.circular(
-              12,
-            ),
-            borderSide:
-                const BorderSide(
-              color:
-                  AppColors.border,
-            ),
-          ),
-
-          enabledBorder:
-              OutlineInputBorder(
-            borderRadius:
-                BorderRadius.circular(
-              12,
-            ),
-            borderSide:
-                const BorderSide(
-              color:
-                  AppColors.border,
-            ),
-          ),
-
-          focusedBorder:
-              OutlineInputBorder(
-            borderRadius:
-                BorderRadius.circular(
-              12,
-            ),
-            borderSide:
-                const BorderSide(
-              color:
-                  AppColors.primary,
-              width: 1.5,
-            ),
-          ),
-        ),
-        onChanged: (query) {
-          setState(() {
-            _searchQuery =
-                query.trim()
-                    .toLowerCase();
-          });
-        },
       ),
     );
   }
@@ -1381,44 +944,33 @@ class _SalesScreenState extends State<SalesScreen> {
   // ============================================================
 
   Widget _buildCategoryBar() {
+    final r = context.responsive;
+
     return SizedBox(
-      height: 52,
-      child:
-          ListView(
-        scrollDirection:
-            Axis.horizontal,
-        padding:
-            const EdgeInsets
-                .symmetric(
-          horizontal: 16,
-          vertical: 8,
+      height: r.isCompact ? 42 : 48,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(
+          horizontal: r.horizontalPadding,
+          vertical: AppSpacing.xs,
         ),
         children: [
           _buildCategoryChip(
             label: 'All',
-            selected:
-                _selectedCategoryId ==
-                    null,
+            selected: _selectedCategoryId == null,
             onTap: () {
               setState(() {
-                _selectedCategoryId =
-                    null;
+                _selectedCategoryId = null;
               });
             },
           ),
-
-          for (final category
-              in categories)
+          for (final category in categories)
             _buildCategoryChip(
-              label:
-                  category.name,
-              selected:
-                  _selectedCategoryId ==
-                      category.id,
+              label: category.name,
+              selected: _selectedCategoryId == category.id,
               onTap: () {
                 setState(() {
-                  _selectedCategoryId =
-                      category.id;
+                  _selectedCategoryId = category.id;
                 });
               },
             ),
@@ -1436,67 +988,37 @@ class _SalesScreenState extends State<SalesScreen> {
     required bool selected,
     required VoidCallback onTap,
   }) {
+    final r = context.responsive;
+
     return Padding(
-      padding:
-          const EdgeInsets.only(
-        right: 8,
-      ),
-      child:
-          Material(
-        color:
-            selected
-                ? AppColors.primary
-                : AppColors.surface,
-        borderRadius:
-            BorderRadius.circular(
-          20,
-        ),
-        child:
-            InkWell(
-          borderRadius:
-              BorderRadius.circular(
-            20,
-          ),
-          onTap:
-              onTap,
-          child:
-              Container(
-            padding:
-                const EdgeInsets
-                    .symmetric(
-              horizontal: 15,
-              vertical: 7,
+      padding: const EdgeInsets.only(right: AppSpacing.xs),
+      child: Material(
+        color: selected ? AppColors.primary : AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.round),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.round),
+          onTap: onTap,
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: r.isCompact ? AppSpacing.sm : AppSpacing.md,
+              vertical: r.isCompact ? 4 : AppSpacing.xs,
             ),
-            decoration:
-                BoxDecoration(
-              borderRadius:
-                  BorderRadius.circular(
-                20,
-              ),
-              border:
-                  Border.all(
-                color:
-                    selected
-                        ? AppColors
-                            .primary
-                        : AppColors
-                            .border,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.round),
+              border: Border.all(
+                color: selected ? AppColors.primary : AppColors.border,
               ),
             ),
-            child:
-                Text(
-              label,
-              style:
-                  AppTextStyles
-                      .small
-                      .copyWith(
-                color:
-                    selected
-                        ? Colors.white
-                        : AppColors
-                            .textSecondary,
-                fontWeight:
-                    FontWeight.w600,
+            child: Center(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.small.copyWith(
+                  color: selected ? Colors.white : AppColors.textSecondary,
+                  fontSize: r.isCompact ? 9 : 10,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),
@@ -1510,75 +1032,76 @@ class _SalesScreenState extends State<SalesScreen> {
   // ============================================================
 
   Widget _buildProductArea() {
-    final search =
-        _searchQuery
-            .trim()
-            .toLowerCase();
+    final r = context.responsive;
 
-    List<Product>
-        visibleProducts =
-        products;
+    final search = _searchQuery.trim().toLowerCase();
+
+    List<Product> visibleProducts = products;
 
     if (search.isNotEmpty) {
-      visibleProducts =
-          visibleProducts
-              .where(
-        (product) {
-          final name =
-              product.name
-                  .toLowerCase();
+      visibleProducts = visibleProducts.where((product) {
+        final name = product.name.toLowerCase();
 
-          final barcode =
-              product.barcode
-                      ?.toLowerCase() ??
-                  '';
+        final barcode = product.barcode?.toLowerCase() ?? '';
 
-          return name.contains(
-                search,
-              ) ||
-              barcode.contains(
-                search,
-              );
-        },
-      ).toList();
+        return name.contains(search) || barcode.contains(search);
+      }).toList();
     }
 
-    if (_selectedCategoryId !=
-        null) {
-      visibleProducts =
-          visibleProducts
-              .where(
-        (product) {
-          return product
-                  .categoryId ==
-              _selectedCategoryId;
-        },
-      ).toList();
+    if (_selectedCategoryId != null) {
+      visibleProducts = visibleProducts.where((product) {
+        return product.categoryId == _selectedCategoryId;
+      }).toList();
     }
 
-    if (visibleProducts
-        .isEmpty) {
+    if (visibleProducts.isEmpty) {
       return _buildNoProductsState();
     }
 
-    return GridView.builder(
-      padding:
-          const EdgeInsets.all(
-        14,
-      ),
-      gridDelegate:
-          const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 210,
-        mainAxisExtent: 205,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      itemCount:
-          visibleProducts.length,
-      itemBuilder:
-          (context, index) {
-        return _buildProductCard(
-          visibleProducts[index],
+    final horizontalSpacing = r.isCompact ? AppSpacing.xs : AppSpacing.sm;
+
+    final verticalSpacing = r.isCompact ? AppSpacing.xs : AppSpacing.sm;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth - (r.horizontalPadding * 2);
+
+        int columns;
+
+        if (constraints.maxWidth < 430) {
+          columns = 2;
+        } else if (constraints.maxWidth < 700) {
+          columns = 3;
+        } else if (constraints.maxWidth < 1100) {
+          columns = 4;
+        } else {
+          columns = 5;
+        }
+
+        final cardWidth =
+            (availableWidth - (horizontalSpacing * (columns - 1))) / columns;
+
+        /*
+         * SMALL COMPACT PRODUCT CARD
+         *
+         * This is intentionally much smaller
+         * for iPad and compact screens.
+         */
+
+        final cardHeight = r.isCompact ? 126.0 : 145.0;
+
+        return GridView.builder(
+          padding: EdgeInsets.all(r.horizontalPadding),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            mainAxisSpacing: verticalSpacing,
+            crossAxisSpacing: horizontalSpacing,
+            childAspectRatio: cardWidth / cardHeight,
+          ),
+          itemCount: visibleProducts.length,
+          itemBuilder: (context, index) {
+            return _buildProductCard(visibleProducts[index]);
+          },
         );
       },
     );
@@ -1589,71 +1112,50 @@ class _SalesScreenState extends State<SalesScreen> {
   // ============================================================
 
   Widget _buildNoProductsState() {
+    final r = context.responsive;
+
     return Center(
-      child:
-          Padding(
-        padding:
-            const EdgeInsets.all(
-          32,
-        ),
-        child:
-            Column(
-          mainAxisSize:
-              MainAxisSize.min,
+      child: SingleChildScrollView(
+        padding: EdgeInsets.all(r.horizontalPadding),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 64,
-              height: 64,
-              decoration:
-                  const BoxDecoration(
-                color:
-                    AppColors
-                        .surfaceSoft,
-                shape:
-                    BoxShape.circle,
+              width: r.isCompact ? 48 : 56,
+              height: r.isCompact ? 48 : 56,
+              decoration: const BoxDecoration(
+                color: AppColors.surfaceSoft,
+                shape: BoxShape.circle,
               ),
-              child:
-                  const Icon(
-                Icons
-                    .inventory_2_outlined,
-                size: 30,
-                color:
-                    AppColors
-                        .textMuted,
+              child: Icon(
+                Icons.inventory_2_outlined,
+                size: r.isCompact ? 22 : 26,
+                color: AppColors.textMuted,
               ),
             ),
 
-            const SizedBox(
-              height: 12,
-            ),
+            const SizedBox(height: AppSpacing.xs),
 
             Text(
-              _searchQuery
-                      .isNotEmpty
+              _searchQuery.isNotEmpty
                   ? 'No products found'
                   : 'No products available',
-              style:
-                  AppTextStyles
-                      .body
-                      .copyWith(
-                fontWeight:
-                    FontWeight.w600,
+              style: AppTextStyles.body.copyWith(
+                fontSize: r.isCompact ? 11 : 12,
+                fontWeight: FontWeight.w600,
               ),
             ),
 
-            const SizedBox(
-              height: 4,
-            ),
+            const SizedBox(height: 2),
 
             Text(
-              _searchQuery
-                      .isNotEmpty
+              _searchQuery.isNotEmpty
                   ? 'Try another product name or barcode.'
                   : 'Add products to start selling.',
-              textAlign:
-                  TextAlign.center,
-              style:
-                  AppTextStyles.small,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.small.copyWith(
+                fontSize: r.isCompact ? 9 : 10,
+              ),
             ),
           ],
         ),
@@ -1665,203 +1167,131 @@ class _SalesScreenState extends State<SalesScreen> {
   // PRODUCT CARD
   // ============================================================
 
-  Widget _buildProductCard(
-    Product product,
-  ) {
-    final qty =
-        cart[product.id] ??
-            0;
+  Widget _buildProductCard(Product product) {
+    final r = context.responsive;
 
-    final stock =
-        product.stock;
+    final qty = cart[product.id] ?? 0;
 
-    final isOutOfStock =
-        stock <= 0;
+    final stock = product.stock;
 
-    final canAdd =
-        qty < stock;
+    final isOutOfStock = stock <= 0;
+
+    final canAdd = qty < stock;
 
     return Card(
       elevation: 0,
-      margin:
-          EdgeInsets.zero,
-      color:
-          AppColors.surface,
-      clipBehavior:
-          Clip.antiAlias,
-      shape:
-          RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.circular(
-          12,
-        ),
-        side:
-            const BorderSide(
-          color:
-              AppColors.border,
-        ),
+      margin: EdgeInsets.zero,
+      color: AppColors.productCard,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        side: const BorderSide(color: AppColors.border),
       ),
-      child:
-          InkWell(
-        onTap:
-            isOutOfStock
-                ? null
-                : () {
-                    _addProductToCart(
-                      product,
-                    );
-                  },
-        child:
-            Padding(
-          padding:
-              const EdgeInsets.all(
-            9,
-          ),
-          child:
-              Column(
-            crossAxisAlignment:
-                CrossAxisAlignment
-                    .start,
+      child: InkWell(
+        onTap: isOutOfStock
+            ? null
+            : () {
+                _addProductToCart(product);
+              },
+        child: Padding(
+          padding: EdgeInsets.all(r.isCompact ? 6 : AppSpacing.sm),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ------------------------------------------------
+              // SMALL IMAGE
+              // ------------------------------------------------
               SizedBox(
-                height: 88,
-                width:
-                    double.infinity,
-                child:
-                    Container(
-                  decoration:
-                      BoxDecoration(
-                    color:
-                        AppColors
-                            .surfaceSoft,
-                    borderRadius:
-                        BorderRadius
-                            .circular(
-                      9,
-                    ),
+                height: r.isCompact ? 42 : 52,
+                width: double.infinity,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceSoft,
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
-                  child:
-                      Stack(
+                  child: Stack(
                     children: [
-                      Positioned
-                          .fill(
-                        child:
-                            ClipRRect(
-                          borderRadius:
-                              BorderRadius.circular(
-                            9,
-                          ),
+                      Positioned.fill(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
                           child:
-                              product.imagePath !=
-                                          null &&
-                                      product
-                                          .imagePath!
-                                          .isNotEmpty
-                                  ? Image.file(
-                                      File(
-                                        product
-                                            .imagePath!,
+                              product.imagePath != null &&
+                                  product.imagePath!.isNotEmpty
+                              ? Image.file(
+                                  File(product.imagePath!),
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (_, __, ___) {
+                                    return const Center(
+                                      child: Icon(
+                                        Icons.image_not_supported_outlined,
+                                        size: 18,
+                                        color: AppColors.textMuted,
                                       ),
-                                      fit:
-                                          BoxFit.contain,
-                                      errorBuilder:
-                                          (
-                                        _,
-                                        __,
-                                        ___,
-                                      ) {
-                                        return const Center(
-                                          child:
-                                              Icon(
-                                            Icons
-                                                .image_not_supported_outlined,
-                                            size:
-                                                28,
-                                            color:
-                                                AppColors
-                                                    .textMuted,
-                                          ),
-                                        );
-                                      },
-                                    )
-                                  : Center(
-                                      child:
-                                          Icon(
-                                        Icons
-                                            .inventory_2_outlined,
-                                        size:
-                                            32,
-                                        color:
-                                            isOutOfStock
-                                                ? AppColors
-                                                    .textMuted
-                                                : AppColors
-                                                    .primary,
-                                      ),
-                                    ),
+                                    );
+                                  },
+                                )
+                              : Center(
+                                  child: Icon(
+                                    Icons.inventory_2_outlined,
+                                    size: r.isCompact ? 20 : 23,
+                                    color: isOutOfStock
+                                        ? AppColors.textMuted
+                                        : AppColors.primary,
+                                  ),
+                                ),
                         ),
                       ),
 
                       Positioned(
-                        top: 5,
-                        right: 5,
-                        child:
-                            _buildStockBadge(
-                          stock,
-                        ),
+                        top: 2,
+                        right: 2,
+                        child: _buildStockBadge(stock),
                       ),
                     ],
                   ),
                 ),
               ),
 
-              const SizedBox(
-                height: 7,
-              ),
+              const SizedBox(height: 3),
 
+              // ------------------------------------------------
+              // PRODUCT NAME
+              // ------------------------------------------------
               Text(
                 product.name,
                 maxLines: 1,
-                overflow:
-                    TextOverflow
-                        .ellipsis,
-                style:
-                    AppTextStyles
-                        .body
-                        .copyWith(
-                  fontSize: 13,
-                  fontWeight:
-                      FontWeight.w600,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.body.copyWith(
+                  fontSize: r.isCompact ? 9 : 10,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
 
-              const SizedBox(
-                height: 2,
-              ),
+              const SizedBox(height: 1),
 
+              // ------------------------------------------------
+              // PRICE
+              // ------------------------------------------------
               Text(
                 '₦${_formatMoney(product.sellingPrice)}',
-                style:
-                    AppTextStyles
-                        .price
-                        .copyWith(
-                  fontSize: 14,
-                  color:
-                      AppColors
-                          .primary,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.price.copyWith(
+                  fontSize: r.isCompact ? 10 : 11,
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
 
               const Spacer(),
 
+              // ------------------------------------------------
+              // QUANTITY
+              // ------------------------------------------------
               if (isOutOfStock)
                 _buildOutOfStockButton()
               else
-                _buildQuantityControls(
-                  product,
-                  qty,
-                  canAdd,
-                ),
+                _buildQuantityControls(product, qty, canAdd),
             ],
           ),
         ),
@@ -1873,115 +1303,69 @@ class _SalesScreenState extends State<SalesScreen> {
   // QUANTITY CONTROLS
   // ============================================================
 
-  Widget _buildQuantityControls(
-    Product product,
-    int qty,
-    bool canAdd,
-  ) {
-    return Container(
-      height: 34,
-      width:
-          double.infinity,
-      decoration:
-          BoxDecoration(
-        color:
-            AppColors
-                .surfaceSoft,
-        borderRadius:
-            BorderRadius.circular(
-          8,
+  Widget _buildQuantityControls(Product product, int qty, bool canAdd) {
+    final r = context.responsive;
+
+    final controlHeight = r.isCompact ? 25.0 : 29.0;
+
+    return SizedBox(
+      height: controlHeight,
+      width: double.infinity,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surfaceSoft,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          border: Border.all(color: AppColors.border),
         ),
-        border:
-            Border.all(
-          color:
-              AppColors.border,
-        ),
-      ),
-      child:
-          Row(
-        children: [
-          SizedBox(
-            width: 36,
-            height: 34,
-            child:
-                IconButton(
-              padding:
-                  EdgeInsets.zero,
-              iconSize: 17,
-              tooltip:
-                  'Remove',
-              color:
-                  qty > 0
-                      ? AppColors
-                          .danger
-                      : AppColors
-                          .textMuted,
-              onPressed:
-                  qty > 0
-                      ? () {
-                          _removeProductFromCart(
-                            product,
-                          );
-                        }
-                      : null,
-              icon:
-                  const Icon(
-                Icons.remove,
+        child: Row(
+          children: [
+            SizedBox(
+              width: r.isCompact ? 26 : 30,
+              height: controlHeight,
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                iconSize: r.isCompact ? 12 : 14,
+                tooltip: 'Remove',
+                color: qty > 0 ? AppColors.danger : AppColors.textMuted,
+                onPressed: qty > 0
+                    ? () {
+                        _removeProductFromCart(product);
+                      }
+                    : null,
+                icon: const Icon(Icons.remove),
               ),
             ),
-          ),
 
-          Expanded(
-            child:
-                Center(
-              child:
-                  Text(
-                '$qty',
-                style:
-                    AppTextStyles
-                        .body
-                        .copyWith(
-                  fontSize: 13,
-                  fontWeight:
-                      FontWeight.w700,
+            Expanded(
+              child: Center(
+                child: Text(
+                  '$qty',
+                  style: AppTextStyles.body.copyWith(
+                    fontSize: r.isCompact ? 9 : 10,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),
-          ),
 
-          SizedBox(
-            width: 36,
-            height: 34,
-            child:
-                IconButton(
-              padding:
-                  EdgeInsets.zero,
-              iconSize: 17,
-              tooltip:
-                  canAdd
-                      ? 'Add'
-                      : 'Maximum stock reached',
-              color:
-                  canAdd
-                      ? AppColors
-                          .primary
-                      : AppColors
-                          .textMuted,
-              onPressed:
-                  canAdd
-                      ? () {
-                          _addProductToCart(
-                            product,
-                          );
-                        }
-                      : null,
-              icon:
-                  const Icon(
-                Icons.add,
+            SizedBox(
+              width: r.isCompact ? 26 : 30,
+              height: controlHeight,
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                iconSize: r.isCompact ? 12 : 14,
+                tooltip: canAdd ? 'Add' : 'Maximum stock reached',
+                color: canAdd ? AppColors.primary : AppColors.textMuted,
+                onPressed: canAdd
+                    ? () {
+                        _addProductToCart(product);
+                      }
+                    : null,
+                icon: const Icon(Icons.add),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1991,218 +1375,221 @@ class _SalesScreenState extends State<SalesScreen> {
   // ============================================================
 
   Widget _buildOutOfStockButton() {
+    final r = context.responsive;
+
     return Container(
-      height: 34,
-      width:
-          double.infinity,
-      decoration:
-          BoxDecoration(
-        color:
-            AppColors
-                .dangerLight,
-        borderRadius:
-            BorderRadius.circular(
-          8,
-        ),
+      height: r.isCompact ? 25 : 29,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.dangerLight,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
       ),
-      child:
-          const Center(
-        child:
-            Text(
+      child: Center(
+        child: Text(
           'Out of stock',
-          style:
-              TextStyle(
-            color:
-                AppColors.danger,
-            fontWeight:
-                FontWeight.w600,
-            fontSize: 11,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppTextStyles.small.copyWith(
+            color: AppColors.danger,
+            fontSize: r.isCompact ? 8 : 9,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
     );
   }
-
-  
 
   // ============================================================
   // CURRENT SALE PANEL
   // ============================================================
 
+  Widget _buildCurrentSalePanel({bool forceCompact = false}) {
+    final r = context.responsive;
 
-  Widget _buildCurrentSalePanel() {
     return Container(
       color: AppColors.surface,
-      child: Column(
-        children: [
-          // ======================================================
-          // CART HEADER
-          // ======================================================
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          /*
+           * IMPORTANT FIX
+           *
+           * The old implementation gave PaymentSelector
+           * a minHeight of 190-205 while the entire
+           * Current Sale panel could itself be around
+           * 190-285 pixels tall.
+           *
+           * That caused the cart and payment section
+           * to compete for the same space.
+           *
+           * Now:
+           *
+           *   Header = fixed small height
+           *   Cart = Expanded + scrollable
+           *   Payment = fixed compact section
+           *
+           * No minHeight is forced on PaymentSelector.
+           */
 
-          _buildCartHeader(),
+          final height = constraints.maxHeight;
 
-          const Divider(
-            height: 1,
-            thickness: 1,
-            color: AppColors.border,
-          ),
+          final bool compact = forceCompact || r.isCompact || height < 260;
 
-          // ======================================================
-          // CART
-          //
-          // Give the cart ALL remaining available space.
-          // ======================================================
+          final headerHeight = compact ? 44.0 : 50.0;
 
-          Expanded(
-            child: _buildCartSummary(),
-          ),
+          /*
+           * Payment gets a small predictable
+           * area. PaymentSelector scrolls inside it.
+           */
+          double paymentHeight;
 
-          // ======================================================
-          // PAYMENT
-          // ======================================================
+          if (height < 220) {
+            paymentHeight = 112;
+          } else if (height < 260) {
+            paymentHeight = 125;
+          } else if (height < 320) {
+            paymentHeight = 145;
+          } else {
+            paymentHeight = 160;
+          }
 
-          const Divider(
-            height: 1,
-            thickness: 1,
-            color: AppColors.border,
-          ),
+          /*
+           * Never allow the payment section to
+           * consume the whole Current Sale panel.
+           */
+          final maximumPayment = height - headerHeight - 50;
 
-          // Compact payment section.
-          //
-          // The cart above remains Expanded, so it receives
-          // everything that is not needed by this section.
-          SizedBox(
-            height: 180,
-            child: SingleChildScrollView(
-              padding: EdgeInsets.zero,
-              child: PaymentSelector(
-                selectedMethod: paymentMethod,
+          if (paymentHeight > maximumPayment) {
+            paymentHeight = maximumPayment.clamp(90.0, 160.0);
+          }
 
-                total: total,
-
-                // ==================================================
-                // POS SETTINGS
-                //
-                // Connects:
-                //
-                // POS Settings
-                //      ↓
-                // PosSettingsService.load()
-                //      ↓
-                // _posSettings
-                //      ↓
-                // PaymentSelector
-                //
-                // PaymentSelector can now determine which
-                // payment buttons should be visible.
-                // ==================================================
-
-                posSettings: _posSettings ?? const PosSettings(),
-
-                onMethodSelected: (method) {
-                  if (!mounted) {
-                    return;
-                  }
-
-                  final normalized =
-                      _normalizePaymentMethod(method);
-
-                  if (!_isPaymentMethodEnabled(
-                    normalized,
-                  )) {
-                    _showMessage(
-                      '${_formatPaymentMethodName(normalized)} '
-                      'is disabled in POS settings.',
-                      isError: true,
-                    );
-                    return;
-                  }
-
-                  setState(() {
-                    paymentMethod = normalized;
-                  });
-                },
-
-                onPaymentConfirmed:
-                    _completeSaleWithAmounts,
+          return Column(
+            children: [
+              SizedBox(
+                height: headerHeight,
+                child: _buildCartHeader(compact: compact),
               ),
-            ),
-          ),
 
-          // ======================================================
-          // PROCESSING
-          // ======================================================
+              const Divider(height: 1, thickness: 1, color: AppColors.border),
 
-          if (_processingSale)
-            const LinearProgressIndicator(
-              minHeight: 3,
-              color: AppColors.success,
-              backgroundColor: AppColors.successLight,
-            ),
-        ],
+              /*
+               * CART
+               *
+               * Expanded means the cart can never
+               * overlap the payment section.
+               */
+              Expanded(child: _buildCartSummary(compact: compact)),
+
+              const Divider(height: 1, thickness: 1, color: AppColors.border),
+
+              /*
+               * PAYMENT
+               *
+               * Fixed compact area.
+               *
+               * PaymentSelector scrolls internally.
+               */
+              SizedBox(
+                height: paymentHeight,
+                child: ClipRect(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.zero,
+                    child: PaymentSelector(
+                      selectedMethod: paymentMethod,
+                      total: total,
+                      posSettings: _posSettings ?? const PosSettings(),
+                      onMethodSelected: (method) {
+                        if (!mounted) {
+                          return;
+                        }
+
+                        final normalized = _normalizePaymentMethod(method);
+
+                        if (!_isPaymentMethodEnabled(normalized)) {
+                          _showMessage(
+                            '${_formatPaymentMethodName(normalized)} '
+                            'is disabled in POS settings.',
+                            isError: true,
+                          );
+                          return;
+                        }
+
+                        setState(() {
+                          paymentMethod = normalized;
+                        });
+                      },
+                      onPaymentConfirmed: _completeSaleWithAmounts,
+                    ),
+                  ),
+                ),
+              ),
+
+              if (_processingSale)
+                const LinearProgressIndicator(
+                  minHeight: 2,
+                  color: AppColors.success,
+                  backgroundColor: AppColors.successLight,
+                ),
+            ],
+          );
+        },
       ),
     );
   }
 
-
-
   // ============================================================
   // CART HEADER
   // ============================================================
 
-  // ============================================================
-  // CART HEADER
-  // ============================================================
+  Widget _buildCartHeader({bool compact = false}) {
+    final r = context.responsive;
 
-  Widget _buildCartHeader() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(
-        12,
-        8,
-        12,
-        8,
+      padding: EdgeInsets.symmetric(
+        horizontal: r.isCompact ? AppSpacing.sm : AppSpacing.md,
+        vertical: compact ? 4 : AppSpacing.xs,
       ),
       color: AppColors.surface,
       child: Row(
         children: [
           Container(
-            width: 32,
-            height: 32,
+            width: compact ? 28 : 32,
+            height: compact ? 28 : 32,
             decoration: BoxDecoration(
               color: AppColors.primaryLight,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.shopping_cart_outlined,
-              size: 17,
+              size: compact ? 15 : 17,
               color: AppColors.primary,
             ),
           ),
 
-          const SizedBox(
-            width: 8,
-          ),
+          const SizedBox(width: AppSpacing.xs),
 
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   'Current Sale',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.body.copyWith(
-                    fontSize: 14,
+                    fontSize: compact ? 11 : 12,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-
                 Text(
                   totalItems == 0
-                      ? 'No items added'
+                      ? 'No items'
                       : '$totalItems item${totalItems == 1 ? '' : 's'}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.small.copyWith(
-                    fontSize: 10,
+                    fontSize: compact ? 8 : 9,
                   ),
                 ),
               ],
@@ -2211,20 +1598,17 @@ class _SalesScreenState extends State<SalesScreen> {
 
           if (totalItems > 0)
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 4,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
               decoration: BoxDecoration(
                 color: AppColors.primaryLight,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(AppRadius.round),
               ),
               child: Text(
                 '$totalItems',
-                style: const TextStyle(
+                style: AppTextStyles.small.copyWith(
+                  fontSize: 9,
                   color: AppColors.primary,
                   fontWeight: FontWeight.w700,
-                  fontSize: 11,
                 ),
               ),
             ),
@@ -2237,67 +1621,48 @@ class _SalesScreenState extends State<SalesScreen> {
   // CART SUMMARY
   // ============================================================
 
-  Widget _buildCartSummary() {
+  Widget _buildCartSummary({bool compact = false}) {
+    final r = context.responsive;
+
     if (cart.isEmpty) {
       return Center(
-        child:
-            Padding(
-          padding:
-              const EdgeInsets.all(
-            20,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(
+            compact ? AppSpacing.sm : r.horizontalPadding,
           ),
-          child:
-              Column(
-            mainAxisSize:
-                MainAxisSize.min,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 58,
-                height: 58,
-                decoration:
-                    const BoxDecoration(
-                  color:
-                      AppColors
-                          .surfaceSoft,
-                  shape:
-                      BoxShape.circle,
+                width: compact ? 42 : 48,
+                height: compact ? 42 : 48,
+                decoration: const BoxDecoration(
+                  color: AppColors.surfaceSoft,
+                  shape: BoxShape.circle,
                 ),
-                child:
-                    const Icon(
-                  Icons
-                      .shopping_cart_outlined,
-                  size: 27,
-                  color:
-                      AppColors
-                          .textMuted,
+                child: Icon(
+                  Icons.shopping_cart_outlined,
+                  size: compact ? 20 : 23,
+                  color: AppColors.textMuted,
                 ),
               ),
 
-              const SizedBox(
-                height: 9,
-              ),
+              const SizedBox(height: AppSpacing.xs),
 
               Text(
                 'Cart is empty',
-                style:
-                    AppTextStyles
-                        .body
-                        .copyWith(
-                  fontWeight:
-                      FontWeight.w600,
+                style: AppTextStyles.body.copyWith(
+                  fontSize: compact ? 10 : 11,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
 
-              const SizedBox(
-                height: 3,
-              ),
+              const SizedBox(height: 2),
 
               Text(
-                'Select products to begin a sale',
-                textAlign:
-                    TextAlign.center,
-                style:
-                    AppTextStyles.small,
+                'Select products to begin',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.small.copyWith(fontSize: compact ? 8 : 9),
               ),
             ],
           ),
@@ -2306,50 +1671,31 @@ class _SalesScreenState extends State<SalesScreen> {
     }
 
     return ListView.builder(
-      padding:
-          const EdgeInsets.fromLTRB(
-        12,
-        10,
-        12,
-        10,
+      padding: EdgeInsets.fromLTRB(
+        compact ? 6 : AppSpacing.sm,
+        compact ? 5 : AppSpacing.sm,
+        compact ? 6 : AppSpacing.sm,
+        compact ? 5 : AppSpacing.sm,
       ),
-      itemCount:
-          cart.length + 1,
-      itemBuilder:
-          (context, index) {
-        if (index ==
-            cart.length) {
-          return _buildSubtotalCard();
+      itemCount: cart.length + 1,
+      itemBuilder: (context, index) {
+        if (index == cart.length) {
+          return _buildSubtotalCard(compact: compact);
         }
 
-        final entry =
-            cart.entries.elementAt(
-          index,
-        );
+        final entry = cart.entries.elementAt(index);
 
-        final product =
-            _findProduct(
-          entry.key,
-        );
+        final product = _findProduct(entry.key);
 
         if (product == null) {
-          return const SizedBox
-              .shrink();
+          return const SizedBox.shrink();
         }
 
-        final qty =
-            entry.value;
+        final qty = entry.value;
 
-        final lineTotal =
-            qty *
-            product.sellingPrice
-                .toInt();
+        final lineTotal = qty * product.sellingPrice.toInt();
 
-        return _buildCartItem(
-          product,
-          qty,
-          lineTotal,
-        );
+        return _buildCartItem(product, qty, lineTotal, compact: compact);
       },
     );
   }
@@ -2361,234 +1707,139 @@ class _SalesScreenState extends State<SalesScreen> {
   Widget _buildCartItem(
     Product product,
     int qty,
-    int lineTotal,
-  ) {
-    final canAdd =
-        qty < product.stock;
+    int lineTotal, {
+    bool compact = false,
+  }) {
+    final r = context.responsive;
+
+    final canAdd = qty < product.stock;
+
+    final itemHeight = compact ? 42.0 : 48.0;
 
     return Container(
-      margin:
-          const EdgeInsets.only(
-        bottom: 7,
+      height: itemHeight,
+      margin: const EdgeInsets.only(bottom: 4),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 5 : 7,
+        vertical: compact ? 3 : 4,
       ),
-      padding:
-          const EdgeInsets.all(
-        8,
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        border: Border.all(color: AppColors.border),
       ),
-      decoration:
-          BoxDecoration(
-        color:
-            AppColors.background,
-        borderRadius:
-            BorderRadius.circular(
-          10,
-        ),
-        border:
-            Border.all(
-          color:
-              AppColors.border,
-        ),
-      ),
-      child:
-          Row(
+      child: Row(
         children: [
           Container(
-            width: 42,
-            height: 42,
-            decoration:
-                BoxDecoration(
-              color:
-                  AppColors
-                      .surfaceSoft,
-              borderRadius:
-                  BorderRadius.circular(
-                8,
-              ),
+            width: compact ? 32 : 36,
+            height: compact ? 32 : 36,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceSoft,
+              borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
-            child:
-                product.imagePath !=
-                            null &&
-                        product
-                            .imagePath!
-                            .isNotEmpty
-                    ? ClipRRect(
-                        borderRadius:
-                            BorderRadius
-                                .circular(
-                          8,
-                        ),
-                        child:
-                            Image.file(
-                          File(
-                            product
-                                .imagePath!,
-                          ),
-                          fit:
-                              BoxFit
-                                  .contain,
-                          errorBuilder:
-                              (
-                            _,
-                            __,
-                            ___,
-                          ) {
-                            return const Icon(
-                              Icons
-                                  .inventory_2_outlined,
-                              size:
-                                  20,
-                              color:
-                                  AppColors
-                                      .primary,
-                            );
-                          },
-                        ),
-                      )
-                    : const Icon(
-                        Icons
-                            .inventory_2_outlined,
-                        size: 20,
-                        color:
-                            AppColors
-                                .primary,
-                      ),
+            child: product.imagePath != null && product.imagePath!.isNotEmpty
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    child: Image.file(
+                      File(product.imagePath!),
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) {
+                        return const Icon(
+                          Icons.inventory_2_outlined,
+                          size: 17,
+                          color: AppColors.primary,
+                        );
+                      },
+                    ),
+                  )
+                : const Icon(
+                    Icons.inventory_2_outlined,
+                    size: 17,
+                    color: AppColors.primary,
+                  ),
           ),
 
-          const SizedBox(
-            width: 9,
-          ),
+          const SizedBox(width: 5),
 
           Expanded(
-            child:
-                Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment
-                      .start,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   product.name,
                   maxLines: 1,
-                  overflow:
-                      TextOverflow
-                          .ellipsis,
-                  style:
-                      AppTextStyles
-                          .body
-                          .copyWith(
-                    fontSize: 12,
-                    fontWeight:
-                        FontWeight.w600,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.body.copyWith(
+                    fontSize: compact ? 8 : 9,
+                    fontWeight: FontWeight.w600,
                   ),
-                ),
-
-                const SizedBox(
-                  height: 2,
                 ),
 
                 Text(
                   '₦${_formatMoney(product.sellingPrice)} × $qty',
-                  style:
-                      AppTextStyles
-                          .small
-                          .copyWith(
-                    fontSize: 10,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.small.copyWith(
+                    fontSize: compact ? 7 : 8,
                   ),
                 ),
               ],
             ),
           ),
 
+          const SizedBox(width: 3),
+
           Text(
             '₦${_formatMoney(lineTotal)}',
-            style:
-                AppTextStyles
-                    .body
-                    .copyWith(
-              fontSize: 12,
-              fontWeight:
-                  FontWeight.w700,
+            style: AppTextStyles.body.copyWith(
+              fontSize: compact ? 8 : 9,
+              fontWeight: FontWeight.w700,
             ),
           ),
 
-          const SizedBox(
-            width: 3,
-          ),
-
           SizedBox(
-            width: 30,
-            height: 30,
-            child:
-                IconButton(
-              padding:
-                  EdgeInsets.zero,
-              iconSize: 17,
-              tooltip:
-                  'Remove one',
-              color:
-                  AppColors
-                      .danger,
+            width: compact ? 22 : 25,
+            height: compact ? 25 : 28,
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              iconSize: compact ? 13 : 14,
+              tooltip: 'Remove one',
+              color: AppColors.danger,
               onPressed: () {
-                _removeProductFromCart(
-                  product,
-                );
+                _removeProductFromCart(product);
               },
-              icon:
-                  const Icon(
-                Icons
-                    .remove_circle_outline,
-              ),
+              icon: const Icon(Icons.remove_circle_outline),
             ),
           ),
 
           SizedBox(
-            width: 20,
-            child:
-                Text(
+            width: 14,
+            child: Text(
               '$qty',
-              textAlign:
-                  TextAlign.center,
-              style:
-                  AppTextStyles
-                      .body
-                      .copyWith(
-                fontSize: 12,
-                fontWeight:
-                    FontWeight.w700,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.body.copyWith(
+                fontSize: compact ? 8 : 9,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
 
           SizedBox(
-            width: 30,
-            height: 30,
-            child:
-                IconButton(
-              padding:
-                  EdgeInsets.zero,
-              iconSize: 17,
-              tooltip:
-                  canAdd
-                      ? 'Add one'
-                      : 'Maximum stock reached',
-              color:
-                  canAdd
-                      ? AppColors
-                          .success
-                      : AppColors
-                          .textMuted,
-              onPressed:
-                  canAdd
-                      ? () {
-                          _addProductToCart(
-                            product,
-                          );
-                        }
-                      : null,
-              icon:
-                  const Icon(
-                Icons
-                    .add_circle_outline,
-              ),
+            width: compact ? 22 : 25,
+            height: compact ? 25 : 28,
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              iconSize: compact ? 13 : 14,
+              tooltip: canAdd ? 'Add one' : 'Maximum stock reached',
+              color: canAdd ? AppColors.success : AppColors.textMuted,
+              onPressed: canAdd
+                  ? () {
+                      _addProductToCart(product);
+                    }
+                  : null,
+              icon: const Icon(Icons.add_circle_outline),
             ),
           ),
         ],
@@ -2600,41 +1851,24 @@ class _SalesScreenState extends State<SalesScreen> {
   // SUBTOTAL
   // ============================================================
 
-  Widget _buildSubtotalCard() {
+  Widget _buildSubtotalCard({bool compact = false}) {
     return Container(
-      margin:
-          const EdgeInsets.only(
-        top: 4,
-        bottom: 4,
+      margin: const EdgeInsets.only(top: 2, bottom: 2),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 8 : AppSpacing.md,
+        vertical: compact ? 6 : AppSpacing.sm,
       ),
-      padding:
-          const EdgeInsets
-              .symmetric(
-        horizontal: 12,
-        vertical: 12,
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
       ),
-      decoration:
-          BoxDecoration(
-        color:
-            AppColors
-                .primaryLight,
-        borderRadius:
-            BorderRadius.circular(
-          10,
-        ),
-      ),
-      child:
-          Row(
+      child: Row(
         children: [
           Text(
             'Subtotal',
-            style:
-                AppTextStyles
-                    .body
-                    .copyWith(
-              fontSize: 13,
-              fontWeight:
-                  FontWeight.w600,
+            style: AppTextStyles.body.copyWith(
+              fontSize: compact ? 9 : 11,
+              fontWeight: FontWeight.w600,
             ),
           ),
 
@@ -2642,15 +1876,10 @@ class _SalesScreenState extends State<SalesScreen> {
 
           Text(
             '₦${_formatMoney(total)}',
-            style:
-                AppTextStyles
-                    .body
-                    .copyWith(
-              fontSize: 16,
-              fontWeight:
-                  FontWeight.w800,
-              color:
-                  AppColors.primary,
+            style: AppTextStyles.body.copyWith(
+              fontSize: compact ? 12 : 14,
+              fontWeight: FontWeight.w800,
+              color: AppColors.primary,
             ),
           ),
         ],
@@ -2662,27 +1891,17 @@ class _SalesScreenState extends State<SalesScreen> {
   // ADD PRODUCT
   // ============================================================
 
-  void _addProductToCart(
-    Product product,
-  ) {
-    if (_processingSale) {
-      return;
-    }
+  void _addProductToCart(Product product) {
+    if (_processingSale) return;
 
     if (product.stock <= 0) {
-      _showMessage(
-        '${product.name} is out of stock.',
-        isError: true,
-      );
+      _showMessage('${product.name} is out of stock.', isError: true);
       return;
     }
 
-    final currentQty =
-        cart[product.id] ??
-            0;
+    final currentQty = cart[product.id] ?? 0;
 
-    if (currentQty >=
-        product.stock) {
+    if (currentQty >= product.stock) {
       _showMessage(
         'Only ${product.stock} units of '
         '${product.name} available.',
@@ -2692,8 +1911,7 @@ class _SalesScreenState extends State<SalesScreen> {
     }
 
     setState(() {
-      cart[product.id] =
-          currentQty + 1;
+      cart[product.id] = currentQty + 1;
     });
   }
 
@@ -2701,25 +1919,16 @@ class _SalesScreenState extends State<SalesScreen> {
   // REMOVE PRODUCT
   // ============================================================
 
-  void _removeProductFromCart(
-    Product product,
-  ) {
-    if (_processingSale) {
-      return;
-    }
+  void _removeProductFromCart(Product product) {
+    if (_processingSale) return;
 
-    final currentQty =
-        cart[product.id] ??
-            0;
+    final currentQty = cart[product.id] ?? 0;
 
     setState(() {
       if (currentQty <= 1) {
-        cart.remove(
-          product.id,
-        );
+        cart.remove(product.id);
       } else {
-        cart[product.id] =
-            currentQty - 1;
+        cart[product.id] = currentQty - 1;
       }
     });
   }
@@ -2728,37 +1937,22 @@ class _SalesScreenState extends State<SalesScreen> {
   // STOCK BADGE
   // ============================================================
 
-  Widget _buildStockBadge(
-    int stock,
-  ) {
+  Widget _buildStockBadge(int stock) {
+    final r = context.responsive;
+
     if (stock <= 0) {
       return Container(
-        padding:
-            const EdgeInsets
-                .symmetric(
-          horizontal: 6,
-          vertical: 3,
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        decoration: BoxDecoration(
+          color: AppColors.dangerLight,
+          borderRadius: BorderRadius.circular(AppRadius.round),
         ),
-        decoration:
-            BoxDecoration(
-          color:
-              AppColors
-                  .dangerLight,
-          borderRadius:
-              BorderRadius.circular(
-            20,
-          ),
-        ),
-        child:
-            const Text(
+        child: Text(
           'OUT',
-          style:
-              TextStyle(
-            color:
-                AppColors.danger,
-            fontSize: 9,
-            fontWeight:
-                FontWeight.w700,
+          style: AppTextStyles.small.copyWith(
+            color: AppColors.danger,
+            fontSize: r.isCompact ? 6 : 7,
+            fontWeight: FontWeight.w700,
           ),
         ),
       );
@@ -2766,64 +1960,34 @@ class _SalesScreenState extends State<SalesScreen> {
 
     if (stock <= 5) {
       return Container(
-        padding:
-            const EdgeInsets
-                .symmetric(
-          horizontal: 6,
-          vertical: 3,
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        decoration: BoxDecoration(
+          color: AppColors.warningLight,
+          borderRadius: BorderRadius.circular(AppRadius.round),
         ),
-        decoration:
-            BoxDecoration(
-          color:
-              AppColors
-                  .warningLight,
-          borderRadius:
-              BorderRadius.circular(
-            20,
-          ),
-        ),
-        child:
-            Text(
-          '$stock left',
-          style:
-              const TextStyle(
-            color:
-                AppColors.warning,
-            fontSize: 9,
-            fontWeight:
-                FontWeight.w700,
+        child: Text(
+          '$stock',
+          style: AppTextStyles.small.copyWith(
+            color: AppColors.warning,
+            fontSize: r.isCompact ? 6 : 7,
+            fontWeight: FontWeight.w700,
           ),
         ),
       );
     }
 
     return Container(
-      padding:
-          const EdgeInsets
-              .symmetric(
-        horizontal: 6,
-        vertical: 3,
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.successLight,
+        borderRadius: BorderRadius.circular(AppRadius.round),
       ),
-      decoration:
-          BoxDecoration(
-        color:
-            AppColors
-                .successLight,
-        borderRadius:
-            BorderRadius.circular(
-          20,
-        ),
-      ),
-      child:
-          Text(
+      child: Text(
         '$stock',
-        style:
-            const TextStyle(
-          color:
-              AppColors.success,
-          fontSize: 9,
-          fontWeight:
-              FontWeight.w600,
+        style: AppTextStyles.small.copyWith(
+          color: AppColors.success,
+          fontSize: r.isCompact ? 6 : 7,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -2833,16 +1997,9 @@ class _SalesScreenState extends State<SalesScreen> {
   // MONEY
   // ============================================================
 
-  String _formatMoney(
-    num value,
-  ) {
+  String _formatMoney(num value) {
     return value
         .toStringAsFixed(0)
-        .replaceAllMapped(
-          RegExp(
-            r'\B(?=(\d{3})+(?!\d))',
-          ),
-          (match) => ',',
-        );
+        .replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (match) => ',');
   }
 }

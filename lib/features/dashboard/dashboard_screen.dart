@@ -3,59 +3,67 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+
+import 'package:supermarket_inventory/features/products/products_screen.dart';
+import 'package:supermarket_inventory/features/reports/gross_revenue_report_screen.dart';
+import 'package:supermarket_inventory/features/reports/items_sold_report_screen.dart';
 import 'package:supermarket_inventory/features/reports/low_stock_report_screen.dart';
 import 'package:supermarket_inventory/features/reports/out_of_stock_report_screen.dart';
-import 'package:supermarket_inventory/features/users/login_screen.dart';
+import 'package:supermarket_inventory/features/reports/profit_report_screen.dart';
+import 'package:supermarket_inventory/features/reports/sales_reports_screen.dart';
+import 'package:supermarket_inventory/features/reports/stock_value_report_screen.dart';
+import 'package:supermarket_inventory/features/staff/staff_purchase_screen.dart';
 
+import '../../core/business/business_identity.dart';
+import '../../core/responsive/responsive.dart';
 import '../../core/theme/styles.dart';
-import '../../core/session.dart';
 
 import '../../database/app_database.dart';
-import '../../database/daos/sales_dao.dart';
 import '../../database/daos/product_dao.dart';
+import '../../database/daos/sales_dao.dart';
 import '../../database/daos/settings_dao.dart';
 
 import '../reports/widgets/sales_trend_chart.dart';
 
-import '../../features/reports/sales_reports_screen.dart';
-import '../../features/reports/profit_report_screen.dart';
-import '../../features/reports/stock_value_report_screen.dart';
-import '../../features/reports/items_sold_report_screen.dart';
-import '../../features/reports/gross_revenue_report_screen.dart';
-import '../../features/products/products_screen.dart';
-
-import '../../features/staff/staff_purchase_screen.dart';
-
-import '../../core/business/business_identity.dart';
-
-import 'package:flutter_svg/flutter_svg.dart';
-
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  const DashboardScreen({
+    super.key,
+  });
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  State<DashboardScreen> createState() =>
+      _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState
+    extends State<DashboardScreen> {
   // ============================================================
-  // STATE
+  // BUSINESS IDENTITY
   // ============================================================
 
-  int _selectedIndex = 0;
-
-  String _businessName = BusinessIdentity.defaultBusinessName;
+  String _businessName =
+      BusinessIdentity.defaultBusinessName;
 
   String? _businessLogo;
+
+  // ============================================================
+  // DATE FILTER
+  // ============================================================
 
   String _selectedFilter = 'Day';
 
   DateTimeRange? _selectedDateRange;
 
+  // ============================================================
+  // DATABASE
+  // ============================================================
+
   final db = getDatabase();
 
   late final SalesDao salesDao;
+
   late final ProductDao productDao;
 
   // ============================================================
@@ -72,20 +80,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _loadBusinessIdentity();
   }
 
-  void _logout(BuildContext context) async {
-
-    //clear session data
-    await Session.clearSession(); // uses core/session.dart to clear session data
-
-    // navigate back to login screen
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
-    );
-    
-  }
-
   // ============================================================
   // BUSINESS IDENTITY
   // ============================================================
@@ -95,12 +89,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final settingsDao = SettingsDao(db);
 
       final businessName =
-          await BusinessIdentity.getBusinessName(settingsDao);
+          await BusinessIdentity.getBusinessName(
+        settingsDao,
+      );
 
       final businessLogo =
-          await BusinessIdentity.getBusinessLogo(settingsDao);
+          await BusinessIdentity.getBusinessLogo(
+        settingsDao,
+      );
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       setState(() {
         _businessName = businessName;
@@ -110,20 +110,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       // Keep the default business identity
       // if settings cannot be loaded.
     }
-  }
-
-  // ============================================================
-  // USER ROLE
-  // ============================================================
-
-  Future<String> _getRole() async {
-    final userDao = getUserDao();
-
-    final email = Session.currentUserEmail ?? '';
-
-    final user = await userDao.getUserByEmail(email);
-
-    return user?.role.trim().toLowerCase() ?? 'staff';
   }
 
   // ============================================================
@@ -145,14 +131,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
 
       case 'Week':
-        final start =
-            now.subtract(Duration(days: now.weekday - 1));
+        final weekStart = now.subtract(
+          Duration(
+            days: now.weekday - 1,
+          ),
+        );
 
         return DateTimeRange(
           start: DateTime(
-            start.year,
-            start.month,
-            start.day,
+            weekStart.year,
+            weekStart.month,
+            weekStart.day,
           ),
           end: now,
         );
@@ -218,99 +207,71 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<String>(
-      future: _getRole(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState ==
-            ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
-          );
-        }
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Column(
+        children: [
+          _buildDashboardHeader(context),
 
-        if (snapshot.hasError) {
-          return Scaffold(
-            body: Center(
-              child: _errorState(
-                'Unable to load dashboard',
-                '${snapshot.error}',
-              ),
-            ),
-          );
-        }
-
-        final role =
-            snapshot.data?.trim().toLowerCase() ?? 'staff';
-
-        final isPrivileged =
-            role == 'owner' ||
-            role == 'manager' ||
-            role == 'admin';
-
-        return Scaffold(
-          backgroundColor: const Color(0xFFF7F8FA),
-
-          appBar: _buildAppBar(
-            context,
-            isPrivileged,
+          Expanded(
+            child: _buildDashboardContent(),
           ),
-
-          body: Row(
-            children: [
-              _buildNavigationRail(
-                context,
-                isPrivileged,
-              ),
-
-              Container(
-                width: 1,
-                color: Colors.grey.shade200,
-              ),
-
-              Expanded(
-                child: _buildDashboardContent(),
-              ),
-            ],
-          ),
-        );
-      },
+        ],
+      ),
     );
   }
 
   // ============================================================
-  // APP BAR
+  // DASHBOARD HEADER
+  //
+  // Navigation is intentionally NOT handled here.
+  // MainScaffold owns the application navigation/sidebar.
   // ============================================================
 
-  PreferredSizeWidget _buildAppBar(
+  Widget _buildDashboardHeader(
     BuildContext context,
-    bool isPrivileged,
   ) {
-    return AppBar(
-      elevation: 0,
-      backgroundColor: Colors.white,
-      foregroundColor: Colors.black87,
-      titleSpacing: 24,
+    final responsive = context.responsive;
 
-      title: Row(
+    return Container(
+      width: double.infinity,
+      color: AppColors.surface,
+      padding: EdgeInsets.symmetric(
+        horizontal:
+            responsive.horizontalPadding,
+        vertical: responsive.isCompact
+            ? 14
+            : 18,
+      ),
+      child: Row(
         children: [
+          // ------------------------------------------------------
           // BUSINESS LOGO
+          // ------------------------------------------------------
 
           Container(
-            width: 38,
-            height: 38,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color:
-                  AppColors.primary.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(10),
+                  AppColors.primary.withValues(
+                alpha: 0.10,
+              ),
+              borderRadius:
+                  BorderRadius.circular(
+                AppRadius.lg,
+              ),
             ),
             child: _buildBusinessLogo(),
           ),
 
-          const SizedBox(width: 12),
+          const SizedBox(
+            width: AppSpacing.md,
+          ),
 
+          // ------------------------------------------------------
           // BUSINESS NAME
+          // ------------------------------------------------------
 
           Expanded(
             child: Column(
@@ -319,55 +280,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Text(
                   _businessName,
-                  style: const TextStyle(
+                  maxLines: 1,
+                  overflow:
+                      TextOverflow.ellipsis,
+                  style:
+                      AppTextStyles.title.copyWith(
                     fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.black87,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-
-                const SizedBox(height: 2),
-
-                const Text(
-                  'Dashboard · Business overview',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey,
+                    fontWeight:
+                        FontWeight.w800,
                   ),
                 ),
+
+                if (!responsive.isCompact) ...[
+                  const SizedBox(height: 2),
+
+                  Text(
+                    'Business Overview',
+                    maxLines: 1,
+                    overflow:
+                        TextOverflow.ellipsis,
+                    style:
+                        AppTextStyles.small.copyWith(
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
+
+          const SizedBox(
+            width: AppSpacing.md,
+          ),
+
+          // ------------------------------------------------------
+          // DATE FILTER
+          // ------------------------------------------------------
+
+          _buildFilterButton(context),
         ],
       ),
-
-      actions: [
-        _buildFilterButton(context),
-
-        const SizedBox(width: 12),
-
-        Container(
-          width: 1,
-          height: 28,
-          color: Colors.grey.shade200,
-        ),
-
-        const SizedBox(width: 12),
-
-        Padding(
-          padding:
-              const EdgeInsets.only(right: 20),
-          child: _buildUserBadge(),
-        ),
-
-        // logout button
-        IconButton(
-          tooltip: "Logout",
-          icon: const Icon(Icons.logout, color: Colors.redAccent),
-          onPressed: () => _logout(context),
-        ),
-      ],
     );
   }
 
@@ -378,10 +330,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildBusinessLogo() {
     final logoPath = _businessLogo;
 
-    // No logo configured.
-    // Use dashboard icon as fallback.
-    if (logoPath == null || logoPath.isEmpty) {
-      return Icon(
+    if (logoPath == null ||
+        logoPath.isEmpty) {
+      return const Icon(
         Icons.dashboard_outlined,
         color: AppColors.primary,
         size: 21,
@@ -390,26 +341,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final file = File(logoPath);
 
-    // Logo path exists but file no longer exists.
     if (!file.existsSync()) {
-      return Icon(
+      return const Icon(
         Icons.dashboard_outlined,
         color: AppColors.primary,
         size: 21,
       );
     }
 
-    //SVG LOGO
-    if (logoPath.toLowerCase().endsWith('.svg')) {
+    if (logoPath
+        .toLowerCase()
+        .endsWith('.svg')) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius:
+            BorderRadius.circular(
+          AppRadius.md,
+        ),
         child: SvgPicture.file(
           file,
-          width: 38,
-          height: 38,
+          width: 40,
+          height: 40,
           fit: BoxFit.contain,
-          placeholderBuilder: (context) {
-            return Icon(
+          placeholderBuilder:
+              (context) {
+            return const Icon(
               Icons.dashboard_outlined,
               color: AppColors.primary,
               size: 21,
@@ -419,20 +374,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
-    //PNG/JPG LOGO
     return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius:
+          BorderRadius.circular(
+        AppRadius.md,
+      ),
       child: Image.file(
         file,
-        width: 38,
-        height: 38,
+        width: 40,
+        height: 40,
         fit: BoxFit.contain,
-        errorBuilder: (
-          context,
-          error,
-          stackTrace,
-        ) {
-          return Icon(
+        errorBuilder:
+            (context, error, stackTrace) {
+          return const Icon(
             Icons.dashboard_outlined,
             color: AppColors.primary,
             size: 21,
@@ -453,6 +407,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       tooltip: 'Date filter',
 
       onSelected: (value) async {
+        // --------------------------------------------------------
+        // CUSTOM RANGE
+        // --------------------------------------------------------
+
         if (value == 'Custom') {
           final picked =
               await showDateRangePicker(
@@ -463,7 +421,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 _selectedDateRange,
           );
 
-          if (!mounted) return;
+          if (!mounted) {
+            return;
+          }
 
           if (picked != null) {
             setState(() {
@@ -475,8 +435,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
           return;
         }
 
+        // --------------------------------------------------------
+        // STANDARD FILTER
+        // --------------------------------------------------------
+
         setState(() {
           _selectedFilter = value;
+
+          if (value != 'Custom') {
+            _selectedDateRange = null;
+          }
         });
       },
 
@@ -500,34 +468,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ],
 
       child: Container(
-        padding: const EdgeInsets.symmetric(
+        padding:
+            const EdgeInsets.symmetric(
           horizontal: 12,
           vertical: 8,
         ),
         decoration: BoxDecoration(
-          color: const Color(0xFFF7F8FA),
+          color: AppColors.surfaceSoft,
           borderRadius:
-              BorderRadius.circular(9),
+              BorderRadius.circular(
+            AppRadius.md,
+          ),
           border: Border.all(
-            color: Colors.grey.shade200,
+            color: AppColors.border,
           ),
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize:
+              MainAxisSize.min,
           children: [
             const Icon(
               Icons.calendar_today_outlined,
               size: 16,
-              color: Colors.grey,
+              color:
+                  AppColors.textSecondary,
             ),
 
-            const SizedBox(width: 8),
+            const SizedBox(
+              width: AppSpacing.sm,
+            ),
 
             Text(
               _filterLabel(),
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+              style:
+                  AppTextStyles.small.copyWith(
+                fontWeight:
+                    FontWeight.w600,
               ),
             ),
 
@@ -536,278 +512,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const Icon(
               Icons.keyboard_arrow_down,
               size: 18,
-              color: Colors.grey,
+              color:
+                  AppColors.textSecondary,
             ),
           ],
         ),
       ),
     );
-  }
-
-  // ============================================================
-  // USER BADGE
-  // ============================================================
-
-  Widget _buildUserBadge() {
-    final loginId = Session.currentUserLoginId ?? 'User';
-
-    final initial = loginId.isNotEmpty
-        ? loginId.substring(0, 1).toUpperCase()
-        : 'U';
-
-    return Row(
-      children: [
-        CircleAvatar(
-          radius: 17,
-          backgroundColor: AppColors.primary.withValues(alpha: 0.10),
-          child: Text(
-            initial,
-            style: TextStyle(
-              color: AppColors.primary,
-              fontWeight: FontWeight.w800,
-              fontSize: 13,
-            ),
-          ),
-        ),
-        const SizedBox(width: 9),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 180),
-          child: Text(
-            loginId,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-
-  // ============================================================
-  // NAVIGATION RAIL
-  // ============================================================
-
-  Widget _buildNavigationRail(
-    BuildContext context,
-    bool isPrivileged,
-  ) {
-    return LayoutBuilder(
-      builder: (
-        context,
-        constraints,
-      ) {
-        final extended =
-            MediaQuery.of(context).size.width >=
-                1100;
-
-        return NavigationRail(
-          backgroundColor: Colors.white,
-
-          selectedIndex:
-              _selectedIndex,
-
-          extended: extended,
-
-          minWidth: 72,
-
-          minExtendedWidth: 190,
-
-          groupAlignment: -0.85,
-
-          indicatorColor:
-              AppColors.primary.withValues(
-            alpha: 0.10,
-          ),
-
-          selectedIconTheme:
-              IconThemeData(
-            color: AppColors.primary,
-          ),
-
-          unselectedIconTheme:
-              const IconThemeData(
-            color: Colors.grey,
-          ),
-
-          selectedLabelTextStyle:
-              TextStyle(
-            color: AppColors.primary,
-            fontWeight: FontWeight.w700,
-            fontSize: 12,
-          ),
-
-          unselectedLabelTextStyle:
-              const TextStyle(
-            color: Colors.grey,
-            fontSize: 12,
-          ),
-
-          onDestinationSelected:
-              (index) {
-            setState(() {
-              _selectedIndex = index;
-            });
-
-            _navigateTo(
-              index,
-              context,
-              isPrivileged,
-            );
-          },
-
-          destinations: [
-            const NavigationRailDestination(
-              icon: Icon(
-                Icons.point_of_sale_outlined,
-              ),
-              selectedIcon: Icon(
-                Icons.point_of_sale,
-              ),
-              label: Text('Sales'),
-            ),
-
-            if (isPrivileged)
-              const NavigationRailDestination(
-                icon: Icon(
-                  Icons.inventory_2_outlined,
-                ),
-                selectedIcon: Icon(
-                  Icons.inventory_2,
-                ),
-                label: Text('Products'),
-              ),
-
-            if (isPrivileged)
-              const NavigationRailDestination(
-                icon: Icon(
-                  Icons.local_shipping_outlined,
-                ),
-                selectedIcon: Icon(
-                  Icons.local_shipping,
-                ),
-                label: Text('Suppliers'),
-              ),
-
-            if (isPrivileged)
-              const NavigationRailDestination(
-                icon: Icon(
-                  Icons.inventory_outlined,
-                ),
-                selectedIcon: Icon(
-                  Icons.inventory,
-                ),
-                label: Text('Stocks'),
-              ),
-
-            if (isPrivileged)
-              const NavigationRailDestination(
-                icon: Icon(
-                  Icons.bar_chart_outlined,
-                ),
-                selectedIcon: Icon(
-                  Icons.bar_chart,
-                ),
-                label: Text('Reports'),
-              ),
-
-            if (isPrivileged)
-              const NavigationRailDestination(
-                icon: Icon(
-                  Icons.settings_outlined,
-                ),
-                selectedIcon: Icon(
-                  Icons.settings,
-                ),
-                label: Text('Settings'),
-              ),
-
-            if (isPrivileged)
-              const NavigationRailDestination(
-                icon: Icon(
-                  Icons.category_outlined,
-                ),
-                selectedIcon: Icon(
-                  Icons.category,
-                ),
-                label: Text('Categories'),
-              ),
-
-            if (isPrivileged)
-              const NavigationRailDestination(
-                icon: Icon(
-                  Icons.people_outline,
-                ),
-                selectedIcon: Icon(
-                  Icons.people,
-                ),
-                label: Text('Users'),
-              ),
-          ],
-        );
-      },
-    );
-  }
-
-  // ============================================================
-  // NAVIGATION
-  // ============================================================
-
-  void _navigateTo(
-    int index,
-    BuildContext context,
-    bool isPrivileged,
-  ) {
-    switch (index) {
-      case 0:
-        context.push('/sales');
-        break;
-
-      case 1:
-        if (isPrivileged) {
-          context.push('/products');
-        }
-        break;
-
-      case 2:
-        if (isPrivileged) {
-          context.push('/suppliers');
-        }
-        break;
-
-      case 3:
-        if (isPrivileged) {
-          context.push('/receive-stock');
-        }
-        break;
-
-      case 4:
-        if (isPrivileged) {
-          context.push('/reports');
-        }
-        break;
-
-      case 5:
-        if (isPrivileged) {
-          context.push('/settings');
-        }
-        break;
-
-      case 6:
-        if (isPrivileged) {
-          context.push('/categories');
-        }
-        break;
-
-      case 7:
-        if (isPrivileged) {
-          context.push('/users');
-        }
-        break;
-    }
   }
 
   // ============================================================
@@ -819,50 +530,92 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return FutureBuilder<List<dynamic>>(
       future: Future.wait([
+        // --------------------------------------------------------
+        // TOTAL SALES
+        // --------------------------------------------------------
+
         salesDao.getTotalSales(
           range.start,
           range.end,
         ),
+
+        // --------------------------------------------------------
+        // ITEMS SOLD
+        // --------------------------------------------------------
 
         salesDao.getItemsSold(
           range.start,
           range.end,
         ),
 
+        // --------------------------------------------------------
+        // PROFIT
+        // --------------------------------------------------------
+
         salesDao.getProfit(
           range.start,
           range.end,
         ),
+
+        // --------------------------------------------------------
+        // SALES TREND
+        // --------------------------------------------------------
 
         salesDao.getSalesTrend(
           range.start,
           range.end,
         ),
 
+        // --------------------------------------------------------
+        // PRODUCTS
+        // --------------------------------------------------------
+
         productDao.getAllProducts(),
+
+        // --------------------------------------------------------
+        // LOW STOCK
+        // --------------------------------------------------------
 
         productDao.getLowStockProducts(),
 
+        // --------------------------------------------------------
+        // OUT OF STOCK
+        // --------------------------------------------------------
+
         productDao.getOutOfStockProducts(),
+
+        // --------------------------------------------------------
+        // GROSS REVENUE
+        // --------------------------------------------------------
 
         salesDao.getGrossRevenue(
           range.start,
           range.end,
         ),
 
+        // --------------------------------------------------------
+        // STOCK VALUE
+        // --------------------------------------------------------
+
         salesDao.getTotalStockValue(),
       ]),
 
-      builder: (
-        context,
-        snapshot,
-      ) {
+      builder: (context, snapshot) {
+        // --------------------------------------------------------
+        // LOADING
+        // --------------------------------------------------------
+
         if (snapshot.connectionState ==
             ConnectionState.waiting) {
           return const Center(
-            child: CircularProgressIndicator(),
+            child:
+                CircularProgressIndicator(),
           );
         }
+
+        // --------------------------------------------------------
+        // ERROR
+        // --------------------------------------------------------
 
         if (snapshot.hasError) {
           return Center(
@@ -873,13 +626,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
           );
         }
 
-        if (!snapshot.hasData) {
+        // --------------------------------------------------------
+        // NO DATA
+        // --------------------------------------------------------
+
+        if (!snapshot.hasData ||
+            snapshot.data == null) {
           return const Center(
-            child: CircularProgressIndicator(),
+            child:
+                CircularProgressIndicator(),
           );
         }
 
         final data = snapshot.data!;
+
+        // --------------------------------------------------------
+        // DATA CONVERSION
+        // --------------------------------------------------------
 
         final totalSales =
             _toDouble(data[0]);
@@ -909,296 +672,122 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final stockValue =
             _toDouble(data[8]);
 
-        return LayoutBuilder(
-          builder: (
-            context,
-            constraints,
-          ) {
-            final width =
-                constraints.maxWidth;
+        // --------------------------------------------------------
+        // DASHBOARD
+        // --------------------------------------------------------
 
-            final horizontalPadding =
-                width < 700
-                    ? 16.0
-                    : 24.0;
-
-            return SingleChildScrollView(
-              padding:
-                  EdgeInsets.symmetric(
-                horizontal:
-                    horizontalPadding,
-                vertical: 24,
-              ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints:
-                      const BoxConstraints(
-                    maxWidth: 1400,
-                  ),
-                  child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
-                    children: [
-                      _buildPageHeader(
-                        context,
-                        totalProducts:
-                            products.length,
-                      ),
-
-                      const SizedBox(
-                        height: 24,
-                      ),
-
-                      _buildSummaryGrid(
-                        context: context,
-                        width: width,
-                        totalSales:
-                            totalSales,
-                        products:
-                            products,
-                        lowStock:
-                            lowStock,
-                        outOfStock:
-                            outOfStock,
-                        profit:
-                            profit,
-                        stockValue:
-                            stockValue,
-                        itemsSold:
-                            itemsSold,
-                        grossRevenue:
-                            grossRevenue,
-                      ),
-
-                      const SizedBox(
-                        height: 28,
-                      ),
-
-                      _buildSalesTrendSection(
-                        salesTrend:
-                            salesTrend,
-                      ),
-
-                      const SizedBox(
-                        height: 24,
-                      ),
-
-                      _buildAttendanceQuickAction(
-                        context,
-                      ),
-
-                      const SizedBox(
-                        height: 24,
-                      ),
-
-                      _buildQuickInsights(
-                        context,
-                        products.length,
-                        lowStock.length,
-                        outOfStock.length,
-                        profit,
-                      ),
-
-                      const SizedBox(
-                        height: 24,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
+        return _buildResponsiveDashboard(
+          context,
+          totalSales: totalSales,
+          itemsSold: itemsSold,
+          profit: profit,
+          salesTrend: salesTrend,
+          products: products,
+          lowStock: lowStock,
+          outOfStock: outOfStock,
+          grossRevenue: grossRevenue,
+          stockValue: stockValue,
         );
       },
     );
   }
 
   // ============================================================
-  // PAGE HEADER
+  // RESPONSIVE DASHBOARD
   // ============================================================
 
-  Widget _buildPageHeader(
+  Widget _buildResponsiveDashboard(
     BuildContext context, {
-    required int totalProducts,
+    required double totalSales,
+    required int itemsSold,
+    required double profit,
+    required List<Map<String, dynamic>>
+        salesTrend,
+    required List<Product> products,
+    required List<Product> lowStock,
+    required List<Product> outOfStock,
+    required double grossRevenue,
+    required double stockValue,
   }) {
-    return Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color:
-                AppColors.primary.withValues(
-              alpha: 0.10,
-            ),
-            borderRadius:
-                BorderRadius.circular(12),
-          ),
-          child: Icon(
-            Icons.dashboard_customize_outlined,
-            color: AppColors.primary,
-            size: 25,
-          ),
-        ),
+    final responsive =
+        context.responsive;
 
-        const SizedBox(width: 14),
-
-        Expanded(
+    return SingleChildScrollView(
+      padding: EdgeInsets.symmetric(
+        horizontal:
+            responsive.horizontalPadding,
+        vertical:
+            responsive.verticalPadding,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth:
+                responsive.contentMaxWidth,
+          ),
           child: Column(
             crossAxisAlignment:
                 CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Business Overview',
-                style: TextStyle(
-                  fontSize: 23,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.black87,
-                ),
+              // ==================================================
+              // PAGE HEADER
+              // ==================================================
+
+              _buildPageHeader(
+                totalProducts:
+                    products.length,
               ),
 
-              const SizedBox(height: 4),
-
-              Text(
-                'Monitor sales, inventory and '
-                'business performance.',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        if (MediaQuery.of(context)
-                .size
-                .width >=
-            700)
-          Container(
-            padding:
-                const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 8,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius:
-                  BorderRadius.circular(10),
-              border: Border.all(
-                color: Colors.grey.shade200,
-              ),
-            ),
-            child: Row(
-              mainAxisSize:
-                  MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.inventory_2_outlined,
-                  size: 16,
-                  color: AppColors.primary,
-                ),
-
-                const SizedBox(width: 7),
-
-                Text(
-                  '$totalProducts products',
-                  style:
-                      const TextStyle(
-                    fontSize: 12,
-                    fontWeight:
-                        FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-
-  // ============================================================
-  // ATTENDANCE QUICK ACTION
-  // ============================================================
-
-  Widget _buildAttendanceQuickAction(
-    BuildContext context,
-  ) {
-    return Material(
-      color: Colors.white,
-      borderRadius:
-          BorderRadius.circular(14),
-      child: InkWell(
-        borderRadius:
-            BorderRadius.circular(14),
-        onTap: () {
-          context.push('/attendance');
-        },
-        child: Container(
-          width: double.infinity,
-          padding:
-              const EdgeInsets.all(17),
-          decoration: BoxDecoration(
-            borderRadius:
-                BorderRadius.circular(14),
-            border: Border.all(
-              color: Colors.indigo
-                  .withValues(alpha: 0.18),
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: Colors.indigo
-                      .withValues(alpha: 0.10),
-                  borderRadius:
-                      BorderRadius.circular(
-                    11,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.access_time_outlined,
-                  color: Colors.indigo,
-                  size: 23,
-                ),
+              const SizedBox(
+                height: AppSpacing.lg,
               ),
 
-              const SizedBox(width: 13),
+              // ==================================================
+              // SUMMARY CARDS
+              // ==================================================
 
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Staff Attendance',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight:
-                            FontWeight.w800,
-                      ),
-                    ),
-                    SizedBox(height: 3),
-                    Text(
-                      'Clock employees in or out',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
+              _buildSummaryGrid(
+                context: context,
+                totalSales: totalSales,
+                products: products,
+                lowStock: lowStock,
+                outOfStock: outOfStock,
+                profit: profit,
+                stockValue: stockValue,
+                itemsSold: itemsSold,
+                grossRevenue: grossRevenue,
               ),
 
-              const Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 14,
-                color: Colors.grey,
+              const SizedBox(
+                height: AppSpacing.xxl,
+              ),
+
+              // ==================================================
+              // SALES TREND
+              // ==================================================
+
+              _buildSalesTrendSection(
+                salesTrend: salesTrend,
+              ),
+
+              const SizedBox(
+                height: AppSpacing.xxl,
+              ),
+
+              // ==================================================
+              // QUICK INSIGHTS
+              // ==================================================
+
+              _buildQuickInsights(
+                context,
+                products.length,
+                lowStock.length,
+                outOfStock.length,
+                profit,
+              ),
+
+              const SizedBox(
+                height: AppSpacing.xxl,
               ),
             ],
           ),
@@ -1208,176 +797,368 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // ============================================================
+  // PAGE HEADER
+  // ============================================================
+
+  Widget _buildPageHeader({
+    required int totalProducts,
+  }) {
+    final responsive =
+        context.responsive;
+
+    return Row(
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 46,
+          height: 46,
+          decoration: BoxDecoration(
+            color:
+                AppColors.primary.withValues(
+              alpha: 0.10,
+            ),
+            borderRadius:
+                BorderRadius.circular(
+              AppRadius.lg,
+            ),
+          ),
+          child: const Icon(
+            Icons.dashboard_customize_outlined,
+            color: AppColors.primary,
+            size: 23,
+          ),
+        ),
+
+        const SizedBox(
+          width: 13,
+        ),
+
+        Expanded(
+          child: Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Business Overview',
+                style:
+                    AppTextStyles.dashboardTitle
+                        .copyWith(
+                  fontSize:
+                      responsive.isCompact
+                          ? 19
+                          : 22,
+                ),
+              ),
+
+              const SizedBox(
+                height: 3,
+              ),
+
+              const Text(
+                'Monitor sales, inventory and business performance.',
+                style:
+                    AppTextStyles.dashboardSubtitle,
+              ),
+            ],
+          ),
+        ),
+
+        if (!responsive.isCompact)
+          Container(
+            padding:
+                const EdgeInsets.symmetric(
+              horizontal: 11,
+              vertical: 7,
+            ),
+            decoration:
+                BoxDecoration(
+              color: AppColors.surface,
+              borderRadius:
+                  BorderRadius.circular(
+                AppRadius.md,
+              ),
+              border: Border.all(
+                color: AppColors.border,
+              ),
+            ),
+            child: Row(
+              mainAxisSize:
+                  MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.inventory_2_outlined,
+                  size: 15,
+                  color: AppColors.primary,
+                ),
+
+                const SizedBox(
+                  width: 6,
+                ),
+
+                Text(
+                  '$totalProducts products',
+                  style:
+                      AppTextStyles.small
+                          .copyWith(
+                    color:
+                        AppColors.textPrimary,
+                    fontWeight:
+                        FontWeight.w600,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  // ============================================================
   // SUMMARY GRID
   // ============================================================
 
   Widget _buildSummaryGrid({
     required BuildContext context,
-    required double width,
     required double totalSales,
-    required List products,
-    required List lowStock,
-    required List outOfStock,
+    required List<Product> products,
+    required List<Product> lowStock,
+    required List<Product> outOfStock,
     required double profit,
     required double stockValue,
     required int itemsSold,
     required double grossRevenue,
   }) {
-    int columns;
+    final responsive =
+        context.responsive;
 
-    if (width >= 1200) {
-      columns = 4;
-    } else if (width >= 850) {
-      columns = 3;
-    } else if (width >= 560) {
-      columns = 2;
-    } else {
-      columns = 1;
-    }
+    final columns =
+        responsive.gridColumns;
 
-    const spacing = 14.0;
+    final spacing =
+        AppSpacing.md;
 
-    final cardWidth = columns == 1
-        ? width
-        : (width -
-                (spacing *
-                    (columns - 1))) /
-            columns;
+    return LayoutBuilder(
+      builder: (
+        context,
+        constraints,
+      ) {
+        final availableWidth =
+            constraints.maxWidth;
 
-    return Wrap(
-      spacing: spacing,
-      runSpacing: spacing,
-      children: [
-        _dashboardCard(
-          width: cardWidth,
-          title: 'Total Sales',
-          value:
-              _formatCurrency(totalSales),
-          subtitle:
-              'Sales for ${_selectedFilter.toLowerCase()}',
-          icon:
-              Icons.point_of_sale_outlined,
-          color: AppColors.sales,
-          destination:
-              const SalesReportScreen(),
-        ),
+        final cardWidth = columns == 1
+            ? availableWidth
+            : (availableWidth -
+                    (spacing *
+                        (columns - 1))) /
+                columns;
 
-        _dashboardCard(
-          width: cardWidth,
-          title: 'Products',
-          value:
-              '${products.length}',
-          subtitle:
-              'Products in inventory',
-          icon:
-              Icons.inventory_2_outlined,
-          color: AppColors.products,
-          destination:
-              const ProductsScreen(),
-        ),
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            // ====================================================
+            // ATTENDANCE
+            // ====================================================
 
-        _dashboardCard(
-          width: cardWidth,
-          title: 'Low Stock',
-          value:
-              '${lowStock.length}',
-          subtitle:
-              'Items need attention',
-          icon:
-              Icons.warning_amber_rounded,
-          color: AppColors.lowstocks,
-          destination:
-              const LowStockReportScreen(),
-        ),
+            _dashboardCard(
+              context: context,
+              width: cardWidth,
+              title: 'Attendance',
+              value: 'Manage',
+              subtitle:
+                  'Clock staff in or out',
+              icon:
+                  Icons.access_time_outlined,
+              color: AppColors.info,
+              onTap: () {
+                context.push(
+                  '/attendance',
+                );
+              },
+            ),
 
-        _dashboardCard(
-          width: cardWidth,
-          title: 'Out of Stock',
-          value:
-              '${outOfStock.length}',
-          subtitle:
-              'Items currently unavailable',
-          icon:
-              Icons.remove_shopping_cart_outlined,
-          color: AppColors.outstocks,
-          destination:
-              const OutOfStockReportScreen(),
-        ),
+            // ====================================================
+            // TOTAL SALES
+            // ====================================================
 
-        _dashboardCard(
-          width: cardWidth,
-          title: 'Profit',
-          value:
-              _formatCurrency(profit),
-          subtitle:
-              'Estimated profit',
-          icon:
-              Icons.trending_up,
-          color: AppColors.profit,
-          destination:
-              const ProfitReportScreen(),
-        ),
+            _dashboardCard(
+              context: context,
+              width: cardWidth,
+              title: 'Total Sales',
+              value:
+                  _formatCurrency(
+                totalSales,
+              ),
+              subtitle:
+                  'Sales for ${_selectedFilter.toLowerCase()}',
+              icon:
+                  Icons.point_of_sale_outlined,
+              color: AppColors.sales,
+              destination:
+                  const SalesReportScreen(),
+            ),
 
-        _dashboardCard(
-          width: cardWidth,
-          title: 'Stock Value',
-          value:
-              _formatCurrency(stockValue),
-          subtitle:
-              'Current inventory value',
-          icon:
-              Icons.inventory_outlined,
-          color: AppColors.inventory,
-          destination:
-              const StockValueReportScreen(),
-        ),
+            // ====================================================
+            // PRODUCTS
+            // ====================================================
 
-        _dashboardCard(
-          width: cardWidth,
-          title: 'Items Sold',
-          value:
-              '$itemsSold',
-          subtitle:
-              'Units sold',
-          icon:
-              Icons.shopping_cart_outlined,
-          color: Colors.blue,
-          destination:
-              const ItemsSoldReportScreen(),
-        ),
+            _dashboardCard(
+              context: context,
+              width: cardWidth,
+              title: 'Products',
+              value:
+                  '${products.length}',
+              subtitle:
+                  'Products in inventory',
+              icon:
+                  Icons.inventory_2_outlined,
+              color: AppColors.products,
+              destination:
+                  const ProductsScreen(),
+            ),
 
-        _dashboardCard(
-          width: cardWidth,
-          title: 'Gross Revenue',
-          value:
-              _formatCurrency(
+            // ====================================================
+            // LOW STOCK
+            // ====================================================
+
+            _dashboardCard(
+              context: context,
+              width: cardWidth,
+              title: 'Low Stock',
+              value:
+                  '${lowStock.length}',
+              subtitle:
+                  'Items need attention',
+              icon:
+                  Icons.warning_amber_rounded,
+              color: AppColors.warning,
+              destination:
+                  const LowStockReportScreen(),
+            ),
+
+            // ====================================================
+            // OUT OF STOCK
+            // ====================================================
+
+            _dashboardCard(
+              context: context,
+              width: cardWidth,
+              title: 'Out of Stock',
+              value:
+                  '${outOfStock.length}',
+              subtitle:
+                  'Items unavailable',
+              icon:
+                  Icons.remove_shopping_cart_outlined,
+              color: AppColors.danger,
+              destination:
+                  const OutOfStockReportScreen(),
+            ),
+
+            // ====================================================
+            // PROFIT
+            // ====================================================
+
+            _dashboardCard(
+              context: context,
+              width: cardWidth,
+              title: 'Profit',
+              value:
+                  _formatCurrency(
+                profit,
+              ),
+              subtitle:
+                  'Estimated profit',
+              icon:
+                  Icons.trending_up,
+              color: AppColors.profit,
+              destination:
+                  const ProfitReportScreen(),
+            ),
+
+            // ====================================================
+            // STOCK VALUE
+            // ====================================================
+
+            _dashboardCard(
+              context: context,
+              width: cardWidth,
+              title: 'Stock Value',
+              value:
+                  _formatCurrency(
+                stockValue,
+              ),
+              subtitle:
+                  'Current inventory value',
+              icon:
+                  Icons.inventory_outlined,
+              color: AppColors.inventory,
+              destination:
+                  const StockValueReportScreen(),
+            ),
+
+            // ====================================================
+            // ITEMS SOLD
+            // ====================================================
+
+            _dashboardCard(
+              context: context,
+              width: cardWidth,
+              title: 'Items Sold',
+              value:
+                  '$itemsSold',
+              subtitle:
+                  'Units sold',
+              icon:
+                  Icons.shopping_cart_outlined,
+              color: AppColors.info,
+              destination:
+                  const ItemsSoldReportScreen(),
+            ),
+
+            // ====================================================
+            // GROSS REVENUE
+            // ====================================================
+
+            _dashboardCard(
+              context: context,
+              width: cardWidth,
+              title: 'Gross Revenue',
+              value:
+                  _formatCurrency(
                 grossRevenue,
               ),
-          subtitle:
-              'Total revenue generated',
-          icon:
-              Icons.payments_outlined,
-          color: Colors.teal,
-          destination:
-              const GrossRevenueReportScreen(),
-        ),
+              subtitle:
+                  'Revenue generated',
+              icon:
+                  Icons.payments_outlined,
+              color: AppColors.success,
+              destination:
+                  const GrossRevenueReportScreen(),
+            ),
 
-        _dashboardCard(
-          width: cardWidth,
-          title: 'Staff Purchases',
-          value:
-              _formatCurrency(
-                grossRevenue,
-              ),
-          subtitle:
-              'Manage staff Accounts',
-          icon:
-              Icons.payments_outlined,
-          color: Colors.teal,
-          destination:
-              const StaffPurchaseScreen(),
-        ),
-      ],
+            // ====================================================
+            // STAFF PURCHASES
+            // ====================================================
+
+            _dashboardCard(
+              context: context,
+              width: cardWidth,
+              title: 'Staff Purchases',
+              value: 'Manage',
+              subtitle:
+                  'Staff purchase accounts',
+              icon:
+                  Icons.people_alt_outlined,
+              color: AppColors.pos,
+              destination:
+                  const StaffPurchaseScreen(),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -1386,92 +1167,140 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ============================================================
 
   Widget _dashboardCard({
+    required BuildContext context,
     required double width,
     required String title,
     required String value,
     required String subtitle,
     required IconData icon,
     required Color color,
-    required Widget destination,
+    Widget? destination,
+    VoidCallback? onTap,
   }) {
+    VoidCallback? handleTap;
+
+    if (onTap != null) {
+      handleTap = onTap;
+    } else if (destination != null) {
+      handleTap = () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => destination,
+          ),
+        );
+      };
+    }
+
     return SizedBox(
       width: width,
       child: Material(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius:
-            BorderRadius.circular(14),
+            BorderRadius.circular(
+          AppRadius.lg,
+        ),
         child: InkWell(
           borderRadius:
-              BorderRadius.circular(14),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) =>
-                    destination,
-              ),
-            );
-          },
+              BorderRadius.circular(
+            AppRadius.lg,
+          ),
+          onTap: handleTap,
+          mouseCursor:
+              handleTap == null
+                  ? SystemMouseCursors.basic
+                  : SystemMouseCursors.click,
           child: Container(
+            constraints:
+                const BoxConstraints(
+              minHeight: 88,
+            ),
             padding:
-                const EdgeInsets.all(17),
-            decoration: BoxDecoration(
+                const EdgeInsets.symmetric(
+              horizontal: 13,
+              vertical: 12,
+            ),
+            decoration:
+                BoxDecoration(
               borderRadius:
-                  BorderRadius.circular(14),
+                  BorderRadius.circular(
+                AppRadius.lg,
+              ),
               border: Border.all(
-                color: Colors.grey.shade200,
+                color: AppColors.border,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black
-                      .withValues(alpha: 0.025),
-                  blurRadius: 10,
+                  color:
+                      Colors.black.withValues(
+                    alpha: 0.02,
+                  ),
+                  blurRadius: 8,
                   offset:
-                      const Offset(0, 3),
+                      const Offset(0, 2),
                 ),
               ],
             ),
             child: Row(
               children: [
+                // ------------------------------------------------
+                // ICON
+                // ------------------------------------------------
+
                 Container(
-                  width: 46,
-                  height: 46,
+                  width: 40,
+                  height: 40,
                   decoration:
                       BoxDecoration(
-                    color: color.withValues(
-                      alpha: 0.10,
+                    color:
+                        color.withValues(
+                      alpha: 0.09,
                     ),
                     borderRadius:
                         BorderRadius.circular(
-                      11,
+                      AppRadius.md,
                     ),
                   ),
                   child: Icon(
                     icon,
                     color: color,
-                    size: 23,
+                    size: 20,
                   ),
                 ),
 
-                const SizedBox(width: 13),
+                const SizedBox(
+                  width: 11,
+                ),
+
+                // ------------------------------------------------
+                // CONTENT
+                // ------------------------------------------------
 
                 Expanded(
                   child: Column(
+                    mainAxisAlignment:
+                        MainAxisAlignment.center,
                     crossAxisAlignment:
                         CrossAxisAlignment.start,
                     children: [
                       Text(
                         title,
+                        maxLines: 1,
+                        overflow:
+                            TextOverflow.ellipsis,
                         style:
-                            const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
+                            AppTextStyles
+                                .dashboardCardTitle
+                                .copyWith(
+                          fontSize: 11,
                           fontWeight:
-                              FontWeight.w500,
+                              FontWeight.w600,
                         ),
                       ),
 
-                      const SizedBox(height: 3),
+                      const SizedBox(
+                        height: 2,
+                      ),
 
                       Text(
                         value,
@@ -1479,16 +1308,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         overflow:
                             TextOverflow.ellipsis,
                         style:
-                            const TextStyle(
-                          fontSize: 20,
+                            AppTextStyles
+                                .dashboardCardValue
+                                .copyWith(
+                          fontSize: 15,
                           fontWeight:
-                              FontWeight.w800,
-                          color:
-                              Colors.black87,
+                              FontWeight.w700,
                         ),
                       ),
 
-                      const SizedBox(height: 2),
+                      const SizedBox(
+                        height: 1,
+                      ),
 
                       Text(
                         subtitle,
@@ -1496,23 +1327,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         overflow:
                             TextOverflow.ellipsis,
                         style:
-                            const TextStyle(
-                          fontSize: 10.5,
-                          color: Colors.grey,
+                            AppTextStyles
+                                .dashboardCardSubtitle
+                                .copyWith(
+                          fontSize: 9.5,
                         ),
                       ),
                     ],
                   ),
                 ),
 
-                const SizedBox(width: 6),
+                const SizedBox(
+                  width: 5,
+                ),
 
-                Icon(
+                // ------------------------------------------------
+                // ARROW
+                // ------------------------------------------------
+
+                const Icon(
                   Icons
                       .arrow_forward_ios_rounded,
-                  size: 14,
+                  size: 12,
                   color:
-                      Colors.grey.shade400,
+                      AppColors.textMuted,
                 ),
               ],
             ),
@@ -1533,21 +1371,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       width: double.infinity,
       padding:
-          const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
+          const EdgeInsets.all(
+        AppSpacing.lg,
+      ),
+      decoration:
+          BoxDecoration(
+        color: AppColors.surface,
         borderRadius:
-            BorderRadius.circular(14),
+            BorderRadius.circular(
+          AppRadius.lg,
+        ),
         border: Border.all(
-          color: Colors.grey.shade200,
+          color: AppColors.border,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black
-                .withValues(alpha: 0.025),
-            blurRadius: 10,
+            color:
+                Colors.black.withValues(
+              alpha: 0.02,
+            ),
+            blurRadius: 8,
             offset:
-                const Offset(0, 3),
+                const Offset(0, 2),
           ),
         ],
       ),
@@ -1555,31 +1400,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
         crossAxisAlignment:
             CrossAxisAlignment.start,
         children: [
+          // ------------------------------------------------------
+          // HEADER
+          // ------------------------------------------------------
+
           Row(
             children: [
               Container(
-                width: 38,
-                height: 38,
+                width: 36,
+                height: 36,
                 decoration:
                     BoxDecoration(
-                  color: AppColors.primary
-                      .withValues(
+                  color:
+                      AppColors.primary
+                          .withValues(
                     alpha: 0.10,
                   ),
                   borderRadius:
                       BorderRadius.circular(
-                    9,
+                    AppRadius.md,
                   ),
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.show_chart_rounded,
                   color:
                       AppColors.primary,
-                  size: 20,
+                  size: 19,
                 ),
               ),
 
-              const SizedBox(width: 11),
+              const SizedBox(
+                width: 10,
+              ),
 
               const Expanded(
                 child: Column(
@@ -1588,54 +1440,63 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     Text(
                       'Sales Trend',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight:
-                            FontWeight.w800,
-                      ),
+                      style:
+                          AppTextStyles
+                              .dashboardSectionTitle,
                     ),
-                    SizedBox(height: 2),
+                    SizedBox(
+                      height: 2,
+                    ),
                     Text(
                       'Sales performance over the selected period',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey,
-                      ),
+                      style:
+                          AppTextStyles
+                              .dashboardSectionSubtitle,
                     ),
                   ],
                 ),
               ),
 
+              // --------------------------------------------------
+              // PERIOD
+              // --------------------------------------------------
+
               Container(
                 padding:
                     const EdgeInsets.symmetric(
-                  horizontal: 9,
-                  vertical: 6,
+                  horizontal: 8,
+                  vertical: 5,
                 ),
                 decoration:
                     BoxDecoration(
                   color:
-                      const Color(0xFFF7F8FA),
+                      AppColors.surfaceSoft,
                   borderRadius:
                       BorderRadius.circular(
-                    8,
+                    AppRadius.sm,
                   ),
                 ),
                 child: Text(
                   _filterLabel(),
                   style:
-                      const TextStyle(
-                    fontSize: 10,
+                      AppTextStyles.small
+                          .copyWith(
+                    fontSize: 9.5,
                     fontWeight:
                         FontWeight.w600,
-                    color: Colors.grey,
                   ),
                 ),
               ),
             ],
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(
+            height: 18,
+          ),
+
+          // ------------------------------------------------------
+          // CHART
+          // ------------------------------------------------------
 
           SizedBox(
             height: 300,
@@ -1666,13 +1527,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       width: double.infinity,
       padding:
-          const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
+          const EdgeInsets.all(
+        AppSpacing.lg,
+      ),
+      decoration:
+          BoxDecoration(
+        color: AppColors.surface,
         borderRadius:
-            BorderRadius.circular(14),
+            BorderRadius.circular(
+          AppRadius.lg,
+        ),
         border: Border.all(
-          color: Colors.grey.shade200,
+          color: AppColors.border,
         ),
       ),
       child: Column(
@@ -1681,36 +1547,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           const Text(
             'Inventory & Business Health',
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight:
-                  FontWeight.w800,
-            ),
+            style:
+                AppTextStyles
+                    .dashboardSectionTitle,
           ),
 
-          const SizedBox(height: 4),
+          const SizedBox(
+            height: 4,
+          ),
 
           const Text(
             'Quick indicators from your current data.',
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey,
-            ),
+            style:
+                AppTextStyles
+                    .dashboardSectionSubtitle,
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(
+            height: 15,
+          ),
 
           Wrap(
-            spacing: 10,
-            runSpacing: 10,
+            spacing: 9,
+            runSpacing: 9,
             children: [
+              // --------------------------------------------------
+              // PRODUCTS
+              // --------------------------------------------------
+
               _healthIndicator(
                 icon:
                     Icons.inventory_2_outlined,
                 label:
                     '$totalProducts products',
-                color: Colors.blue,
+                color:
+                    AppColors.info,
               ),
+
+              // --------------------------------------------------
+              // LOW STOCK
+              // --------------------------------------------------
 
               _healthIndicator(
                 icon:
@@ -1718,20 +1594,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 label:
                     '$lowStock low-stock',
                 color: lowStock > 0
-                    ? Colors.orange
-                    : Colors.green,
+                    ? AppColors.warning
+                    : AppColors.success,
               ),
 
+              // --------------------------------------------------
+              // OUT OF STOCK
+              // --------------------------------------------------
+
               _healthIndicator(
-                icon: Icons
-                    .remove_shopping_cart_outlined,
+                icon:
+                    Icons
+                        .remove_shopping_cart_outlined,
                 label:
                     '$outOfStock out of stock',
-                color:
-                    outOfStock > 0
-                        ? Colors.red
-                        : Colors.green,
+                color: outOfStock > 0
+                    ? AppColors.danger
+                    : AppColors.success,
               ),
+
+              // --------------------------------------------------
+              // PROFIT
+              // --------------------------------------------------
 
               _healthIndicator(
                 icon: profit >= 0
@@ -1741,17 +1625,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ? 'Profit positive'
                     : 'Profit negative',
                 color: profit >= 0
-                    ? Colors.green
-                    : Colors.red,
+                    ? AppColors.success
+                    : AppColors.danger,
               ),
+
+              // --------------------------------------------------
+              // HEALTHY INVENTORY
+              // --------------------------------------------------
 
               if (!hasStockWarning)
                 _healthIndicator(
-                  icon: Icons
-                      .check_circle_outline,
+                  icon:
+                      Icons.check_circle_outline,
                   label:
                       'Inventory healthy',
-                  color: Colors.green,
+                  color:
+                      AppColors.success,
                 ),
             ],
           ),
@@ -1772,17 +1661,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       padding:
           const EdgeInsets.symmetric(
-        horizontal: 11,
-        vertical: 8,
+        horizontal: 10,
+        vertical: 7,
       ),
-      decoration: BoxDecoration(
-        color: color.withValues(
+      decoration:
+          BoxDecoration(
+        color:
+            color.withValues(
           alpha: 0.07,
         ),
         borderRadius:
-            BorderRadius.circular(9),
+            BorderRadius.circular(
+          AppRadius.md,
+        ),
         border: Border.all(
-          color: color.withValues(
+          color:
+              color.withValues(
             alpha: 0.15,
           ),
         ),
@@ -1793,16 +1687,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           Icon(
             icon,
-            size: 16,
+            size: 15,
             color: color,
           ),
 
-          const SizedBox(width: 7),
+          const SizedBox(
+            width: 6,
+          ),
 
           Text(
             label,
-            style: TextStyle(
-              fontSize: 11,
+            style:
+                AppTextStyles.small.copyWith(
+              fontSize: 10.5,
               fontWeight:
                   FontWeight.w600,
               color: color,
@@ -1823,7 +1720,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   ) {
     return Padding(
       padding:
-          const EdgeInsets.all(24),
+          const EdgeInsets.all(
+        AppSpacing.xxl,
+      ),
       child: Column(
         mainAxisSize:
             MainAxisSize.min,
@@ -1833,45 +1732,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
             height: 56,
             decoration:
                 BoxDecoration(
-              color: Colors.red
-                  .withValues(
+              color:
+                  AppColors.danger
+                      .withValues(
                 alpha: 0.08,
               ),
               borderRadius:
                   BorderRadius.circular(
-                14,
+                AppRadius.lg,
               ),
             ),
             child: const Icon(
               Icons.error_outline,
               size: 28,
-              color: Colors.redAccent,
+              color: AppColors.danger,
             ),
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(
+            height: 14,
+          ),
 
           Text(
             title,
             textAlign:
                 TextAlign.center,
-            style: const TextStyle(
+            style:
+                AppTextStyles.title.copyWith(
               fontSize: 18,
               fontWeight:
                   FontWeight.w800,
             ),
           ),
 
-          const SizedBox(height: 7),
+          const SizedBox(
+            height: 7,
+          ),
 
           Text(
             message,
             textAlign:
                 TextAlign.center,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
-            ),
+            style:
+                AppTextStyles.bodySecondary,
           ),
         ],
       ),
@@ -1907,6 +1810,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ) ??
         0;
   }
+
+  // ============================================================
+  // CURRENCY
+  // ============================================================
 
   String _formatCurrency(
     double value,

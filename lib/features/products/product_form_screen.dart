@@ -1,4 +1,5 @@
-//lib/features/products/product_form_screen.dart
+// lib/features/products/product_form_screen.dart
+
 import 'dart:io';
 
 import 'package:drift/drift.dart' show Value;
@@ -13,6 +14,7 @@ import '../../core/widgets/inventory_widgets.dart';
 import '../../database/app_database.dart';
 import '../../database/daos/category_dao.dart';
 import '../../database/daos/product_dao.dart';
+import '../../core/responsive/responsive.dart';
 
 class ProductFormScreen extends StatefulWidget {
   const ProductFormScreen({super.key});
@@ -50,6 +52,10 @@ class _ProductFormScreenState
     'bag',
   ];
 
+  // ============================================================
+  // INIT
+  // ============================================================
+
   @override
   void initState() {
     super.initState();
@@ -57,6 +63,10 @@ class _ProductFormScreenState
     _productDao = getProductDao();
     _categoryDao = getCategoryDao();
   }
+
+  // ============================================================
+  // IMAGE PICKER
+  // ============================================================
 
   Future<void> _pickProductImage() async {
     final result = await FilePicker.platform.pickFiles(
@@ -87,6 +97,7 @@ class _ProductFormScreenState
           ),
         ),
       );
+
       return;
     }
 
@@ -106,6 +117,10 @@ class _ProductFormScreenState
       _selectedImagePath = newPath;
     });
   }
+
+  // ============================================================
+  // EXPIRY DATE
+  // ============================================================
 
   Future<void> _pickExpiryDate() async {
     final now = DateTime.now();
@@ -134,6 +149,10 @@ class _ProductFormScreenState
           '${picked.day.toString().padLeft(2, '0')}';
     });
   }
+
+  // ============================================================
+  // SAVE PRODUCT
+  // ============================================================
 
   Future<void> _saveProduct() async {
     if (!_formKey.currentState!.validate()) {
@@ -179,6 +198,7 @@ class _ProductFormScreenState
           content: Text(
             'Product created successfully.',
           ),
+          behavior: SnackBarBehavior.floating,
         ),
       );
 
@@ -195,391 +215,736 @@ class _ProductFormScreenState
           content: Text(
             'Unable to save product: $e',
           ),
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        leading: const CentralBackButton(),
-        title: const Text(
-          'Add Product',
-          style: AppTextStyles.heading,
-        ),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
+  // ============================================================
+  // SECTION SPACING
+  // ============================================================
+
+  double _sectionSpacing(BuildContext context) {
+    final responsive = context.responsive;
+
+    if (responsive.isCompact) {
+      return AppSpacing.xxl;
+    }
+
+    if (responsive.isTablet) {
+      return AppSpacing.xxxl;
+    }
+
+    return AppSpacing.section;
+  }
+
+  // ============================================================
+  // CARD PADDING
+  // ============================================================
+
+  EdgeInsets _cardPadding(BuildContext context) {
+    final responsive = context.responsive;
+
+    if (responsive.isCompact) {
+      return const EdgeInsets.all(14);
+    }
+
+    if (responsive.isTablet) {
+      return const EdgeInsets.all(18);
+    }
+
+    return const EdgeInsets.all(20);
+  }
+
+  // ============================================================
+  // FORM FIELD SPACING
+  // ============================================================
+
+  double _fieldSpacing(BuildContext context) {
+    final responsive = context.responsive;
+
+    if (responsive.isCompact) {
+      return AppSpacing.sm + 2;
+    }
+
+    return AppSpacing.md;
+  }
+
+  // ============================================================
+  // INPUT DECORATION
+  // ============================================================
+
+  InputDecoration _inputDecoration({
+    required String label,
+    String? hint,
+    required IconData icon,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      labelStyle: AppTextStyles.bodySecondary,
+      hintStyle: AppTextStyles.small,
+      prefixIcon: Icon(
+        icon,
+        size: 20,
+        color: AppColors.textSecondary,
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(
-            16,
-            18,
-            16,
-            40,
-          ),
-          children: [
-            const InventorySectionTitle(
-              title: 'Product Information',
-              subtitle:
-                  'Add the basic details used to manage this product.',
-            ),
-            const SizedBox(height: 14),
-            InventoryCard(
-              child: Column(
-                children: [
-                  TextFormField(
-                    controller: _nameController,
-                    textCapitalization:
-                        TextCapitalization.words,
-                    decoration: const InputDecoration(
-                      labelText: 'Product name',
-                      hintText: 'e.g. Coca-Cola 50cl',
-                      prefixIcon: Icon(
-                        Icons.inventory_2_outlined,
-                      ),
-                    ),
-                    validator: (value) {
-                      if (value == null ||
-                          value.trim().isEmpty) {
-                        return 'Enter product name';
-                      }
-
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                  TextFormField(
-                    controller: _brandController,
-                    textCapitalization:
-                        TextCapitalization.words,
-                    decoration: const InputDecoration(
-                      labelText: 'Brand',
-                      hintText: 'Optional',
-                      prefixIcon: Icon(
-                        Icons.sell_outlined,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  FutureBuilder<List<Category>>(
-                    future:
-                        _categoryDao.getAllCategories(),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) {
-                        return const SizedBox(
-                          height: 56,
-                          child: Center(
-                            child:
-                                CircularProgressIndicator(
-                              strokeWidth: 2,
-                            ),
-                          ),
-                        );
-                      }
-
-                      final categories =
-                          snapshot.data!;
-
-                      return DropdownButtonFormField<int>(
-                        initialValue:
-                            _selectedCategoryId,
-                        decoration:
-                            const InputDecoration(
-                          labelText: 'Category',
-                          prefixIcon: Icon(
-                            Icons.category_outlined,
-                          ),
-                        ),
-                        items: categories.map(
-                          (category) {
-                            return DropdownMenuItem<int>(
-                              value: category.id,
-                              child: Text(
-                                category.name,
-                              ),
-                            );
-                          },
-                        ).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedCategoryId =
-                                value;
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null) {
-                            return 'Select a category';
-                          }
-
-                          return null;
-                        },
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            const InventorySectionTitle(
-              title: 'Product Image',
-              subtitle:
-                  'Use a clear image so staff can identify the product quickly.',
-            ),
-
-            const SizedBox(height: 14),
-
-            InventoryCard(
-              child: Column(
-                children: [
-                  Container(
-                    height: 190,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceSoft,
-                      borderRadius:
-                          BorderRadius.circular(14),
-                      border: Border.all(
-                        color: AppColors.border,
-                      ),
-                    ),
-                    child: _buildImagePreview(),
-                  ),
-                  const SizedBox(height: 14),
-                  OutlinedButton.icon(
-                    onPressed: _pickProductImage,
-                    icon: const Icon(
-                      Icons.upload_file_outlined,
-                    ),
-                    label: Text(
-                      _selectedImagePath == null
-                          ? 'Upload Product Image'
-                          : 'Change Image',
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'PNG, JPG or SVG • Maximum 2MB',
-                    style: AppTextStyles.small,
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            const InventorySectionTitle(
-              title: 'Pricing & Unit',
-              subtitle:
-                  'Set the purchasing and selling values for this product.',
-            ),
-
-            const SizedBox(height: 14),
-
-            InventoryCard(
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller:
-                              _costPriceController,
-                          keyboardType:
-                              const TextInputType
-                                  .numberWithOptions(
-                            decimal: true,
-                          ),
-                          decoration:
-                              const InputDecoration(
-                            labelText: 'Cost price',
-                            prefixText: '₦ ',
-                            prefixIcon: Icon(
-                              Icons
-                                  .shopping_cart_checkout_outlined,
-                            ),
-                          ),
-                          validator: (value) {
-                            final price =
-                                double.tryParse(
-                              value?.trim() ?? '',
-                            );
-
-                            if (price == null ||
-                                price < 0) {
-                              return 'Enter valid price';
-                            }
-
-                            return null;
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: TextFormField(
-                          controller:
-                              _sellingPriceController,
-                          keyboardType:
-                              const TextInputType
-                                  .numberWithOptions(
-                            decimal: true,
-                          ),
-                          decoration:
-                              const InputDecoration(
-                            labelText: 'Selling price',
-                            prefixText: '₦ ',
-                            prefixIcon: Icon(
-                              Icons
-                                  .price_check_outlined,
-                            ),
-                          ),
-                          validator: (value) {
-                            final price =
-                                double.tryParse(
-                              value?.trim() ?? '',
-                            );
-
-                            if (price == null ||
-                                price < 0) {
-                              return 'Enter valid price';
-                            }
-
-                            return null;
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  DropdownButtonFormField<String>(
-                    initialValue: _selectedUnit,
-                    decoration:
-                        const InputDecoration(
-                      labelText: 'Unit',
-                      prefixIcon: Icon(
-                        Icons.straighten_outlined,
-                      ),
-                    ),
-                    items: _units.map(
-                      (unit) {
-                        return DropdownMenuItem<String>(
-                          value: unit,
-                          child: Text(unit),
-                        );
-                      },
-                    ).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedUnit = value;
-                      });
-                    },
-                    validator: (value) {
-                      if (value == null) {
-                        return 'Select a unit';
-                      }
-
-                      return null;
-                    },
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            const InventorySectionTitle(
-              title: 'Expiry',
-              subtitle:
-                  'Add an expiry date for products that require tracking.',
-            ),
-
-            const SizedBox(height: 14),
-
-            InventoryCard(
-              child: TextFormField(
-                controller: _expiryController,
-                readOnly: true,
-                onTap: _pickExpiryDate,
-                decoration: const InputDecoration(
-                  labelText: 'Expiry date',
-                  hintText: 'Select expiry date',
-                  prefixIcon: Icon(
-                    Icons.event_outlined,
-                  ),
-                  suffixIcon: Icon(
-                    Icons.calendar_month_outlined,
-                  ),
-                ),
-                validator: (value) {
-                  if (value == null ||
-                      value.trim().isEmpty) {
-                    return 'Select expiry date';
-                  }
-
-                  return null;
-                },
-              ),
-            ),
-
-            const SizedBox(height: 30),
-
-            SizedBox(
-              height: 54,
-              child: ElevatedButton.icon(
-                onPressed:
-                    _isSaving ? null : _saveProduct,
-                icon: _isSaving
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child:
-                            CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(
-                        Icons.check_circle_outline,
-                      ),
-                label: Text(
-                  _isSaving
-                      ? 'Saving Product...'
-                      : 'Save Product',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                  ),
-                ),
-              ),
-            ),
-          ],
+      filled: true,
+      fillColor: AppColors.surface,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: 13,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(
+          AppRadius.md,
+        ),
+        borderSide: const BorderSide(
+          color: AppColors.border,
+        ),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(
+          AppRadius.md,
+        ),
+        borderSide: const BorderSide(
+          color: AppColors.border,
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(
+          AppRadius.md,
+        ),
+        borderSide: const BorderSide(
+          color: AppColors.primary,
+          width: 1.4,
+        ),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(
+          AppRadius.md,
+        ),
+        borderSide: const BorderSide(
+          color: AppColors.danger,
+        ),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(
+          AppRadius.md,
+        ),
+        borderSide: const BorderSide(
+          color: AppColors.danger,
+          width: 1.4,
         ),
       ),
     );
   }
 
-  Widget _buildImagePreview() {
+  // ============================================================
+  // BUILD
+  // ============================================================
+
+  @override
+  Widget build(BuildContext context) {
+    final responsive = context.responsive;
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+
+      // ==========================================================
+      // APP BAR
+      // ==========================================================
+
+      appBar: AppBar(
+        leading: const CentralBackButton(),
+        title: Text(
+          'Add Product',
+          style: AppTextStyles.heading.copyWith(
+            color: Colors.white,
+            fontSize: responsive.isCompact ? 18 : 20,
+          ),
+        ),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+
+      // ==========================================================
+      // BODY
+      // ==========================================================
+
+      body: Form(
+        key: _formKey,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: responsive.isCompact
+                  ? double.infinity
+                  : responsive.isTablet
+                      ? 760
+                      : 1000,
+            ),
+            child: ListView(
+              padding: EdgeInsets.fromLTRB(
+                responsive.horizontalPadding,
+                responsive.isCompact
+                    ? AppSpacing.lg
+                    : AppSpacing.xl,
+                responsive.horizontalPadding,
+                responsive.isCompact
+                    ? AppSpacing.xxxl
+                    : AppSpacing.huge,
+              ),
+              children: [
+                // ==================================================
+                // PRODUCT INFORMATION
+                // ==================================================
+
+                const InventorySectionTitle(
+                  title: 'Product Information',
+                  subtitle:
+                      'Add the basic details used to manage this product.',
+                ),
+
+                SizedBox(
+                  height: responsive.isCompact
+                      ? AppSpacing.md
+                      : AppSpacing.lg,
+                ),
+
+                InventoryCard(
+                  child: Padding(
+                    padding: _cardPadding(context),
+                    child: Column(
+                      children: [
+                        // PRODUCT NAME
+                        TextFormField(
+                          controller: _nameController,
+                          textCapitalization:
+                              TextCapitalization.words,
+                          style: AppTextStyles.body,
+                          decoration: _inputDecoration(
+                            label: 'Product name',
+                            hint: 'e.g. Coca-Cola 50cl',
+                            icon:
+                                Icons.inventory_2_outlined,
+                          ),
+                          validator: (value) {
+                            if (value == null ||
+                                value.trim().isEmpty) {
+                              return 'Enter product name';
+                            }
+
+                            return null;
+                          },
+                        ),
+
+                        SizedBox(
+                          height: _fieldSpacing(context),
+                        ),
+
+                        // BRAND
+                        TextFormField(
+                          controller: _brandController,
+                          textCapitalization:
+                              TextCapitalization.words,
+                          style: AppTextStyles.body,
+                          decoration: _inputDecoration(
+                            label: 'Brand',
+                            hint: 'Optional',
+                            icon:
+                                Icons.sell_outlined,
+                          ),
+                        ),
+
+                        SizedBox(
+                          height: _fieldSpacing(context),
+                        ),
+
+                        // CATEGORY
+                        FutureBuilder<List<Category>>(
+                          future:
+                              _categoryDao.getAllCategories(),
+                          builder:
+                              (context, snapshot) {
+                            if (!snapshot.hasData) {
+                              return const SizedBox(
+                                height: 52,
+                                child: Center(
+                                  child:
+                                      CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              );
+                            }
+
+                            final categories =
+                                snapshot.data!;
+
+                            return DropdownButtonFormField<int>(
+                              initialValue:
+                                  _selectedCategoryId,
+                              style:
+                                  AppTextStyles.body,
+                              decoration:
+                                  _inputDecoration(
+                                label: 'Category',
+                                icon: Icons
+                                    .category_outlined,
+                              ),
+                              items:
+                                  categories.map(
+                                (category) {
+                                  return DropdownMenuItem<
+                                      int>(
+                                    value:
+                                        category.id,
+                                    child: Text(
+                                      category.name,
+                                      style:
+                                          AppTextStyles
+                                              .body,
+                                      overflow:
+                                          TextOverflow
+                                              .ellipsis,
+                                    ),
+                                  );
+                                },
+                              ).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedCategoryId =
+                                      value;
+                                });
+                              },
+                              validator: (value) {
+                                if (value == null) {
+                                  return 'Select a category';
+                                }
+
+                                return null;
+                              },
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // ==================================================
+                // PRODUCT IMAGE
+                // ==================================================
+
+                SizedBox(
+                  height: _sectionSpacing(context),
+                ),
+
+                const InventorySectionTitle(
+                  title: 'Product Image',
+                  subtitle:
+                      'Use a clear image so staff can identify the product quickly.',
+                ),
+
+                SizedBox(
+                  height: responsive.isCompact
+                      ? AppSpacing.md
+                      : AppSpacing.lg,
+                ),
+
+                InventoryCard(
+                  child: Padding(
+                    padding: _cardPadding(context),
+                    child: Column(
+                      children: [
+                        // IMAGE PREVIEW
+                        Container(
+                          height: responsive.isCompact
+                              ? 130
+                              : responsive.isTablet
+                                  ? 155
+                                  : 180,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color:
+                                AppColors.surfaceSoft,
+                            borderRadius:
+                                BorderRadius.circular(
+                              AppRadius.lg,
+                            ),
+                            border: Border.all(
+                              color: AppColors.border,
+                            ),
+                          ),
+                          child: _buildImagePreview(
+                            responsive,
+                          ),
+                        ),
+
+                        SizedBox(
+                          height: responsive.isCompact
+                              ? AppSpacing.md
+                              : AppSpacing.lg,
+                        ),
+
+                        // UPLOAD BUTTON
+                        SizedBox(
+                          height:
+                              responsive.controlHeight,
+                          child: OutlinedButton.icon(
+                            onPressed:
+                                _pickProductImage,
+                            icon: const Icon(
+                              Icons
+                                  .upload_file_outlined,
+                              size: 19,
+                            ),
+                            label: Text(
+                              _selectedImagePath ==
+                                      null
+                                  ? 'Upload Product Image'
+                                  : 'Change Image',
+                              style:
+                                  AppTextStyles.body,
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 4),
+
+                        const Text(
+                          'PNG, JPG or SVG • Maximum 2MB',
+                          style: AppTextStyles.small,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // ==================================================
+                // PRICING & UNIT
+                // ==================================================
+
+                SizedBox(
+                  height: _sectionSpacing(context),
+                ),
+
+                const InventorySectionTitle(
+                  title: 'Pricing & Unit',
+                  subtitle:
+                      'Set the purchasing and selling values for this product.',
+                ),
+
+                SizedBox(
+                  height: responsive.isCompact
+                      ? AppSpacing.md
+                      : AppSpacing.lg,
+                ),
+
+                InventoryCard(
+                  child: Padding(
+                    padding: _cardPadding(context),
+                    child: Column(
+                      children: [
+                        // =================================================
+                        // PRICES
+                        // =================================================
+
+                        LayoutBuilder(
+                          builder:
+                              (context, constraints) {
+                            final sideBySide =
+                                constraints.maxWidth >=
+                                    520;
+
+                            if (!sideBySide) {
+                              return Column(
+                                children: [
+                                  _buildCostPriceField(),
+
+                                  SizedBox(
+                                    height:
+                                        _fieldSpacing(
+                                      context,
+                                    ),
+                                  ),
+
+                                  _buildSellingPriceField(),
+                                ],
+                              );
+                            }
+
+                            return Row(
+                              children: [
+                                Expanded(
+                                  child:
+                                      _buildCostPriceField(),
+                                ),
+
+                                SizedBox(
+                                  width:
+                                      responsive.isCompact
+                                          ? AppSpacing.sm
+                                          : AppSpacing.md,
+                                ),
+
+                                Expanded(
+                                  child:
+                                      _buildSellingPriceField(),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+
+                        SizedBox(
+                          height: _fieldSpacing(context),
+                        ),
+
+                        // UNIT
+                        DropdownButtonFormField<String>(
+                          initialValue: _selectedUnit,
+                          style: AppTextStyles.body,
+                          decoration: _inputDecoration(
+                            label: 'Unit',
+                            icon:
+                                Icons.straighten_outlined,
+                          ),
+                          items: _units.map(
+                            (unit) {
+                              return DropdownMenuItem<
+                                  String>(
+                                value: unit,
+                                child: Text(
+                                  unit,
+                                  style:
+                                      AppTextStyles.body,
+                                ),
+                              );
+                            },
+                          ).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedUnit = value;
+                            });
+                          },
+                          validator: (value) {
+                            if (value == null) {
+                              return 'Select a unit';
+                            }
+
+                            return null;
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // ==================================================
+                // EXPIRY
+                // ==================================================
+
+                SizedBox(
+                  height: _sectionSpacing(context),
+                ),
+
+                const InventorySectionTitle(
+                  title: 'Expiry',
+                  subtitle:
+                      'Add an expiry date for products that require tracking.',
+                ),
+
+                SizedBox(
+                  height: responsive.isCompact
+                      ? AppSpacing.md
+                      : AppSpacing.lg,
+                ),
+
+                InventoryCard(
+                  child: Padding(
+                    padding: _cardPadding(context),
+                    child: TextFormField(
+                      controller: _expiryController,
+                      readOnly: true,
+                      style: AppTextStyles.body,
+                      onTap: _pickExpiryDate,
+                      decoration: _inputDecoration(
+                        label: 'Expiry date',
+                        hint: 'Select expiry date',
+                        icon:
+                            Icons.event_outlined,
+                      ).copyWith(
+                        suffixIcon: const Icon(
+                          Icons
+                              .calendar_month_outlined,
+                          size: 20,
+                          color:
+                              AppColors.textSecondary,
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null ||
+                            value.trim().isEmpty) {
+                          return 'Select expiry date';
+                        }
+
+                        return null;
+                      },
+                    ),
+                  ),
+                ),
+
+                // ==================================================
+                // SAVE BUTTON
+                // ==================================================
+
+                SizedBox(
+                  height: responsive.isCompact
+                      ? AppSpacing.xxl
+                      : AppSpacing.xxxl,
+                ),
+
+                SizedBox(
+                  height: responsive.buttonHeight,
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed:
+                        _isSaving ? null : _saveProduct,
+                    icon: _isSaving
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child:
+                                CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(
+                            Icons
+                                .check_circle_outline,
+                            size: 19,
+                          ),
+                    label: Text(
+                      _isSaving
+                          ? 'Saving Product...'
+                          : 'Save Product',
+                      style:
+                          AppTextStyles.body.copyWith(
+                        color: Colors.white,
+                        fontWeight:
+                            FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // COST PRICE
+  // ============================================================
+
+  Widget _buildCostPriceField() {
+    return TextFormField(
+      controller: _costPriceController,
+      keyboardType:
+          const TextInputType.numberWithOptions(
+        decimal: true,
+      ),
+      style: AppTextStyles.body,
+      decoration: _inputDecoration(
+        label: 'Cost price',
+        icon:
+            Icons.shopping_cart_checkout_outlined,
+      ).copyWith(
+        prefixText: '₦ ',
+        prefixStyle: AppTextStyles.body.copyWith(
+          color: AppColors.textSecondary,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      validator: (value) {
+        final price = double.tryParse(
+          value?.trim() ?? '',
+        );
+
+        if (price == null || price < 0) {
+          return 'Enter valid price';
+        }
+
+        return null;
+      },
+    );
+  }
+
+  // ============================================================
+  // SELLING PRICE
+  // ============================================================
+
+  Widget _buildSellingPriceField() {
+    return TextFormField(
+      controller: _sellingPriceController,
+      keyboardType:
+          const TextInputType.numberWithOptions(
+        decimal: true,
+      ),
+      style: AppTextStyles.body,
+      decoration: _inputDecoration(
+        label: 'Selling price',
+        icon: Icons.price_check_outlined,
+      ).copyWith(
+        prefixText: '₦ ',
+        prefixStyle: AppTextStyles.body.copyWith(
+          color: AppColors.textSecondary,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      validator: (value) {
+        final price = double.tryParse(
+          value?.trim() ?? '',
+        );
+
+        if (price == null || price < 0) {
+          return 'Enter valid price';
+        }
+
+        return null;
+      },
+    );
+  }
+
+  // ============================================================
+  // IMAGE PREVIEW
+  // ============================================================
+
+  Widget _buildImagePreview(
+    Responsive responsive,
+  ) {
     if (_selectedImagePath == null) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               Icons.add_photo_alternate_outlined,
-              size: 48,
+              size: responsive.isCompact ? 34 : 42,
               color: AppColors.primary,
             ),
-            SizedBox(height: 8),
-            Text(
+
+            const SizedBox(height: 6),
+
+            const Text(
               'No product image selected',
-              style: AppTextStyles.bodySecondary,
+              style: AppTextStyles.small,
             ),
           ],
         ),
@@ -592,7 +957,7 @@ class _ProductFormScreenState
       return const Center(
         child: Icon(
           Icons.image_not_supported_outlined,
-          size: 48,
+          size: 42,
           color: AppColors.textMuted,
         ),
       );
@@ -602,7 +967,9 @@ class _ProductFormScreenState
         .toLowerCase()
         .endsWith('.svg')) {
       return Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(
+          responsive.isCompact ? 16 : 22,
+        ),
         child: SvgPicture.file(
           file,
           fit: BoxFit.contain,
@@ -611,13 +978,19 @@ class _ProductFormScreenState
     }
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(
+        AppRadius.lg,
+      ),
       child: Image.file(
         file,
         fit: BoxFit.contain,
       ),
     );
   }
+
+  // ============================================================
+  // DISPOSE
+  // ============================================================
 
   @override
   void dispose() {

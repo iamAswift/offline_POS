@@ -1,6 +1,10 @@
+//lib/features/users/initial_setup_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/responsive/responsive.dart';
+import '../../core/theme/styles.dart';
 import '../../database/app_database.dart';
 import '../../core/session.dart';
 
@@ -8,17 +12,14 @@ class InitialSetupScreen extends StatefulWidget {
   const InitialSetupScreen({super.key});
 
   @override
-  State<InitialSetupScreen> createState() =>
-      _InitialSetupScreenState();
+  State<InitialSetupScreen> createState() => _InitialSetupScreenState();
 }
 
-class _InitialSetupScreenState
-    extends State<InitialSetupScreen> {
+class _InitialSetupScreenState extends State<InitialSetupScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _confirmPasswordController =
-      TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
   bool _isLoading = false;
   bool _obscurePassword = true;
@@ -42,8 +43,7 @@ class _InitialSetupScreenState
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text;
-    final confirmPassword =
-        _confirmPasswordController.text;
+    final confirmPassword = _confirmPasswordController.text;
 
     // ----------------------------------------------------------
     // VALIDATION
@@ -60,9 +60,7 @@ class _InitialSetupScreenState
     }
 
     if (!_isValidEmail(email)) {
-      _showMessage(
-        'Please enter a valid email address.',
-      );
+      _showMessage('Please enter a valid email address.');
       return;
     }
 
@@ -72,16 +70,12 @@ class _InitialSetupScreenState
     }
 
     if (password.length < 6) {
-      _showMessage(
-        'Password must be at least 6 characters.',
-      );
+      _showMessage('Password must be at least 6 characters.');
       return;
     }
 
     if (password != confirmPassword) {
-      _showMessage(
-        'Passwords do not match.',
-      );
+      _showMessage('Passwords do not match.');
       return;
     }
 
@@ -98,8 +92,7 @@ class _InitialSetupScreenState
       // This screen is ONLY allowed when there are no users.
       // --------------------------------------------------------
 
-      final userCount =
-          await userDao.getUserCount();
+      final userCount = await userDao.getUserCount();
 
       if (userCount > 0) {
         if (!mounted) return;
@@ -118,8 +111,7 @@ class _InitialSetupScreenState
       // CREATE OWNER
       // --------------------------------------------------------
 
-      final userId =
-          await userDao.createInitialOwner(
+      final userId = await userDao.createInitialOwner(
         name: name,
         email: email,
         password: password,
@@ -129,21 +121,14 @@ class _InitialSetupScreenState
       // LOAD CREATED USER
       // --------------------------------------------------------
 
-      final owner =
-          await userDao.getUserById(userId);
+      final owner = await userDao.getUserById(userId);
 
       if (owner == null) {
-        throw Exception(
-          'Owner account was created but could not be loaded.',
-        );
+        throw Exception('Owner account was created but could not be loaded.');
       }
 
       // --------------------------------------------------------
       // SAVE SESSION
-      //
-      // We are still using the existing Session API for now.
-      // We will upgrade Session to userId/loginId in the
-      // next step.
       // --------------------------------------------------------
 
       await Session.saveUserSession(
@@ -159,17 +144,13 @@ class _InitialSetupScreenState
       // SUCCESS
       // --------------------------------------------------------
 
-      _showMessage(
-        'Owner account created successfully.',
-      );
+      _showMessage('Owner account created successfully.');
 
       context.go('/dashboard');
     } catch (e) {
       if (!mounted) return;
 
-      debugPrint(
-        'Initial owner creation error: $e',
-      );
+      debugPrint('Initial owner creation error: $e');
 
       _showMessage(
         'Unable to create owner account. '
@@ -189,9 +170,7 @@ class _InitialSetupScreenState
   // ============================================================
 
   bool _isValidEmail(String email) {
-    return RegExp(
-      r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
-    ).hasMatch(email);
+    return RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
   }
 
   // ============================================================
@@ -200,9 +179,339 @@ class _InitialSetupScreenState
 
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+    );
+  }
+
+  // ============================================================
+  // SETUP CARD
+  // ============================================================
+
+  Widget _buildSetupCard(BuildContext context, Responsive responsive) {
+    final bool isCompact = responsive.isCompact;
+
+    final double cardPadding = isCompact ? AppSpacing.xxl : AppSpacing.xxxl;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: responsive.horizontalPadding,
+        vertical: responsive.verticalPadding,
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: AppSizes.maxFormWidth),
+        child: Card(
+          elevation: 0,
+          margin: EdgeInsets.zero,
+          color: AppColors.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.xl),
+            side: const BorderSide(color: AppColors.border),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(cardPadding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // ==================================================
+                // ICON
+                // ==================================================
+                _buildSetupIcon(),
+
+                SizedBox(height: AppSpacing.xxl),
+
+                // ==================================================
+                // TITLE
+                // ==================================================
+                Text(
+                  'Set Up Your Supermarket',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.heading.copyWith(
+                    fontSize: isCompact ? 22 : 24,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+
+                SizedBox(height: AppSpacing.sm),
+
+                Text(
+                  'Create the first owner account '
+                  'to get started.',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.bodySecondary.copyWith(height: 1.5),
+                ),
+
+                SizedBox(height: AppSpacing.xxl),
+
+                // ==================================================
+                // INFORMATION CARD
+                // ==================================================
+                _buildInformationCard(),
+
+                SizedBox(height: AppSpacing.xxl),
+
+                // ==================================================
+                // OWNER NAME
+                // ==================================================
+                TextField(
+                  controller: _nameController,
+                  enabled: !_isLoading,
+                  textInputAction: TextInputAction.next,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(
+                    labelText: 'Owner Name',
+                    hintText: 'e.g. Austine Okoh',
+                    prefixIcon: Icon(Icons.person_outline),
+                  ),
+                ),
+
+                SizedBox(height: AppSpacing.lg),
+
+                // ==================================================
+                // EMAIL
+                // ==================================================
+                TextField(
+                  controller: _emailController,
+                  enabled: !_isLoading,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Email Address',
+                    hintText: 'owner@example.com',
+                    prefixIcon: Icon(Icons.email_outlined),
+                  ),
+                ),
+
+                SizedBox(height: AppSpacing.lg),
+
+                // ==================================================
+                // PASSWORD
+                // ==================================================
+                TextField(
+                  controller: _passwordController,
+                  enabled: !_isLoading,
+                  obscureText: _obscurePassword,
+                  textInputAction: TextInputAction.next,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      tooltip: _obscurePassword
+                          ? 'Show password'
+                          : 'Hide password',
+                      onPressed: _isLoading
+                          ? null
+                          : () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                      ),
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: AppSpacing.lg),
+
+                // ==================================================
+                // CONFIRM PASSWORD
+                // ==================================================
+                TextField(
+                  controller: _confirmPasswordController,
+                  enabled: !_isLoading,
+                  obscureText: _obscureConfirmPassword,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) {
+                    if (!_isLoading) {
+                      _createOwner();
+                    }
+                  },
+                  decoration: InputDecoration(
+                    labelText: 'Confirm Password',
+                    prefixIcon: const Icon(Icons.lock_reset_outlined),
+                    suffixIcon: IconButton(
+                      tooltip: _obscureConfirmPassword
+                          ? 'Show password'
+                          : 'Hide password',
+                      onPressed: _isLoading
+                          ? null
+                          : () {
+                              setState(() {
+                                _obscureConfirmPassword =
+                                    !_obscureConfirmPassword;
+                              });
+                            },
+                      icon: Icon(
+                        _obscureConfirmPassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                      ),
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: AppSpacing.xxl),
+
+                // ==================================================
+                // LOGIN ID PREVIEW
+                // ==================================================
+                _buildLoginIdPreview(),
+
+                SizedBox(height: AppSpacing.xxl),
+
+                // ==================================================
+                // CREATE BUTTON
+                // ==================================================
+                SizedBox(
+                  height: responsive.buttonHeight,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _createOwner,
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text('Create Owner Account'),
+                  ),
+                ),
+
+                SizedBox(height: AppSpacing.lg),
+
+                // ==================================================
+                // FOOTER
+                // ==================================================
+                Text(
+                  'This setup screen is only available '
+                  'when no user account exists.',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.small.copyWith(
+                    fontSize: isCompact ? 11 : 12,
+                    color: AppColors.textMuted,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // SETUP ICON
+  // ============================================================
+
+  Widget _buildSetupIcon() {
+    return Center(
+      child: Container(
+        width: 72,
+        height: 72,
+        decoration: BoxDecoration(
+          color: AppColors.primaryLight,
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+        ),
+        alignment: Alignment.center,
+        child: const Icon(
+          Icons.admin_panel_settings_outlined,
+          color: AppColors.primary,
+          size: 34,
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // INFORMATION CARD
+  // ============================================================
+
+  Widget _buildInformationCard() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.infoLight,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.info.withValues(alpha: 0.12)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.info_outline, color: AppColors.info, size: 20),
+
+          const SizedBox(width: AppSpacing.md),
+
+          Expanded(
+            child: Text(
+              'You will be the owner of this '
+              'supermarket system. Your Login ID '
+              'will be automatically assigned.',
+              style: AppTextStyles.small.copyWith(
+                color: AppColors.textPrimary,
+                height: 1.45,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // LOGIN ID PREVIEW
+  // ============================================================
+
+  Widget _buildLoginIdPreview() {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceSoft,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.badge_outlined,
+            size: 20,
+            color: AppColors.textSecondary,
+          ),
+
+          const SizedBox(width: AppSpacing.md),
+
+          const Expanded(
+            child: Text('Your Login ID', style: AppTextStyles.small),
+          ),
+
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.xs,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+            child: const Text(
+              'OWN001',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                color: AppColors.primary,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -213,522 +522,21 @@ class _InitialSetupScreenState
 
   @override
   Widget build(BuildContext context) {
+    final responsive = context.responsive;
+
     return Scaffold(
-      backgroundColor:
-          const Color(0xFFF7F8FA),
-
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding:
-                const EdgeInsets.all(24),
-
-            child: ConstrainedBox(
-              constraints:
-                  const BoxConstraints(
-                maxWidth: 460,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Center(child: _buildSetupCard(context, responsive)),
               ),
-
-              child: Card(
-                elevation: 0,
-                color: Colors.white,
-
-                shape:
-                    RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(18),
-
-                  side: BorderSide(
-                    color: Colors.grey.shade200,
-                  ),
-                ),
-
-                child: Padding(
-                  padding:
-                      const EdgeInsets.all(30),
-
-                  child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.stretch,
-
-                    children: [
-                      // ------------------------------------------------
-                      // ICON
-                      // ------------------------------------------------
-
-                      Center(
-                        child: Container(
-                          width: 64,
-                          height: 64,
-
-                          decoration:
-                              BoxDecoration(
-                            color: Colors.indigo
-                                .withValues(
-                              alpha: 0.10,
-                            ),
-
-                            borderRadius:
-                                BorderRadius.circular(
-                              17,
-                            ),
-                          ),
-
-                          child: const Icon(
-                            Icons
-                                .admin_panel_settings_outlined,
-                            color:
-                                Colors.indigo,
-                            size: 34,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 22),
-
-                      // ------------------------------------------------
-                      // TITLE
-                      // ------------------------------------------------
-
-                      const Text(
-                        'Set Up Your Supermarket',
-                        textAlign:
-                            TextAlign.center,
-
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight:
-                              FontWeight.w800,
-                        ),
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      const Text(
-                        'Create the first owner account '
-                        'to get started.',
-
-                        textAlign:
-                            TextAlign.center,
-
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey,
-                          height: 1.5,
-                        ),
-                      ),
-
-                      const SizedBox(height: 26),
-
-                      // ------------------------------------------------
-                      // INFORMATION CARD
-                      // ------------------------------------------------
-
-                      Container(
-                        padding:
-                            const EdgeInsets.all(14),
-
-                        decoration:
-                            BoxDecoration(
-                          color: Colors.indigo
-                              .withValues(
-                            alpha: 0.06,
-                          ),
-
-                          borderRadius:
-                              BorderRadius.circular(
-                            12,
-                          ),
-                        ),
-
-                        child: Row(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
-
-                          children: [
-                            const Icon(
-                              Icons.info_outline,
-                              color:
-                                  Colors.indigo,
-                              size: 20,
-                            ),
-
-                            const SizedBox(
-                              width: 10,
-                            ),
-
-                            Expanded(
-                              child: Text(
-                                'You will be the owner of '
-                                'this supermarket system. '
-                                'Your Login ID will be '
-                                'automatically assigned.',
-                                style:
-                                    TextStyle(
-                                  fontSize: 12,
-                                  color: Colors
-                                      .indigo
-                                      .shade900,
-                                  height: 1.4,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // ------------------------------------------------
-                      // NAME
-                      // ------------------------------------------------
-
-                      TextField(
-                        controller:
-                            _nameController,
-
-                        textInputAction:
-                            TextInputAction.next,
-
-                        textCapitalization:
-                            TextCapitalization.words,
-
-                        decoration:
-                            InputDecoration(
-                          labelText:
-                              'Owner Name',
-
-                          hintText:
-                              'e.g. Austine Okoh',
-
-                          prefixIcon:
-                              const Icon(
-                            Icons
-                                .person_outline,
-                          ),
-
-                          border:
-                              OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(
-                              12,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // ------------------------------------------------
-                      // EMAIL
-                      // ------------------------------------------------
-
-                      TextField(
-                        controller:
-                            _emailController,
-
-                        keyboardType:
-                            TextInputType
-                                .emailAddress,
-
-                        textInputAction:
-                            TextInputAction.next,
-
-                        decoration:
-                            InputDecoration(
-                          labelText:
-                              'Email Address',
-
-                          hintText:
-                              'owner@example.com',
-
-                          prefixIcon:
-                              const Icon(
-                            Icons
-                                .email_outlined,
-                          ),
-
-                          border:
-                              OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(
-                              12,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // ------------------------------------------------
-                      // PASSWORD
-                      // ------------------------------------------------
-
-                      TextField(
-                        controller:
-                            _passwordController,
-
-                        obscureText:
-                            _obscurePassword,
-
-                        textInputAction:
-                            TextInputAction.next,
-
-                        decoration:
-                            InputDecoration(
-                          labelText:
-                              'Password',
-
-                          prefixIcon:
-                              const Icon(
-                            Icons.lock_outline,
-                          ),
-
-                          suffixIcon:
-                              IconButton(
-                            onPressed: () {
-                              setState(() {
-                                _obscurePassword =
-                                    !_obscurePassword;
-                              });
-                            },
-
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons
-                                      .visibility_outlined
-                                  : Icons
-                                      .visibility_off_outlined,
-                            ),
-                          ),
-
-                          border:
-                              OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(
-                              12,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // ------------------------------------------------
-                      // CONFIRM PASSWORD
-                      // ------------------------------------------------
-
-                      TextField(
-                        controller:
-                            _confirmPasswordController,
-
-                        obscureText:
-                            _obscureConfirmPassword,
-
-                        onSubmitted: (_) =>
-                            _createOwner(),
-
-                        decoration:
-                            InputDecoration(
-                          labelText:
-                              'Confirm Password',
-
-                          prefixIcon:
-                              const Icon(
-                            Icons
-                                .lock_reset_outlined,
-                          ),
-
-                          suffixIcon:
-                              IconButton(
-                            onPressed: () {
-                              setState(() {
-                                _obscureConfirmPassword =
-                                    !_obscureConfirmPassword;
-                              });
-                            },
-
-                            icon: Icon(
-                              _obscureConfirmPassword
-                                  ? Icons
-                                      .visibility_outlined
-                                  : Icons
-                                      .visibility_off_outlined,
-                            ),
-                          ),
-
-                          border:
-                              OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(
-                              12,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // ------------------------------------------------
-                      // LOGIN ID PREVIEW
-                      // ------------------------------------------------
-
-                      Container(
-                        padding:
-                            const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
-                        ),
-
-                        decoration:
-                            BoxDecoration(
-                          color:
-                              Colors.grey.shade100,
-
-                          borderRadius:
-                              BorderRadius.circular(
-                            10,
-                          ),
-                        ),
-
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.badge_outlined,
-                              size: 20,
-                              color:
-                                  Colors.grey,
-                            ),
-
-                            const SizedBox(
-                              width: 10,
-                            ),
-
-                            const Expanded(
-                              child: Text(
-                                'Your Login ID',
-                                style:
-                                    TextStyle(
-                                  fontSize: 12,
-                                  color:
-                                      Colors.grey,
-                                ),
-                              ),
-                            ),
-
-                            Container(
-                              padding:
-                                  const EdgeInsets
-                                      .symmetric(
-                                horizontal: 10,
-                                vertical: 5,
-                              ),
-
-                              decoration:
-                                  BoxDecoration(
-                                color:
-                                    Colors.indigo
-                                        .withValues(
-                                  alpha: 0.10,
-                                ),
-
-                                borderRadius:
-                                    BorderRadius.circular(
-                                  8,
-                                ),
-                              ),
-
-                              child: const Text(
-                                'OWN001',
-                                style:
-                                    TextStyle(
-                                  color:
-                                      Colors.indigo,
-                                  fontSize: 13,
-                                  fontWeight:
-                                      FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // ------------------------------------------------
-                      // CREATE BUTTON
-                      // ------------------------------------------------
-
-                      SizedBox(
-                        height: 50,
-
-                        child:
-                            ElevatedButton(
-                          onPressed:
-                              _isLoading
-                                  ? null
-                                  : _createOwner,
-
-                          style:
-                              ElevatedButton.styleFrom(
-                            backgroundColor:
-                                Colors.indigo,
-
-                            foregroundColor:
-                                Colors.white,
-
-                            shape:
-                                RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(
-                                12,
-                              ),
-                            ),
-                          ),
-
-                          child: _isLoading
-                              ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
-
-                                  child:
-                                      CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color:
-                                        Colors.white,
-                                  ),
-                                )
-                              : const Text(
-                                  'Create Owner Account',
-                                  style:
-                                      TextStyle(
-                                    fontWeight:
-                                        FontWeight.w700,
-                                  ),
-                                ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 18),
-
-                      const Text(
-                        'This setup screen is only available '
-                        'when no user account exists.',
-                        textAlign:
-                            TextAlign.center,
-
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );

@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../core/theme/styles.dart';
+import '../../core/responsive/responsive.dart';
 import '../../database/app_database.dart';
 
 class ProductGridScreen extends StatefulWidget {
@@ -22,13 +23,11 @@ class ProductGridScreen extends StatefulWidget {
   });
 
   @override
-  State<ProductGridScreen> createState() =>
-      _ProductGridScreenState();
+  State<ProductGridScreen> createState() => _ProductGridScreenState();
 }
 
 class _ProductGridScreenState extends State<ProductGridScreen> {
-  final TextEditingController _searchController =
-      TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
   String _searchQuery = '';
 
@@ -38,8 +37,7 @@ class _ProductGridScreenState extends State<ProductGridScreen> {
 
     _searchController.addListener(() {
       setState(() {
-        _searchQuery =
-            _searchController.text.trim().toLowerCase();
+        _searchQuery = _searchController.text.trim().toLowerCase();
       });
     });
   }
@@ -60,8 +58,7 @@ class _ProductGridScreenState extends State<ProductGridScreen> {
     }
 
     return widget.products.where((product) {
-      final name =
-          product.name.toString().toLowerCase();
+      final name = product.name.toString().toLowerCase();
 
       return name.contains(_searchQuery);
     }).toList();
@@ -74,6 +71,7 @@ class _ProductGridScreenState extends State<ProductGridScreen> {
   @override
   Widget build(BuildContext context) {
     final products = _filteredProducts;
+    final responsive = context.responsive;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -81,137 +79,91 @@ class _ProductGridScreenState extends State<ProductGridScreen> {
       // ==========================================================
       // APP BAR
       // ==========================================================
-
       appBar: AppBar(
         elevation: 0,
         scrolledUnderElevation: 0,
         backgroundColor: AppColors.surface,
         foregroundColor: AppColors.textPrimary,
-
         automaticallyImplyLeading: true,
 
-        toolbarHeight: 72,
+        toolbarHeight: responsive.isCompact ? 58 : 66,
 
-        titleSpacing: 16,
+        titleSpacing: responsive.isCompact ? 10 : 16,
 
         title: Row(
           children: [
             // ----------------------------------------------------
             // CATEGORY ICON
             // ----------------------------------------------------
-
             Container(
-              width: 46,
-              height: 46,
+              width: responsive.isCompact ? 34 : 40,
+              height: responsive.isCompact ? 34 : 40,
               decoration: BoxDecoration(
                 color: AppColors.primaryLight,
-                borderRadius:
-                    BorderRadius.circular(13),
+                borderRadius: BorderRadius.circular(
+                  responsive.isCompact ? AppRadius.md : AppRadius.lg,
+                ),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.category_outlined,
                 color: AppColors.primary,
-                size: 24,
+                size: responsive.isCompact ? 18 : 21,
               ),
             ),
 
-            const SizedBox(width: 14),
+            SizedBox(width: responsive.isCompact ? 8 : 11),
 
             // ----------------------------------------------------
             // CATEGORY TITLE
             // ----------------------------------------------------
-
             Expanded(
               child: Column(
-                mainAxisAlignment:
-                    MainAxisAlignment.center,
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     widget.category.name,
                     maxLines: 1,
-                    overflow:
-                        TextOverflow.ellipsis,
-                    style:
-                        AppTextStyles.title.copyWith(
-                      fontSize: 20,
-                      fontWeight:
-                          FontWeight.w700,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.title.copyWith(
+                      fontSize: responsive.isCompact ? 14 : 17,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
 
-                  const SizedBox(height: 3),
-
-                  Text(
-                    '${widget.products.length} product${widget.products.length == 1 ? '' : 's'}',
-                    style:
-                        AppTextStyles.small.copyWith(
-                      color:
-                          AppColors.textSecondary,
+                  if (!responsive.isCompact)
+                    Text(
+                      '${widget.products.length} product${widget.products.length == 1 ? '' : 's'}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.small.copyWith(
+                        fontSize: 10,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
 
-            const SizedBox(width: 16),
-
             // ----------------------------------------------------
-            // SEARCH
+            // DESKTOP / TABLET SEARCH
             // ----------------------------------------------------
+            if (!responsive.isCompact) ...[
+              const SizedBox(width: 12),
 
-            SizedBox(
-              width: 280,
-              height: 46,
-              child: TextField(
-                controller: _searchController,
-                textInputAction:
-                    TextInputAction.search,
-                decoration: InputDecoration(
-                  hintText: 'Search products',
-                  prefixIcon: const Icon(
-                    Icons.search,
-                    size: 21,
-                  ),
-                  suffixIcon:
-                      _searchQuery.isNotEmpty
-                          ? IconButton(
-                              tooltip: 'Clear search',
-                              onPressed: () {
-                                _searchController.clear();
-                              },
-                              icon: const Icon(
-                                Icons.close,
-                                size: 19,
-                              ),
-                            )
-                          : null,
-                  filled: true,
-                  fillColor:
-                      AppColors.surfaceSoft,
-                  contentPadding:
-                      const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.circular(12),
-                    borderSide:
-                        BorderSide.none,
-                  ),
-                ),
+              SizedBox(
+                width: responsive.isTablet ? 220 : 280,
+                height: 40,
+                child: _buildSearchField(compact: false),
               ),
-            ),
 
-            const SizedBox(width: 14),
+              const SizedBox(width: 10),
+            ],
 
             // ----------------------------------------------------
             // CART
             // ----------------------------------------------------
-
-            _buildCartIndicator(),
+            _buildCartIndicator(compact: responsive.isCompact),
           ],
         ),
       ),
@@ -219,10 +171,87 @@ class _ProductGridScreenState extends State<ProductGridScreen> {
       // ==========================================================
       // BODY
       // ==========================================================
+      body: Column(
+        children: [
+          // ------------------------------------------------------
+          // COMPACT SEARCH
+          // ------------------------------------------------------
+          if (responsive.isCompact)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.sm,
+                AppSpacing.sm,
+                AppSpacing.sm,
+                2,
+              ),
+              child: SizedBox(
+                height: 40,
+                child: _buildSearchField(compact: true),
+              ),
+            ),
 
-      body: products.isEmpty
-          ? _buildEmptyState()
-          : _buildProductGrid(products),
+          // ------------------------------------------------------
+          // PRODUCTS
+          // ------------------------------------------------------
+          Expanded(
+            child: products.isEmpty
+                ? _buildEmptyState()
+                : _buildProductGrid(products, responsive),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // SEARCH FIELD
+  // ============================================================
+
+  Widget _buildSearchField({required bool compact}) {
+    return TextField(
+      controller: _searchController,
+      textInputAction: TextInputAction.search,
+      style: AppTextStyles.body.copyWith(
+        fontSize: compact ? 12 : 13,
+        fontWeight: FontWeight.w500,
+      ),
+      decoration: InputDecoration(
+        hintText: 'Search products',
+        hintStyle: AppTextStyles.small.copyWith(fontSize: compact ? 11 : 12),
+        prefixIcon: Icon(
+          Icons.search,
+          size: compact ? 18 : 19,
+          color: AppColors.textSecondary,
+        ),
+        suffixIcon: _searchQuery.isNotEmpty
+            ? IconButton(
+                tooltip: 'Clear search',
+                padding: EdgeInsets.zero,
+                onPressed: () {
+                  _searchController.clear();
+                },
+                icon: Icon(Icons.close, size: compact ? 17 : 18),
+              )
+            : null,
+        filled: true,
+        fillColor: AppColors.surfaceSoft,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: 6,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          borderSide: BorderSide(color: AppColors.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          borderSide: BorderSide(color: AppColors.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.2),
+        ),
+      ),
     );
   }
 
@@ -230,70 +259,62 @@ class _ProductGridScreenState extends State<ProductGridScreen> {
   // PRODUCT GRID
   // ============================================================
 
-  Widget _buildProductGrid(
-    List<dynamic> products,
-  ) {
+  Widget _buildProductGrid(List<dynamic> products, Responsive responsive) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
 
+        // --------------------------------------------------------
+        // EXTREMELY COMPACT POS GRID
+        //
+        // The goal here is to fit as many products as possible.
+        // --------------------------------------------------------
+
         int columns;
 
-        /*
-         * iPad-first layout.
-         *
-         * Typical iPad landscape:
-         * 1024 → 4 columns
-         *
-         * Larger iPad / desktop:
-         * 1150+ → 5 columns
-         * 1400+ → 6 columns
-         */
-
         if (width >= 1500) {
-          columns = 6;
+          columns = 7;
         } else if (width >= 1200) {
-          columns = 5;
+          columns = 6;
         } else if (width >= 900) {
-          columns = 4;
+          columns = 5;
         } else if (width >= 650) {
-          columns = 3;
+          columns = 4;
         } else {
-          columns = 2;
+          columns = 3;
         }
 
+        // --------------------------------------------------------
+        // VERY SMALL GAPS
+        // --------------------------------------------------------
+
+        final spacing = responsive.isCompact ? AppSpacing.xs : AppSpacing.sm;
+
         return GridView.builder(
-          padding: const EdgeInsets.fromLTRB(
-            18,
-            18,
-            18,
-            110,
+          padding: EdgeInsets.fromLTRB(
+            responsive.isCompact ? AppSpacing.sm : AppSpacing.md,
+            responsive.isCompact ? AppSpacing.xs : AppSpacing.sm,
+            responsive.isCompact ? AppSpacing.sm : AppSpacing.md,
+            responsive.isCompact ? 70 : 90,
           ),
 
-          physics:
-              const BouncingScrollPhysics(),
+          physics: const BouncingScrollPhysics(),
 
-          gridDelegate:
-              SliverGridDelegateWithFixedCrossAxisCount(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
+            crossAxisSpacing: spacing,
+            mainAxisSpacing: spacing,
 
-            crossAxisSpacing: 14,
-
-            mainAxisSpacing: 14,
-
-            /*
-             * Cards are intentionally slightly taller
-             * than the old version.
-             *
-             * This gives the product image and controls
-             * enough space on iPad.
-             */
-            childAspectRatio:
-                columns >= 5
-                    ? 1.02
-                    : columns == 4
-                        ? 0.92
-                        : 0.86,
+            // ----------------------------------------------------
+            // SHORT / COMPACT CARDS
+            // ----------------------------------------------------
+            childAspectRatio: responsive.isCompact
+                ? 1.02
+                : responsive.isTablet
+                ? 1.12
+                : responsive.isLargeDesktop
+                ? 1.30
+                : 1.22,
           ),
 
           itemCount: products.length,
@@ -301,10 +322,7 @@ class _ProductGridScreenState extends State<ProductGridScreen> {
           itemBuilder: (context, index) {
             final product = products[index];
 
-            return _buildProductCard(
-              context,
-              product,
-            );
+            return _buildProductCard(context, product, responsive);
           },
         );
       },
@@ -318,233 +336,174 @@ class _ProductGridScreenState extends State<ProductGridScreen> {
   Widget _buildProductCard(
     BuildContext context,
     dynamic product,
+    Responsive responsive,
   ) {
-    final qty =
-        widget.cart[product.id] ?? 0;
+    final qty = widget.cart[product.id] ?? 0;
 
     final stock = product.stock;
 
-    final bool isOutOfStock =
-        stock <= 0;
+    final isOutOfStock = stock <= 0;
 
-    final bool canAdd =
-        qty < stock;
+    final canAdd = qty < stock;
 
-    final bool isInCart =
-        qty > 0;
+    final isInCart = qty > 0;
+
+    final compact = responsive.isCompact;
 
     return Material(
-      color: AppColors.surface,
+      color: Colors.transparent,
 
-      borderRadius:
-          BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(
+        compact ? AppRadius.md : AppRadius.lg,
+      ),
 
       child: InkWell(
-        borderRadius:
-            BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(
+          compact ? AppRadius.md : AppRadius.lg,
+        ),
 
-        onTap: isOutOfStock
-            ? null
-            : () => _addToCart(product),
+        onTap: isOutOfStock ? null : () => _addToCart(product),
 
         child: AnimatedContainer(
-          duration:
-              const Duration(milliseconds: 160),
+          duration: const Duration(milliseconds: 140),
+
+          padding: EdgeInsets.all(compact ? AppSpacing.xs : AppSpacing.sm),
 
           decoration: BoxDecoration(
             color: isInCart
-                ? AppColors.primaryLight
-                    .withValues(alpha: 0.45)
-                : AppColors.surface,
+                ? AppColors.primaryLight.withValues(alpha: 0.55)
+                : AppColors.productCard,
 
-            borderRadius:
-                BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(
+              compact ? AppRadius.md : AppRadius.lg,
+            ),
 
             border: Border.all(
               color: isInCart
-                  ? AppColors.primary
-                      .withValues(alpha: 0.55)
+                  ? AppColors.primary.withValues(alpha: 0.55)
                   : AppColors.border,
-              width: isInCart ? 1.5 : 1,
+              width: isInCart ? 1.2 : 0.8,
             ),
 
             boxShadow: [
               BoxShadow(
-                color:
-                    Colors.black.withValues(
-                  alpha: 0.035,
-                ),
-                blurRadius: 8,
-                offset:
-                    const Offset(0, 3),
+                color: Colors.black.withValues(alpha: 0.025),
+                blurRadius: compact ? 3 : 5,
+                offset: const Offset(0, 2),
               ),
             ],
           ),
 
-          child: Padding(
-            padding:
-                const EdgeInsets.all(11),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
 
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+            children: [
+              // ==================================================
+              // PRODUCT IMAGE
+              // ==================================================
+              Expanded(
+                flex: 5,
 
-              children: [
-                // ==================================================
-                // PRODUCT IMAGE
-                // ==================================================
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceSoft,
+                          borderRadius: BorderRadius.circular(
+                            compact ? AppRadius.sm : AppRadius.md,
+                          ),
+                        ),
 
-                Expanded(
-                  flex: 5,
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: Container(
-                          decoration:
-                              BoxDecoration(
-                            color:
-                                AppColors.surfaceSoft,
-                            borderRadius:
-                                BorderRadius.circular(
-                              12,
-                            ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(
+                            compact ? AppRadius.sm : AppRadius.md,
                           ),
 
                           child:
-                              ClipRRect(
-                            borderRadius:
-                                BorderRadius.circular(
-                              12,
-                            ),
-
-                            child:
-                                product.imagePath !=
-                                            null &&
-                                        product
-                                            .imagePath!
-                                            .isNotEmpty
-                                    ? Image.file(
-                                        File(
-                                          product
-                                              .imagePath!,
-                                        ),
-
-                                        fit:
-                                            BoxFit.contain,
-
-                                        errorBuilder:
-                                            (
-                                          _,
-                                          __,
-                                          ___,
-                                        ) {
-                                          return _buildImagePlaceholder(
-                                            isOutOfStock,
-                                          );
-                                        },
-                                      )
-                                    : _buildImagePlaceholder(
-                                        isOutOfStock,
-                                      ),
-                          ),
+                              product.imagePath != null &&
+                                  product.imagePath!.isNotEmpty
+                              ? Image.file(
+                                  File(product.imagePath!),
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (_, __, ___) {
+                                    return _buildImagePlaceholder(
+                                      isOutOfStock,
+                                      compact,
+                                    );
+                                  },
+                                )
+                              : _buildImagePlaceholder(isOutOfStock, compact),
                         ),
                       ),
+                    ),
 
-                      // ==================================================
-                      // STOCK BADGE
-                      // ==================================================
+                    // ------------------------------------------------
+                    // STOCK BADGE
+                    // ------------------------------------------------
+                    Positioned(
+                      top: compact ? 3 : 5,
+                      right: compact ? 3 : 5,
+                      child: _buildStockBadge(stock, compact),
+                    ),
 
+                    // ------------------------------------------------
+                    // CART QUANTITY
+                    // ------------------------------------------------
+                    if (isInCart)
                       Positioned(
-                        top: 8,
-                        right: 8,
-                        child:
-                            _buildStockBadge(
-                          stock,
-                        ),
+                        top: compact ? 3 : 5,
+                        left: compact ? 3 : 5,
+                        child: _buildCartQuantityBadge(qty, compact),
                       ),
-
-                      // ==================================================
-                      // CART QUANTITY BADGE
-                      // ==================================================
-
-                      if (isInCart)
-                        Positioned(
-                          top: 8,
-                          left: 8,
-                          child:
-                              _buildCartQuantityBadge(
-                            qty,
-                          ),
-                        ),
-                    ],
-                  ),
+                  ],
                 ),
+              ),
 
-                const SizedBox(height: 10),
+              SizedBox(height: compact ? 4 : 6),
 
-                // ==================================================
-                // PRODUCT NAME
-                // ==================================================
-
-                Text(
-                  product.name,
-
-                  maxLines: 2,
-
-                  overflow:
-                      TextOverflow.ellipsis,
-
-                  style:
-                      AppTextStyles.body.copyWith(
-                    fontSize: 14,
-                    height: 1.2,
-                    fontWeight:
-                        FontWeight.w700,
-                    color:
-                        AppColors.textPrimary,
-                  ),
+              // ==================================================
+              // PRODUCT NAME
+              // ==================================================
+              Text(
+                product.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.body.copyWith(
+                  fontSize: compact ? 10 : 12,
+                  height: 1.1,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.productText,
                 ),
+              ),
 
-                const SizedBox(height: 5),
+              SizedBox(height: compact ? 2 : 3),
 
-                // ==================================================
-                // PRICE
-                // ==================================================
-
-                Text(
-                  '₦${_formatMoney(product.sellingPrice)}',
-
-                  maxLines: 1,
-
-                  overflow:
-                      TextOverflow.ellipsis,
-
-                  style:
-                      AppTextStyles.price.copyWith(
-                    fontSize: 17,
-                    fontWeight:
-                        FontWeight.w800,
-                    color:
-                        AppColors.primary,
-                  ),
+              // ==================================================
+              // PRICE
+              // ==================================================
+              Text(
+                '₦${_formatMoney(product.sellingPrice)}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.price.copyWith(
+                  fontSize: compact ? 11 : 14,
+                  height: 1,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primary,
                 ),
+              ),
 
-                const SizedBox(height: 9),
+              SizedBox(height: compact ? 3 : 5),
 
-                // ==================================================
-                // QUANTITY CONTROLS
-                // ==================================================
-
-                if (isOutOfStock)
-                  _buildOutOfStockButton()
-                else
-                  _buildQuantityControls(
-                    product,
-                    qty,
-                    canAdd,
-                  ),
-              ],
-            ),
+              // ==================================================
+              // QUANTITY
+              // ==================================================
+              if (isOutOfStock)
+                _buildOutOfStockButton(compact)
+              else
+                _buildQuantityControls(product, qty, canAdd, compact),
+            ],
           ),
         ),
       ),
@@ -555,17 +514,14 @@ class _ProductGridScreenState extends State<ProductGridScreen> {
   // IMAGE PLACEHOLDER
   // ============================================================
 
-  Widget _buildImagePlaceholder(
-    bool isOutOfStock,
-  ) {
+  Widget _buildImagePlaceholder(bool isOutOfStock, bool compact) {
     return Center(
       child: Icon(
         Icons.inventory_2_outlined,
-        size: 42,
+        size: compact ? 24 : 32,
         color: isOutOfStock
             ? AppColors.textMuted
-            : AppColors.primary
-                .withValues(alpha: 0.65),
+            : AppColors.primary.withValues(alpha: 0.55),
       ),
     );
   }
@@ -574,47 +530,29 @@ class _ProductGridScreenState extends State<ProductGridScreen> {
   // CART QUANTITY BADGE
   // ============================================================
 
-  Widget _buildCartQuantityBadge(
-    int quantity,
-  ) {
+  Widget _buildCartQuantityBadge(int quantity, bool compact) {
     return Container(
-      constraints:
-          const BoxConstraints(
-        minWidth: 30,
-        minHeight: 30,
+      constraints: BoxConstraints(
+        minWidth: compact ? 20 : 24,
+        minHeight: compact ? 20 : 24,
       ),
 
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 8,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: compact ? 5 : 6),
 
       decoration: BoxDecoration(
         color: AppColors.primary,
 
-        borderRadius:
-            BorderRadius.circular(10),
-
-        boxShadow: [
-          BoxShadow(
-            color:
-                AppColors.primary.withValues(
-              alpha: 0.25,
-            ),
-            blurRadius: 6,
-          ),
-        ],
+        borderRadius: BorderRadius.circular(compact ? 6 : 8),
       ),
 
       child: Center(
         child: Text(
           '$quantity',
 
-          style: const TextStyle(
+          style: TextStyle(
             color: Colors.white,
-            fontSize: 13,
-            fontWeight:
-                FontWeight.w800,
+            fontSize: compact ? 9 : 11,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ),
@@ -625,33 +563,29 @@ class _ProductGridScreenState extends State<ProductGridScreen> {
   // STOCK BADGE
   // ============================================================
 
-  Widget _buildStockBadge(
-    int stock,
-  ) {
+  Widget _buildStockBadge(int stock, bool compact) {
+    final horizontal = compact ? 4.0 : 6.0;
+
+    final vertical = compact ? 3.0 : 4.0;
+
     if (stock <= 0) {
       return Container(
-        padding:
-            const EdgeInsets.symmetric(
-          horizontal: 9,
-          vertical: 6,
+        padding: EdgeInsets.symmetric(
+          horizontal: horizontal,
+          vertical: vertical,
         ),
 
         decoration: BoxDecoration(
           color: AppColors.dangerLight,
-
-          borderRadius:
-              BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppRadius.round),
         ),
 
-        child: const Text(
-          'OUT OF STOCK',
-
+        child: Text(
+          'OUT',
           style: TextStyle(
             color: AppColors.danger,
-            fontSize: 9,
-            fontWeight:
-                FontWeight.w800,
-            letterSpacing: 0.2,
+            fontSize: compact ? 7 : 8,
+            fontWeight: FontWeight.w800,
           ),
         ),
       );
@@ -659,69 +593,48 @@ class _ProductGridScreenState extends State<ProductGridScreen> {
 
     if (stock <= 5) {
       return Container(
-        padding:
-            const EdgeInsets.symmetric(
-          horizontal: 9,
-          vertical: 6,
+        padding: EdgeInsets.symmetric(
+          horizontal: horizontal,
+          vertical: vertical,
         ),
 
         decoration: BoxDecoration(
           color: AppColors.warningLight,
-
-          borderRadius:
-              BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppRadius.round),
         ),
 
         child: Text(
-          '$stock LEFT',
-
-          style: const TextStyle(
+          '$stock',
+          style: TextStyle(
             color: AppColors.warning,
-            fontSize: 9,
-            fontWeight:
-                FontWeight.w800,
-            letterSpacing: 0.2,
+            fontSize: compact ? 7 : 8,
+            fontWeight: FontWeight.w800,
           ),
         ),
       );
     }
 
     return Container(
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 9,
-        vertical: 6,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: horizontal, vertical: vertical),
 
       decoration: BoxDecoration(
         color: AppColors.successLight,
-
-        borderRadius:
-            BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppRadius.round),
       ),
 
       child: Row(
-        mainAxisSize:
-            MainAxisSize.min,
-
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.check_circle,
-            size: 12,
-            color: AppColors.success,
-          ),
+          Icon(Icons.check, size: compact ? 8 : 9, color: AppColors.success),
 
-          const SizedBox(width: 4),
+          SizedBox(width: compact ? 2 : 3),
 
           Text(
             '$stock',
-
-            style: const TextStyle(
-              color:
-                  AppColors.success,
-              fontSize: 9,
-              fontWeight:
-                  FontWeight.w800,
+            style: TextStyle(
+              color: AppColors.success,
+              fontSize: compact ? 7 : 8,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ],
@@ -737,115 +650,98 @@ class _ProductGridScreenState extends State<ProductGridScreen> {
     dynamic product,
     int qty,
     bool canAdd,
+    bool compact,
   ) {
+    final height = compact ? 28.0 : 34.0;
+
+    final iconSize = compact ? 15.0 : 17.0;
+
     return Container(
-      height: 46,
+      height: height,
 
       decoration: BoxDecoration(
-        color: qty > 0
-            ? AppColors.primaryLight
-            : AppColors.surfaceSoft,
+        color: qty > 0 ? AppColors.primaryLight : AppColors.surfaceSoft,
 
-        borderRadius:
-            BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(
+          compact ? AppRadius.sm : AppRadius.md,
+        ),
 
         border: Border.all(
           color: qty > 0
-              ? AppColors.primary
-                  .withValues(alpha: 0.25)
+              ? AppColors.primary.withValues(alpha: 0.25)
               : AppColors.border,
+          width: 0.8,
         ),
       ),
 
       child: Row(
         children: [
-          // ==================================================
+          // ------------------------------------------------------
           // REMOVE
-          // ==================================================
-
+          // ------------------------------------------------------
           SizedBox(
-            width: 46,
-            height: 46,
+            width: compact ? 28 : 34,
+            height: height,
 
             child: IconButton(
-              padding:
-                  EdgeInsets.zero,
+              padding: EdgeInsets.zero,
+
+              constraints: const BoxConstraints(),
+
+              splashRadius: compact ? 13 : 16,
 
               tooltip: 'Remove item',
 
-              iconSize: 21,
+              iconSize: iconSize,
 
-              color: qty > 0
-                  ? AppColors.danger
-                  : AppColors.textMuted,
+              color: qty > 0 ? AppColors.danger : AppColors.textMuted,
 
-              onPressed: qty > 0
-                  ? () =>
-                      _removeFromCart(
-                        product,
-                      )
-                  : null,
+              onPressed: qty > 0 ? () => _removeFromCart(product) : null,
 
-              icon: const Icon(
-                Icons.remove_rounded,
-              ),
+              icon: const Icon(Icons.remove_rounded),
             ),
           ),
 
-          // ==================================================
+          // ------------------------------------------------------
           // QUANTITY
-          // ==================================================
-
+          // ------------------------------------------------------
           Expanded(
             child: Center(
               child: Text(
                 '$qty',
 
-                style:
-                    AppTextStyles.body
-                        .copyWith(
-                  fontSize: 15,
-                  fontWeight:
-                      FontWeight.w800,
-                  color: qty > 0
-                      ? AppColors.primary
-                      : AppColors
-                          .textSecondary,
+                style: AppTextStyles.body.copyWith(
+                  fontSize: compact ? 10 : 12,
+                  fontWeight: FontWeight.w800,
+                  color: qty > 0 ? AppColors.primary : AppColors.textSecondary,
                 ),
               ),
             ),
           ),
 
-          // ==================================================
+          // ------------------------------------------------------
           // ADD
-          // ==================================================
-
+          // ------------------------------------------------------
           SizedBox(
-            width: 46,
-            height: 46,
+            width: compact ? 28 : 34,
+            height: height,
 
             child: IconButton(
-              padding:
-                  EdgeInsets.zero,
+              padding: EdgeInsets.zero,
 
-              tooltip: canAdd
-                  ? 'Add item'
-                  : 'Maximum stock reached',
+              constraints: const BoxConstraints(),
 
-              iconSize: 21,
+              splashRadius: compact ? 13 : 16,
 
-              color: canAdd
-                  ? AppColors.primary
-                  : AppColors.textMuted,
+              tooltip: canAdd ? 'Add item' : 'Maximum stock reached',
 
-              onPressed: canAdd
-                  ? () =>
-                      _addToCart(product)
-                  : null,
+              iconSize: iconSize,
 
-              icon: const Icon(
-                Icons.add_rounded,
-              ),
+              color: canAdd ? AppColors.primary : AppColors.textMuted,
+
+              onPressed: canAdd ? () => _addToCart(product) : null,
+
+              icon: const Icon(Icons.add_rounded),
             ),
           ),
         ],
@@ -857,43 +753,38 @@ class _ProductGridScreenState extends State<ProductGridScreen> {
   // OUT OF STOCK
   // ============================================================
 
-  Widget _buildOutOfStockButton() {
+  Widget _buildOutOfStockButton(bool compact) {
     return Container(
-      height: 46,
+      height: compact ? 28 : 34,
 
       width: double.infinity,
 
       decoration: BoxDecoration(
-        color:
-            AppColors.dangerLight,
+        color: AppColors.dangerLight,
 
-        borderRadius:
-            BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(
+          compact ? AppRadius.sm : AppRadius.md,
+        ),
       ),
 
       child: Row(
-        mainAxisAlignment:
-            MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
 
         children: [
-          const Icon(
+          Icon(
             Icons.block_outlined,
-            size: 17,
-            color:
-                AppColors.danger,
+            size: compact ? 12 : 14,
+            color: AppColors.danger,
           ),
 
-          const SizedBox(width: 7),
+          SizedBox(width: compact ? 3 : 5),
 
-          const Text(
+          Text(
             'Out of stock',
-
             style: TextStyle(
-              color:
-                  AppColors.danger,
-              fontWeight:
-                  FontWeight.w700,
-              fontSize: 12,
+              color: AppColors.danger,
+              fontWeight: FontWeight.w700,
+              fontSize: compact ? 8 : 10,
             ),
           ),
         ],
@@ -907,19 +798,15 @@ class _ProductGridScreenState extends State<ProductGridScreen> {
   // SALE PROCESSING LOGIC PRESERVED
   // ============================================================
 
-  void _addToCart(
-    dynamic product,
-  ) {
-    final currentQty =
-        widget.cart[product.id] ?? 0;
+  void _addToCart(dynamic product) {
+    final currentQty = widget.cart[product.id] ?? 0;
 
     // Never allow quantity to exceed stock.
     if (currentQty >= product.stock) {
       return;
     }
 
-    widget.cart[product.id] =
-        currentQty + 1;
+    widget.cart[product.id] = currentQty + 1;
 
     widget.onCartUpdated();
 
@@ -932,17 +819,13 @@ class _ProductGridScreenState extends State<ProductGridScreen> {
   // SALE PROCESSING LOGIC PRESERVED
   // ============================================================
 
-  void _removeFromCart(
-    dynamic product,
-  ) {
-    final currentQty =
-        widget.cart[product.id] ?? 0;
+  void _removeFromCart(dynamic product) {
+    final currentQty = widget.cart[product.id] ?? 0;
 
     if (currentQty <= 1) {
       widget.cart.remove(product.id);
     } else {
-      widget.cart[product.id] =
-          currentQty - 1;
+      widget.cart[product.id] = currentQty - 1;
     }
 
     widget.onCartUpdated();
@@ -954,72 +837,53 @@ class _ProductGridScreenState extends State<ProductGridScreen> {
   // CART INDICATOR
   // ============================================================
 
-  Widget _buildCartIndicator() {
-    final totalItems =
-        widget.cart.values.fold(
+  Widget _buildCartIndicator({required bool compact}) {
+    final totalItems = widget.cart.values.fold(
       0,
-      (sum, quantity) =>
-          sum + quantity,
+      (sum, quantity) => sum + quantity,
     );
 
     return Container(
-      height: 46,
+      height: compact ? 36 : 40,
 
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 14,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: compact ? 9 : 11),
 
       decoration: BoxDecoration(
-        color: totalItems > 0
-            ? AppColors.primary
-            : AppColors.primaryLight,
+        color: totalItems > 0 ? AppColors.primary : AppColors.primaryLight,
 
-        borderRadius:
-            BorderRadius.circular(13),
+        borderRadius: BorderRadius.circular(
+          compact ? AppRadius.md : AppRadius.lg,
+        ),
 
         boxShadow: totalItems > 0
             ? [
                 BoxShadow(
-                  color: AppColors.primary
-                      .withValues(
-                    alpha: 0.20,
-                  ),
-                  blurRadius: 8,
-                  offset:
-                      const Offset(0, 3),
+                  color: AppColors.primary.withValues(alpha: 0.18),
+                  blurRadius: 5,
+                  offset: const Offset(0, 2),
                 ),
               ]
             : null,
       ),
 
       child: Row(
-        mainAxisSize:
-            MainAxisSize.min,
+        mainAxisSize: MainAxisSize.min,
 
         children: [
           Icon(
             Icons.shopping_cart_outlined,
-
-            size: 21,
-
-            color: totalItems > 0
-                ? Colors.white
-                : AppColors.primary,
+            size: compact ? 17 : 19,
+            color: totalItems > 0 ? Colors.white : AppColors.primary,
           ),
 
-          const SizedBox(width: 7),
+          SizedBox(width: compact ? 4 : 6),
 
           Text(
             '$totalItems',
-
             style: TextStyle(
-              fontSize: 14,
-              fontWeight:
-                  FontWeight.w800,
-              color: totalItems > 0
-                  ? Colors.white
-                  : AppColors.primary,
+              fontSize: compact ? 11 : 13,
+              fontWeight: FontWeight.w800,
+              color: totalItems > 0 ? Colors.white : AppColors.primary,
             ),
           ),
         ],
@@ -1032,101 +896,81 @@ class _ProductGridScreenState extends State<ProductGridScreen> {
   // ============================================================
 
   Widget _buildEmptyState() {
-    final bool isSearching =
-        _searchQuery.isNotEmpty;
+    final bool isSearching = _searchQuery.isNotEmpty;
+
+    final responsive = context.responsive;
 
     return Center(
       child: SingleChildScrollView(
-        padding:
-            const EdgeInsets.all(40),
+        padding: EdgeInsets.all(
+          responsive.isCompact ? AppSpacing.xl : AppSpacing.huge,
+        ),
 
         child: Column(
-          mainAxisSize:
-              MainAxisSize.min,
+          mainAxisSize: MainAxisSize.min,
 
           children: [
             Container(
-              width: 100,
-              height: 100,
+              width: responsive.isCompact ? 72 : 90,
+              height: responsive.isCompact ? 72 : 90,
 
-              decoration:
-                  const BoxDecoration(
-                color:
-                    AppColors.primaryLight,
-                shape:
-                    BoxShape.circle,
+              decoration: const BoxDecoration(
+                color: AppColors.primaryLight,
+                shape: BoxShape.circle,
               ),
 
               child: Icon(
                 isSearching
                     ? Icons.search_off_rounded
                     : Icons.inventory_2_outlined,
-
-                size: 46,
-
-                color:
-                    AppColors.primary,
+                size: responsive.isCompact ? 32 : 42,
+                color: AppColors.primary,
               ),
             ),
 
-            const SizedBox(height: 22),
+            SizedBox(
+              height: responsive.isCompact ? AppSpacing.md : AppSpacing.xl,
+            ),
 
             Text(
-              isSearching
-                  ? 'No products found'
-                  : 'No products available',
+              isSearching ? 'No products found' : 'No products available',
 
-              style:
-                  AppTextStyles.heading.copyWith(
-                fontSize: 22,
+              style: AppTextStyles.heading.copyWith(
+                fontSize: responsive.isCompact ? 18 : 22,
               ),
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.xs),
 
             Text(
               isSearching
                   ? 'Try a different product name or clear the search.'
                   : 'There are currently no products in ${widget.category.name}.',
 
-              textAlign:
-                  TextAlign.center,
+              textAlign: TextAlign.center,
 
-              style:
-                  AppTextStyles.bodySecondary.copyWith(
-                fontSize: 14,
+              style: AppTextStyles.bodySecondary.copyWith(
+                fontSize: responsive.isCompact ? 12 : 14,
               ),
             ),
 
             if (isSearching) ...[
-              const SizedBox(height: 18),
+              const SizedBox(height: AppSpacing.md),
 
               OutlinedButton.icon(
                 onPressed: () {
                   _searchController.clear();
                 },
 
-                icon: const Icon(
-                  Icons.clear,
-                ),
+                icon: const Icon(Icons.clear, size: 17),
 
-                label: const Text(
-                  'Clear search',
-                ),
+                label: const Text('Clear search'),
 
-                style:
-                    OutlinedButton.styleFrom(
-                  minimumSize:
-                      const Size(
-                    140,
-                    46,
-                  ),
-                  shape:
-                      RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(
-                      12,
-                    ),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(130, 40),
+
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.md),
                   ),
                 ),
               ),
@@ -1141,16 +985,9 @@ class _ProductGridScreenState extends State<ProductGridScreen> {
   // MONEY FORMAT
   // ============================================================
 
-  String _formatMoney(
-    num value,
-  ) {
+  String _formatMoney(num value) {
     return value
         .toStringAsFixed(0)
-        .replaceAllMapped(
-          RegExp(
-            r'\B(?=(\d{3})+(?!\d))',
-          ),
-          (match) => ',',
-        );
+        .replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (match) => ',');
   }
 }
