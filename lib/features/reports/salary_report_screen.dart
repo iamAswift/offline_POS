@@ -1,29 +1,15 @@
-
 // lib/features/reports/salary_report_screen.dart
 
 import 'package:drift/drift.dart' as d;
 import 'package:flutter/material.dart';
 
+import '../../core/theme/styles.dart';
 import '../../database/app_database.dart';
-import '../../database/tables/user_profiles_table.dart';
-import '../../database/tables/user_table.dart';
+
 import '../../shared/pdf_report.dart';
 
 class SalaryReportScreen extends StatelessWidget {
   const SalaryReportScreen({super.key});
-
-  // ============================================================
-  // APP COLORS
-  // ============================================================
-
-  static const Color _pageBackground = Color(0xFFF7F8FA);
-  static const Color _primary = Color(0xFF4F46E5);
-  static const Color _success = Color(0xFF16A34A);
-  static const Color _danger = Color(0xFFDC2626);
-  static const Color _warning = Color(0xFFF59E0B);
-  static const Color _textPrimary = Color(0xFF111827);
-  static const Color _textSecondary = Color(0xFF6B7280);
-  static const Color _border = Color(0xFFE5E7EB);
 
   // ============================================================
   // FETCH SALARY REPORT
@@ -48,13 +34,7 @@ class SalaryReportScreen extends StatelessWidget {
 
           final role = user.role.trim().toLowerCase();
 
-          // --------------------------------------------------------
-          // STAFF PAYROLL REPORT
-          //
-          // Only staff/cashier users belong in this report.
-          // Managers/owners/admins are excluded.
-          // --------------------------------------------------------
-
+          // Only staff and cashier users belong in payroll.
           if (role != 'staff' && role != 'cashier') {
             return null;
           }
@@ -69,10 +49,6 @@ class SalaryReportScreen extends StatelessWidget {
         })
         .whereType<Map<String, dynamic>>()
         .toList();
-
-    // ------------------------------------------------------------
-    // SORT BY STAFF NAME
-    // ------------------------------------------------------------
 
     report.sort(
       (a, b) => (a['name'] as String).toLowerCase().compareTo(
@@ -116,25 +92,28 @@ class SalaryReportScreen extends StatelessWidget {
           (match) => '${match.group(1)},',
         );
 
-    return value < 0
-        ? '-₦$formatted'
-        : '₦$formatted';
+    return value < 0 ? '-₦$formatted' : '₦$formatted';
   }
 
   // ============================================================
   // ROLE COLOR
   // ============================================================
 
-  static Color _roleColor(String role) {
+  static Color _roleColor(
+    BuildContext context,
+    String role,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     switch (role.trim().toLowerCase()) {
       case 'cashier':
-        return Colors.teal;
+        return colorScheme.tertiary;
 
       case 'staff':
-        return _primary;
+        return AppColors.primary;
 
       default:
-        return Colors.grey;
+        return colorScheme.onSurfaceVariant;
     }
   }
 
@@ -166,50 +145,32 @@ class SalaryReportScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: _pageBackground,
-
-      // ==========================================================
-      // APP BAR
-      // ==========================================================
-
       appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: _textPrimary,
-        titleSpacing: 20,
-
-        title: const Column(
+        titleSpacing: 16,
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Salary & Debt Report',
-              style: TextStyle(
-                fontSize: 19,
-                fontWeight: FontWeight.w800,
-                color: _textPrimary,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
               ),
             ),
-            SizedBox(height: 2),
             Text(
               'Staff payroll overview',
-              style: TextStyle(
-                fontSize: 12,
-                color: _textSecondary,
-                fontWeight: FontWeight.w400,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
           ],
         ),
       ),
-
-      // ==========================================================
-      // DATA
-      // ==========================================================
-
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _fetchSalaryReport(),
-
         builder: (context, snapshot) {
           // ========================================================
           // LOADING
@@ -217,9 +178,7 @@ class SalaryReportScreen extends StatelessWidget {
 
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: CircularProgressIndicator(
-                color: _primary,
-              ),
+              child: CircularProgressIndicator(),
             );
           }
 
@@ -228,20 +187,20 @@ class SalaryReportScreen extends StatelessWidget {
           // ========================================================
 
           if (snapshot.hasError) {
-            return _errorState(
-              context,
-              snapshot.error,
+            return _ErrorState(
+              error: snapshot.error,
             );
           }
 
-          final report = snapshot.data ?? <Map<String, dynamic>>[];
+          final report =
+              snapshot.data ?? <Map<String, dynamic>>[];
 
           // ========================================================
           // EMPTY
           // ========================================================
 
           if (report.isEmpty) {
-            return _emptyState();
+            return const _EmptyState();
           }
 
           // ========================================================
@@ -260,7 +219,6 @@ class SalaryReportScreen extends StatelessWidget {
             (sum, staff) {
               final debt = _toDouble(staff['amountOwed']);
 
-              // Debt should not be displayed as a negative amount.
               return sum + (debt > 0 ? debt : 0);
             },
           );
@@ -274,7 +232,7 @@ class SalaryReportScreen extends StatelessWidget {
           ).length;
 
           // ========================================================
-          // RESPONSIVE LAYOUT
+          // RESPONSIVE PAGE
           // ========================================================
 
           return LayoutBuilder(
@@ -282,777 +240,110 @@ class SalaryReportScreen extends StatelessWidget {
               final isCompact = constraints.maxWidth < 760;
 
               return SingleChildScrollView(
-                padding: EdgeInsets.all(
-                  isCompact ? 16 : 24,
+                padding: EdgeInsets.symmetric(
+                  horizontal: isCompact ? 16 : 24,
+                  vertical: 24,
                 ),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxWidth: 1150,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // ============================================
-                        // PAGE HEADER
-                        // ============================================
-
-                        _pageHeader(),
-
-                        const SizedBox(height: 24),
-
-                        // ============================================
-                        // SUMMARY CARDS
-                        // ============================================
-
-                        if (isCompact)
-                          Column(
-                            children: [
-                              _summaryCard(
-                                title: 'Total Salary',
-                                value: _formatCurrency(
-                                  totalSalary,
-                                ),
-                                subtitle: 'Monthly payroll',
-                                icon: Icons.payments_outlined,
-                                color: _success,
-                              ),
-                              const SizedBox(height: 12),
-                              _summaryCard(
-                                title: 'Outstanding Debt',
-                                value: _formatCurrency(
-                                  totalDebt,
-                                ),
-                                subtitle: staffWithDebt == 0
-                                    ? 'No staff debt'
-                                    : '$staffWithDebt staff with outstanding debt',
-                                icon: Icons.warning_amber_rounded,
-                                color: staffWithDebt > 0
-                                    ? _danger
-                                    : _success,
-                              ),
-                              const SizedBox(height: 12),
-                              _summaryCard(
-                                title: 'Staff',
-                                value: '$totalStaff',
-                                subtitle: 'Active staff profiles',
-                                icon: Icons.people_outline,
-                                color: _primary,
-                              ),
-                            ],
-                          )
-                        else
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _summaryCard(
-                                  title: 'Total Salary',
-                                  value: _formatCurrency(
-                                    totalSalary,
-                                  ),
-                                  subtitle: 'Monthly payroll',
-                                  icon: Icons.payments_outlined,
-                                  color: _success,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: _summaryCard(
-                                  title: 'Outstanding Debt',
-                                  value: _formatCurrency(
-                                    totalDebt,
-                                  ),
-                                  subtitle: staffWithDebt == 0
-                                      ? 'No staff debt'
-                                      : '$staffWithDebt staff with outstanding debt',
-                                  icon: Icons.warning_amber_rounded,
-                                  color: staffWithDebt > 0
-                                      ? _danger
-                                      : _success,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: _summaryCard(
-                                  title: 'Staff',
-                                  value: '$totalStaff',
-                                  subtitle: 'Active staff profiles',
-                                  icon: Icons.people_outline,
-                                  color: _primary,
-                                ),
-                              ),
-                            ],
-                          ),
-
-                        const SizedBox(height: 30),
-
-                        // ============================================
-                        // STAFF SECTION HEADER
-                        // ============================================
-
-                        Row(
-                          children: [
-                            const Expanded(
-                              child: Text(
-                                'Staff Payroll',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                  color: _textPrimary,
-                                ),
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 11,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade200,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                '$totalStaff ${totalStaff == 1 ? 'staff' : 'staff'}',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: _textSecondary,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        // ============================================
-                        // STAFF LIST
-                        // ============================================
-
-                        ListView.separated(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: report.length,
-                          separatorBuilder: (_, __) {
-                            return const SizedBox(height: 10);
-                          },
-                          itemBuilder: (context, index) {
-                            final staff = report[index];
-
-                            final name =
-                                staff['name']?.toString().trim() ??
-                                    'Unknown Staff';
-
-                            final email =
-                                staff['email']?.toString().trim() ?? '';
-
-                            final role =
-                                staff['role']?.toString().trim() ?? 'Staff';
-
-                            final salary = _toDouble(
-                              staff['salary'],
-                            );
-
-                            final amountOwed = _toDouble(
-                              staff['amountOwed'],
-                            );
-
-                            return _staffCard(
-                              name: name,
-                              email: email,
-                              role: role,
-                              salary: salary,
-                              amountOwed: amountOwed,
-                              isCompact: isCompact,
-                            );
-                          },
-                        ),
-
-                        const SizedBox(height: 28),
-
-                        // ============================================
-                        // EXPORT
-                        // ============================================
-
-                        _exportCard(
-                          context: context,
-                          report: report,
-                          totalSalary: totalSalary,
-                          totalDebt: totalDebt,
-                        ),
-
-                        const SizedBox(height: 24),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  // ============================================================
-  // PAGE HEADER
-  // ============================================================
-
-  Widget _pageHeader() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: _primary.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Icon(
-            Icons.account_balance_wallet_outlined,
-            color: _primary,
-            size: 25,
-          ),
-        ),
-        const SizedBox(width: 14),
-        const Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Payroll Overview',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: _textPrimary,
-                ),
-              ),
-              SizedBox(height: 4),
-              Text(
-                'Review staff salaries and outstanding amounts.',
-                style: TextStyle(
-                  color: _textSecondary,
-                  fontSize: 13,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ============================================================
-  // SUMMARY CARD
-  // ============================================================
-
-  Widget _summaryCard({
-    required String title,
-    required String value,
-    required String subtitle,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: _border,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.035),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(11),
-            ),
-            child: Icon(
-              icon,
-              color: color,
-              size: 23,
-            ),
-          ),
-          const SizedBox(width: 13),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: _textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: _textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: _textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // STAFF CARD
-  // ============================================================
-
-  Widget _staffCard({
-    required String name,
-    required String email,
-    required String role,
-    required double salary,
-    required double amountOwed,
-    required bool isCompact,
-  }) {
-    final roleColor = _roleColor(role);
-    final hasDebt = amountOwed > 0;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: hasDebt ? Colors.red.shade100 : _border,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.025),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: isCompact
-          ? _compactStaffLayout(
-              name: name,
-              email: email,
-              role: role,
-              salary: salary,
-              amountOwed: amountOwed,
-              roleColor: roleColor,
-              hasDebt: hasDebt,
-            )
-          : _desktopStaffLayout(
-              name: name,
-              email: email,
-              role: role,
-              salary: salary,
-              amountOwed: amountOwed,
-              roleColor: roleColor,
-              hasDebt: hasDebt,
-            ),
-    );
-  }
-
-  // ============================================================
-  // DESKTOP STAFF ROW
-  // ============================================================
-
-  Widget _desktopStaffLayout({
-    required String name,
-    required String email,
-    required String role,
-    required double salary,
-    required double amountOwed,
-    required Color roleColor,
-    required bool hasDebt,
-  }) {
-    return Row(
-      children: [
-        _avatar(
-          name,
-          roleColor,
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: _staffIdentity(
-            name: name,
-            email: email,
-            role: role,
-            roleColor: roleColor,
-          ),
-        ),
-        const SizedBox(width: 20),
-        _amountColumn(
-          label: 'Salary',
-          value: _formatCurrency(salary),
-          color: _textPrimary,
-        ),
-        const SizedBox(width: 28),
-        _amountColumn(
-          label: 'Outstanding',
-          value: hasDebt
-              ? _formatCurrency(amountOwed)
-              : 'No debt',
-          color: hasDebt ? _danger : _success,
-        ),
-        const SizedBox(width: 16),
-        Icon(
-          hasDebt
-              ? Icons.warning_amber_rounded
-              : Icons.check_circle_outline,
-          size: 20,
-          color: hasDebt ? _danger : _success,
-        ),
-      ],
-    );
-  }
-
-  // ============================================================
-  // COMPACT STAFF CARD
-  // ============================================================
-
-  Widget _compactStaffLayout({
-    required String name,
-    required String email,
-    required String role,
-    required double salary,
-    required double amountOwed,
-    required Color roleColor,
-    required bool hasDebt,
-  }) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            _avatar(
-              name,
-              roleColor,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _staffIdentity(
-                name: name,
-                email: email,
-                role: role,
-                roleColor: roleColor,
-              ),
-            ),
-            Icon(
-              hasDebt
-                  ? Icons.warning_amber_rounded
-                  : Icons.check_circle_outline,
-              size: 20,
-              color: hasDebt ? _danger : _success,
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 10,
-          ),
-          decoration: BoxDecoration(
-            color: _pageBackground,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: _amountColumn(
-                  label: 'Salary',
-                  value: _formatCurrency(salary),
-                  color: _textPrimary,
-                  alignStart: true,
-                ),
-              ),
-              Expanded(
-                child: _amountColumn(
-                  label: 'Outstanding',
-                  value: hasDebt
-                      ? _formatCurrency(amountOwed)
-                      : 'No debt',
-                  color: hasDebt ? _danger : _success,
-                  alignStart: true,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ============================================================
-  // STAFF AVATAR
-  // ============================================================
-
-  Widget _avatar(
-    String name,
-    Color roleColor,
-  ) {
-    return CircleAvatar(
-      radius: 24,
-      backgroundColor: roleColor.withValues(alpha: 0.10),
-      child: Text(
-        _initials(name),
-        style: TextStyle(
-          color: roleColor,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // STAFF IDENTITY
-  // ============================================================
-
-  Widget _staffIdentity({
-    required String name,
-    required String email,
-    required String role,
-    required Color roleColor,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Flexible(
-              child: Text(
-                name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: _textPrimary,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 3,
-              ),
-              decoration: BoxDecoration(
-                color: roleColor.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                role,
-                style: TextStyle(
-                  color: roleColor,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          email,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            fontSize: 12,
-            color: _textSecondary,
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ============================================================
-  // AMOUNT COLUMN
-  // ============================================================
-
-  Widget _amountColumn({
-    required String label,
-    required String value,
-    required Color color,
-    bool alignStart = false,
-  }) {
-    return Column(
-      crossAxisAlignment: alignStart
-          ? CrossAxisAlignment.start
-          : CrossAxisAlignment.end,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 10,
-            color: _textSecondary,
-          ),
-        ),
-        const SizedBox(height: 3),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w800,
-            color: color,
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ============================================================
-  // EXPORT CARD
-  // ============================================================
-
-  Widget _exportCard({
-    required BuildContext context,
-    required List<Map<String, dynamic>> report,
-    required double totalSalary,
-    required double totalDebt,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            _primary,
-            Color(0xFF3730A3),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: _primary.withValues(alpha: 0.18),
-            blurRadius: 12,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final compact = constraints.maxWidth < 650;
-
-          final description = Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Export payroll report',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                'Generate a PDF containing salary, outstanding debt and staff totals.',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.78),
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          );
-
-          final button = ElevatedButton.icon(
-            onPressed: () {
-              _exportReport(
-                context,
-                report,
-                totalSalary,
-                totalDebt,
-              );
-            },
-            icon: const Icon(
-              Icons.picture_as_pdf_outlined,
-              size: 19,
-            ),
-            label: const Text(
-              'Export PDF',
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: _primary,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 18,
-                vertical: 13,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          );
-
-          if (compact) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
-                      Icons.account_balance_wallet_outlined,
-                      color: Colors.white,
-                      size: 30,
+                    // ==================================================
+                    // PAGE HEADER
+                    // ==================================================
+
+                    _PageHeader(
+                      isCompact: isCompact,
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(child: description),
+
+                    const SizedBox(height: 24),
+
+                    // ==================================================
+                    // SUMMARY
+                    // ==================================================
+
+                    _SummarySection(
+                      totalSalary: totalSalary,
+                      totalDebt: totalDebt,
+                      totalStaff: totalStaff,
+                      staffWithDebt: staffWithDebt,
+                      isCompact: isCompact,
+                    ),
+
+                    const SizedBox(height: 28),
+
+                    // ==================================================
+                    // STAFF SECTION
+                    // ==================================================
+
+                    _SectionHeader(
+                      totalStaff: totalStaff,
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // ==================================================
+                    // STAFF LIST
+                    // ==================================================
+
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics:
+                          const NeverScrollableScrollPhysics(),
+                      itemCount: report.length,
+                      separatorBuilder: (_, __) {
+                        return const SizedBox(height: 10);
+                      },
+                      itemBuilder: (context, index) {
+                        final staff = report[index];
+
+                        final name =
+                            staff['name']?.toString().trim() ??
+                                'Unknown Staff';
+
+                        final email =
+                            staff['email']?.toString().trim() ??
+                                '';
+
+                        final role =
+                            staff['role']?.toString().trim() ??
+                                'Staff';
+
+                        final salary = _toDouble(
+                          staff['salary'],
+                        );
+
+                        final amountOwed = _toDouble(
+                          staff['amountOwed'],
+                        );
+
+                        return _StaffCard(
+                          name: name,
+                          email: email,
+                          role: role,
+                          salary: salary,
+                          amountOwed: amountOwed,
+                          isCompact: isCompact,
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 28),
+
+                    // ==================================================
+                    // EXPORT
+                    // ==================================================
+
+                    _ExportCard(
+                      report: report,
+                      totalSalary: totalSalary,
+                      totalDebt: totalDebt,
+                    ),
+
+                    const SizedBox(height: 24),
                   ],
                 ),
-                const SizedBox(height: 16),
-                button,
-              ],
-            );
-          }
-
-          return Row(
-            children: [
-              const Icon(
-                Icons.account_balance_wallet_outlined,
-                color: Colors.white,
-                size: 30,
-              ),
-              const SizedBox(width: 14),
-              Expanded(child: description),
-              const SizedBox(width: 20),
-              button,
-            ],
+              );
+            },
           );
         },
       ),
@@ -1069,6 +360,8 @@ class SalaryReportScreen extends StatelessWidget {
     double totalSalary,
     double totalDebt,
   ) async {
+    final colorScheme = Theme.of(context).colorScheme;
+
     try {
       final file = await PdfReport.generateReport(
         title: 'Salary & Debt Report',
@@ -1104,10 +397,12 @@ class SalaryReportScreen extends StatelessWidget {
             ],
             'rows': report.map((staff) {
               final name =
-                  staff['name']?.toString() ?? 'Unknown Staff';
+                  staff['name']?.toString() ??
+                      'Unknown Staff';
 
               final role =
-                  staff['role']?.toString() ?? 'Staff';
+                  staff['role']?.toString() ??
+                      'Staff';
 
               final salary =
                   _toDouble(staff['salary']);
@@ -1128,18 +423,19 @@ class SalaryReportScreen extends StatelessWidget {
         ],
       );
 
-      if (!context.mounted) return;
+      if (!context.mounted) {
+        return;
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          backgroundColor: _success,
+          backgroundColor: colorScheme.primary,
           content: const Text(
             'Salary & debt report saved successfully.',
           ),
           action: SnackBarAction(
             label: 'OK',
-            textColor: Colors.white,
             onPressed: () {},
           ),
         ),
@@ -1149,12 +445,14 @@ class SalaryReportScreen extends StatelessWidget {
         'Salary PDF saved at: ${file.path}',
       );
     } catch (error) {
-      if (!context.mounted) return;
+      if (!context.mounted) {
+        return;
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          backgroundColor: _danger,
+          backgroundColor: colorScheme.error,
           content: Text(
             'Failed to export salary report: $error',
           ),
@@ -1162,77 +460,963 @@ class SalaryReportScreen extends StatelessWidget {
       );
     }
   }
+}
 
-  // ============================================================
-  // ERROR STATE
-  // ============================================================
+// ============================================================================
+// PAGE HEADER
+// ============================================================================
 
-  Widget _errorState(
-    BuildContext context,
-    Object? error,
-  ) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Container(
-          constraints: const BoxConstraints(
-            maxWidth: 520,
-          ),
-          padding: const EdgeInsets.all(28),
+class _PageHeader extends StatelessWidget {
+  final bool isCompact;
+
+  const _PageHeader({
+    required this.isCompact,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Colors.red.shade100,
-            ),
+            color: AppColors.primaryLight,
+            borderRadius: BorderRadius.circular(12),
           ),
+          child: Icon(
+            Icons.account_balance_wallet_outlined,
+            color: AppColors.primary,
+            size: isCompact ? 22 : 25,
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: _danger.withValues(alpha: 0.10),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.error_outline,
-                  size: 32,
-                  color: _danger,
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Unable to load salary report',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: _textPrimary,
-                ),
-              ),
-              const SizedBox(height: 10),
               Text(
-                '$error',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: _textSecondary,
-                  fontSize: 13,
+                'Payroll Overview',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Review staff salaries and outstanding amounts.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
           ),
+        ),
+      ],
+    );
+  }
+}
+
+// ============================================================================
+// SUMMARY SECTION
+// ============================================================================
+
+class _SummarySection extends StatelessWidget {
+  final double totalSalary;
+  final double totalDebt;
+  final int totalStaff;
+  final int staffWithDebt;
+  final bool isCompact;
+
+  const _SummarySection({
+    required this.totalSalary,
+    required this.totalDebt,
+    required this.totalStaff,
+    required this.staffWithDebt,
+    required this.isCompact,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cards = [
+      _SummaryCard(
+        title: 'Total Salary',
+        value: SalaryReportScreen._formatCurrency(
+          totalSalary,
+        ),
+        subtitle: 'Monthly payroll',
+        icon: Icons.payments_outlined,
+        color: Theme.of(context).colorScheme.primary,
+      ),
+      _SummaryCard(
+        title: 'Outstanding Debt',
+        value: SalaryReportScreen._formatCurrency(
+          totalDebt,
+        ),
+        subtitle: staffWithDebt == 0
+            ? 'No staff debt'
+            : '$staffWithDebt staff with outstanding debt',
+        icon: Icons.warning_amber_rounded,
+        color: staffWithDebt > 0
+            ? Theme.of(context).colorScheme.error
+            : Theme.of(context).colorScheme.primary,
+      ),
+      _SummaryCard(
+        title: 'Staff',
+        value: '$totalStaff',
+        subtitle: 'Active staff profiles',
+        icon: Icons.people_outline,
+        color: AppColors.primary,
+      ),
+    ];
+
+    if (isCompact) {
+      return Column(
+        children: [
+          for (var i = 0; i < cards.length; i++) ...[
+            cards[i],
+            if (i < cards.length - 1)
+              const SizedBox(height: 12),
+          ],
+        ],
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < cards.length; i++) ...[
+          Expanded(
+            child: cards[i],
+          ),
+          if (i < cards.length - 1)
+            const SizedBox(width: 16),
+        ],
+      ],
+    );
+  }
+}
+
+// ============================================================================
+// SUMMARY CARD
+// ============================================================================
+
+class _SummaryCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+
+  const _SummaryCard({
+    required this.title,
+    required this.value,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(11),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: Icon(
+                icon,
+                color: color,
+                size: 23,
+              ),
+            ),
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// SECTION HEADER
+// ============================================================================
+
+class _SectionHeader extends StatelessWidget {
+  final int totalStaff;
+
+  const _SectionHeader({
+    required this.totalStaff,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            'Staff Payroll',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 11,
+            vertical: 6,
+          ),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            '$totalStaff ${totalStaff == 1 ? 'staff' : 'staff'}',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ============================================================================
+// STAFF CARD
+// ============================================================================
+
+class _StaffCard extends StatelessWidget {
+  final String name;
+  final String email;
+  final String role;
+  final double salary;
+  final double amountOwed;
+  final bool isCompact;
+
+  const _StaffCard({
+    required this.name,
+    required this.email,
+    required this.role,
+    required this.salary,
+    required this.amountOwed,
+    required this.isCompact,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    final roleColor = SalaryReportScreen._roleColor(
+      context,
+      role,
+    );
+
+    final hasDebt = amountOwed > 0;
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: isCompact
+            ? _CompactLayout(
+                name: name,
+                email: email,
+                role: role,
+                salary: salary,
+                amountOwed: amountOwed,
+                roleColor: roleColor,
+                hasDebt: hasDebt,
+              )
+            : _DesktopLayout(
+                name: name,
+                email: email,
+                role: role,
+                salary: salary,
+                amountOwed: amountOwed,
+                roleColor: roleColor,
+                hasDebt: hasDebt,
+              ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// DESKTOP STAFF LAYOUT
+// ============================================================================
+
+class _DesktopLayout extends StatelessWidget {
+  final String name;
+  final String email;
+  final String role;
+  final double salary;
+  final double amountOwed;
+  final Color roleColor;
+  final bool hasDebt;
+
+  const _DesktopLayout({
+    required this.name,
+    required this.email,
+    required this.role,
+    required this.salary,
+    required this.amountOwed,
+    required this.roleColor,
+    required this.hasDebt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Row(
+      children: [
+        _Avatar(
+          name: name,
+          color: roleColor,
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: _StaffIdentity(
+            name: name,
+            email: email,
+            role: role,
+            roleColor: roleColor,
+          ),
+        ),
+        const SizedBox(width: 20),
+        _AmountColumn(
+          label: 'Salary',
+          value: SalaryReportScreen._formatCurrency(
+            salary,
+          ),
+        ),
+        const SizedBox(width: 28),
+        _AmountColumn(
+          label: 'Outstanding',
+          value: hasDebt
+              ? SalaryReportScreen._formatCurrency(
+                  amountOwed,
+                )
+              : 'No debt',
+          valueColor: hasDebt
+              ? colorScheme.error
+              : colorScheme.primary,
+        ),
+        const SizedBox(width: 16),
+        Icon(
+          hasDebt
+              ? Icons.warning_amber_rounded
+              : Icons.check_circle_outline,
+          size: 20,
+          color: hasDebt
+              ? colorScheme.error
+              : colorScheme.primary,
+        ),
+      ],
+    );
+  }
+}
+
+// ============================================================================
+// COMPACT STAFF LAYOUT
+// ============================================================================
+
+class _CompactLayout extends StatelessWidget {
+  final String name;
+  final String email;
+  final String role;
+  final double salary;
+  final double amountOwed;
+  final Color roleColor;
+  final bool hasDebt;
+
+  const _CompactLayout({
+    required this.name,
+    required this.email,
+    required this.role,
+    required this.salary,
+    required this.amountOwed,
+    required this.roleColor,
+    required this.hasDebt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            _Avatar(
+              name: name,
+              color: roleColor,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _StaffIdentity(
+                name: name,
+                email: email,
+                role: role,
+                roleColor: roleColor,
+              ),
+            ),
+            Icon(
+              hasDebt
+                  ? Icons.warning_amber_rounded
+                  : Icons.check_circle_outline,
+              size: 20,
+              color: hasDebt
+                  ? colorScheme.error
+                  : colorScheme.primary,
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 10,
+          ),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: _AmountColumn(
+                  label: 'Salary',
+                  value: SalaryReportScreen._formatCurrency(
+                    salary,
+                  ),
+                  alignStart: true,
+                ),
+              ),
+              Expanded(
+                child: _AmountColumn(
+                  label: 'Outstanding',
+                  value: hasDebt
+                      ? SalaryReportScreen._formatCurrency(
+                          amountOwed,
+                        )
+                      : 'No debt',
+                  valueColor: hasDebt
+                      ? colorScheme.error
+                      : colorScheme.primary,
+                  alignStart: true,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ============================================================================
+// AVATAR
+// ============================================================================
+
+class _Avatar extends StatelessWidget {
+  final String name;
+  final Color color;
+
+  const _Avatar({
+    required this.name,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return CircleAvatar(
+      radius: 24,
+      backgroundColor: color.withValues(alpha: 0.10),
+      child: Text(
+        SalaryReportScreen._initials(name),
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// STAFF IDENTITY
+// ============================================================================
+
+class _StaffIdentity extends StatelessWidget {
+  final String name;
+  final String email;
+  final String role;
+  final Color roleColor;
+
+  const _StaffIdentity({
+    required this.name,
+    required this.email,
+    required this.role,
+    required this.roleColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Flexible(
+              child: Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 3,
+              ),
+              decoration: BoxDecoration(
+                color: roleColor.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                role,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: roleColor,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          email,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ============================================================================
+// AMOUNT COLUMN
+// ============================================================================
+
+class _AmountColumn extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color? valueColor;
+  final bool alignStart;
+
+  const _AmountColumn({
+    required this.label,
+    required this.value,
+    this.valueColor,
+    this.alignStart = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Column(
+      crossAxisAlignment: alignStart
+          ? CrossAxisAlignment.start
+          : CrossAxisAlignment.end,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          value,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: valueColor,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ============================================================================
+// EXPORT CARD
+// ============================================================================
+
+class _ExportCard extends StatelessWidget {
+  final List<Map<String, dynamic>> report;
+  final double totalSalary;
+  final double totalDebt;
+
+  const _ExportCard({
+    required this.report,
+    required this.totalSalary,
+    required this.totalDebt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Card(
+      color: AppColors.primary,
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 650;
+
+            final content = Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.account_balance_wallet_outlined,
+                  color: colorScheme.onPrimary,
+                  size: 30,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Export payroll report',
+                        style: theme.textTheme.titleMedium
+                            ?.copyWith(
+                          color: colorScheme.onPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        'Generate a PDF containing salary, outstanding debt and staff totals.',
+                        style: theme.textTheme.bodySmall
+                            ?.copyWith(
+                          color: colorScheme.onPrimary
+                              .withValues(alpha: 0.78),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+
+            final button = FilledButton.icon(
+              onPressed: () {
+                _exportReport(
+                  context,
+                  report,
+                  totalSalary,
+                  totalDebt,
+                );
+              },
+              icon: const Icon(
+                Icons.picture_as_pdf_outlined,
+              ),
+              label: const Text(
+                'Export PDF',
+              ),
+              style: FilledButton.styleFrom(
+                backgroundColor: colorScheme.onPrimary,
+                foregroundColor: AppColors.primary,
+              ),
+            );
+
+            if (compact) {
+              return Column(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+                children: [
+                  content,
+                  const SizedBox(height: 16),
+                  button,
+                ],
+              );
+            }
+
+            return Row(
+              children: [
+                Expanded(
+                  child: content,
+                ),
+                const SizedBox(width: 20),
+                button,
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
   // ============================================================
-  // EMPTY STATE
+  // EXPORT
   // ============================================================
 
-  Widget _emptyState() {
+  Future<void> _exportReport(
+    BuildContext context,
+    List<Map<String, dynamic>> report,
+    double totalSalary,
+    double totalDebt,
+  ) async {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    try {
+      final file = await PdfReport.generateReport(
+        title: 'Salary & Debt Report',
+        sections: [
+          {
+            'title': 'Payroll Summary',
+            'headers': [
+              'Metric',
+              'Value',
+            ],
+            'rows': [
+              [
+                'Total Staff',
+                '${report.length}',
+              ],
+              [
+                'Total Monthly Salary',
+                SalaryReportScreen._formatCurrency(
+                  totalSalary,
+                ),
+              ],
+              [
+                'Total Outstanding Debt',
+                SalaryReportScreen._formatCurrency(
+                  totalDebt,
+                ),
+              ],
+            ],
+          },
+          {
+            'title': 'Staff Payroll',
+            'headers': [
+              'Staff',
+              'Role',
+              'Salary',
+              'Outstanding',
+            ],
+            'rows': report.map((staff) {
+              final name =
+                  staff['name']?.toString() ??
+                      'Unknown Staff';
+
+              final role =
+                  staff['role']?.toString() ??
+                      'Staff';
+
+              final salary =
+                  SalaryReportScreen._toDouble(
+                staff['salary'],
+              );
+
+              final debt =
+                  SalaryReportScreen._toDouble(
+                staff['amountOwed'],
+              );
+
+              return [
+                name,
+                role,
+                SalaryReportScreen._formatCurrency(
+                  salary,
+                ),
+                debt > 0
+                    ? SalaryReportScreen._formatCurrency(
+                        debt,
+                      )
+                    : 'No debt',
+              ];
+            }).toList(),
+          },
+        ],
+      );
+
+      if (!context.mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: colorScheme.primary,
+          content: const Text(
+            'Salary & debt report saved successfully.',
+          ),
+        ),
+      );
+
+      debugPrint(
+        'Salary PDF saved at: ${file.path}',
+      );
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: colorScheme.error,
+          content: Text(
+            'Failed to export salary report: $error',
+          ),
+        ),
+      );
+    }
+  }
+}
+
+// ============================================================================
+// ERROR STATE
+// ============================================================================
+
+class _ErrorState extends StatelessWidget {
+  final Object? error;
+
+  const _ErrorState({
+    required this.error,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: colorScheme.errorContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.error_outline,
+                    size: 32,
+                    color: colorScheme.onErrorContainer,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Unable to load salary report',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  '$error',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// EMPTY STATE
+// ============================================================================
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -1240,34 +1424,30 @@ class SalaryReportScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 72,
-              height: 72,
+              padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: _primary.withValues(alpha: 0.08),
+                color: AppColors.primaryLight,
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.people_outline,
                 size: 36,
-                color: _primary,
+                color: AppColors.primary,
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'No staff profiles found',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: _textPrimary,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'Create staff profiles to see salary information here.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: _textSecondary,
-                fontSize: 13,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
           ],

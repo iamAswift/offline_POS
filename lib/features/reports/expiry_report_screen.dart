@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/styles.dart';
 import '../../database/app_database.dart';
-import '../../database/daos/product_dao.dart';
 
 class ExpiryReportScreen extends StatelessWidget {
   const ExpiryReportScreen({super.key});
@@ -47,18 +46,10 @@ class ExpiryReportScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-
-      // ========================================================
-      // APP BAR
-      // ========================================================
-
       appBar: AppBar(
         elevation: 0,
         backgroundColor: AppColors.surface,
         foregroundColor: AppColors.textPrimary,
-
-        titleSpacing: 20,
-
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -66,9 +57,7 @@ class ExpiryReportScreen extends StatelessWidget {
               'Expiry Report',
               style: AppTextStyles.title,
             ),
-
             SizedBox(height: 2),
-
             Text(
               'Monitor products approaching or past expiry',
               style: AppTextStyles.small,
@@ -76,21 +65,14 @@ class ExpiryReportScreen extends StatelessWidget {
           ],
         ),
       ),
-
-      // ========================================================
-      // BODY
-      // ========================================================
-
       body: FutureBuilder<Map<String, List<Product>>>(
         future: _fetchExpiryData(),
-
         builder: (context, snapshot) {
           // ======================================================
           // LOADING
           // ======================================================
 
-          if (snapshot.connectionState ==
-              ConnectionState.waiting) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child: CircularProgressIndicator(
                 color: AppColors.primary,
@@ -110,318 +92,141 @@ class ExpiryReportScreen extends StatelessWidget {
           // DATA
           // ======================================================
 
-          final data = snapshot.data ??
-              <String, List<Product>>{};
+          final data = snapshot.data ?? <String, List<Product>>{};
 
-          final expiring =
-              data['expiring'] ?? <Product>[];
+          final expiring = data['expiring'] ?? <Product>[];
+          final expired = data['expired'] ?? <Product>[];
 
-          final expired =
-              data['expired'] ?? <Product>[];
-
-          final totalAtRisk =
-              expiring.length + expired.length;
+          final totalAtRisk = expiring.length + expired.length;
 
           // ======================================================
-          // RESPONSIVE LAYOUT
+          // RESPONSIVE CONTENT
           // ======================================================
 
           return LayoutBuilder(
             builder: (context, constraints) {
-              final isCompact =
-                  constraints.maxWidth < 700;
+              final width = constraints.maxWidth;
+
+              final isCompact = width < 650;
+              final isMedium = width >= 650 && width < 1000;
+
+              final horizontalPadding = isCompact
+                  ? 16.0
+                  : isMedium
+                      ? 20.0
+                      : 28.0;
+
+              final verticalPadding = isCompact ? 16.0 : 24.0;
 
               return SingleChildScrollView(
-                padding: EdgeInsets.all(
-                  isCompact
-                      ? 16
-                      : 24,
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: verticalPadding,
                 ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ==================================================
+                    // PAGE HEADER
+                    // ==================================================
 
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints:
-                        const BoxConstraints(
-                      maxWidth: 1100,
+                    _pageHeader(
+                      isCompact: isCompact,
                     ),
 
-                    child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
-
-                      children: [
-                        // ==========================================
-                        // PAGE HEADER
-                        // ==========================================
-
-                        _pageHeader(),
-
-                        const SizedBox(height: 24),
-
-                        // ==========================================
-                        // SUMMARY
-                        // ==========================================
-
-                        if (isCompact)
-                          Column(
-                            children: [
-                              _summaryCard(
-                                title:
-                                    'Expiring Soon',
-                                value:
-                                    '${expiring.length}',
-                                subtitle:
-                                    'Within 3 months',
-                                icon: Icons
-                                    .warning_amber_rounded,
-                                color:
-                                    AppColors.warning,
-                              ),
-
-                              const SizedBox(
-                                height: 12,
-                              ),
-
-                              _summaryCard(
-                                title:
-                                    'Expired',
-                                value:
-                                    '${expired.length}',
-                                subtitle:
-                                    'Require immediate action',
-                                icon: Icons
-                                    .cancel_outlined,
-                                color:
-                                    AppColors.danger,
-                              ),
-
-                              const SizedBox(
-                                height: 12,
-                              ),
-
-                              _summaryCard(
-                                title:
-                                    'Total At Risk',
-                                value:
-                                    '$totalAtRisk',
-                                subtitle:
-                                    'Products requiring attention',
-                                icon: Icons
-                                    .inventory_2_outlined,
-                                color:
-                                    AppColors.info,
-                              ),
-                            ],
-                          )
-                        else
-                          Row(
-                            children: [
-                              Expanded(
-                                child:
-                                    _summaryCard(
-                                  title:
-                                      'Expiring Soon',
-                                  value:
-                                      '${expiring.length}',
-                                  subtitle:
-                                      'Within 3 months',
-                                  icon: Icons
-                                      .warning_amber_rounded,
-                                  color:
-                                      AppColors.warning,
-                                ),
-                              ),
-
-                              const SizedBox(
-                                width: 16,
-                              ),
-
-                              Expanded(
-                                child:
-                                    _summaryCard(
-                                  title:
-                                      'Expired',
-                                  value:
-                                      '${expired.length}',
-                                  subtitle:
-                                      'Require immediate action',
-                                  icon: Icons
-                                      .cancel_outlined,
-                                  color:
-                                      AppColors.danger,
-                                ),
-                              ),
-
-                              const SizedBox(
-                                width: 16,
-                              ),
-
-                              Expanded(
-                                child:
-                                    _summaryCard(
-                                  title:
-                                      'Total At Risk',
-                                  value:
-                                      '$totalAtRisk',
-                                  subtitle:
-                                      'Products requiring attention',
-                                  icon: Icons
-                                      .inventory_2_outlined,
-                                  color:
-                                      AppColors.info,
-                                ),
-                              ),
-                            ],
-                          ),
-
-                        const SizedBox(
-                          height: 30,
-                        ),
-
-                        // ==========================================
-                        // EXPIRING SOON
-                        // ==========================================
-
-                        _sectionHeader(
-                          title:
-                              'Expiring Soon',
-                          subtitle:
-                              'Products expiring within the next 3 months',
-                          count:
-                              expiring.length,
-                          color:
-                              AppColors.warning,
-                          icon: Icons
-                              .warning_amber_rounded,
-                        ),
-
-                        const SizedBox(
-                          height: 12,
-                        ),
-
-                        if (expiring.isEmpty)
-                          _emptySection(
-                            icon: Icons
-                                .check_circle_outline,
-                            title:
-                                'No products expiring soon',
-                            subtitle:
-                                'Your current stock has no products approaching expiry.',
-                            color:
-                                AppColors.success,
-                          )
-                        else
-                          ListView.separated(
-                            shrinkWrap: true,
-                            physics:
-                                const NeverScrollableScrollPhysics(),
-
-                            itemCount:
-                                expiring.length,
-
-                            separatorBuilder:
-                                (_, __) =>
-                                    const SizedBox(
-                              height: 10,
-                            ),
-
-                            itemBuilder:
-                                (context, index) {
-                              final product =
-                                  expiring[index];
-
-                              return _productCard(
-                                name:
-                                    product.name,
-                                expiryDate:
-                                    product.expiryDate,
-                                status:
-                                    'Expiring Soon',
-                                color:
-                                    AppColors.warning,
-                                icon: Icons
-                                    .warning_amber_rounded,
-                              );
-                            },
-                          ),
-
-                        const SizedBox(
-                          height: 30,
-                        ),
-
-                        // ==========================================
-                        // EXPIRED
-                        // ==========================================
-
-                        _sectionHeader(
-                          title:
-                              'Expired Products',
-                          subtitle:
-                              'Products that have already passed their expiry date',
-                          count:
-                              expired.length,
-                          color:
-                              AppColors.danger,
-                          icon: Icons
-                              .cancel_outlined,
-                        ),
-
-                        const SizedBox(
-                          height: 12,
-                        ),
-
-                        if (expired.isEmpty)
-                          _emptySection(
-                            icon: Icons
-                                .check_circle_outline,
-                            title:
-                                'No expired products',
-                            subtitle:
-                                'There are currently no expired products in your inventory.',
-                            color:
-                                AppColors.success,
-                          )
-                        else
-                          ListView.separated(
-                            shrinkWrap: true,
-                            physics:
-                                const NeverScrollableScrollPhysics(),
-
-                            itemCount:
-                                expired.length,
-
-                            separatorBuilder:
-                                (_, __) =>
-                                    const SizedBox(
-                              height: 10,
-                            ),
-
-                            itemBuilder:
-                                (context, index) {
-                              final product =
-                                  expired[index];
-
-                              return _productCard(
-                                name:
-                                    product.name,
-                                expiryDate:
-                                    product.expiryDate,
-                                status:
-                                    'Expired',
-                                color:
-                                    AppColors.danger,
-                                icon: Icons
-                                    .cancel_outlined,
-                              );
-                            },
-                          ),
-
-                        const SizedBox(
-                          height: 20,
-                        ),
-                      ],
+                    SizedBox(
+                      height: isCompact ? 20 : 24,
                     ),
-                  ),
+
+                    // ==================================================
+                    // SUMMARY
+                    // ==================================================
+
+                    _summarySection(
+                      expiringCount: expiring.length,
+                      expiredCount: expired.length,
+                      totalAtRisk: totalAtRisk,
+                      isCompact: isCompact,
+                    ),
+
+                    SizedBox(
+                      height: isCompact ? 24 : 30,
+                    ),
+
+                    // ==================================================
+                    // EXPIRING SOON
+                    // ==================================================
+
+                    _sectionHeader(
+                      title: 'Expiring Soon',
+                      subtitle:
+                          'Products expiring within the next 3 months',
+                      count: expiring.length,
+                      color: AppColors.warning,
+                      icon: Icons.warning_amber_rounded,
+                      isCompact: isCompact,
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    if (expiring.isEmpty)
+                      _emptySection(
+                        icon: Icons.check_circle_outline,
+                        title: 'No products expiring soon',
+                        subtitle:
+                            'Your current stock has no products approaching expiry.',
+                        color: AppColors.success,
+                      )
+                    else
+                      _productList(
+                        products: expiring,
+                        status: 'Expiring Soon',
+                        color: AppColors.warning,
+                        icon: Icons.warning_amber_rounded,
+                        isCompact: isCompact,
+                      ),
+
+                    SizedBox(
+                      height: isCompact ? 24 : 30,
+                    ),
+
+                    // ==================================================
+                    // EXPIRED
+                    // ==================================================
+
+                    _sectionHeader(
+                      title: 'Expired Products',
+                      subtitle:
+                          'Products that have already passed their expiry date',
+                      count: expired.length,
+                      color: AppColors.danger,
+                      icon: Icons.cancel_outlined,
+                      isCompact: isCompact,
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    if (expired.isEmpty)
+                      _emptySection(
+                        icon: Icons.check_circle_outline,
+                        title: 'No expired products',
+                        subtitle:
+                            'There are currently no expired products in your inventory.',
+                        color: AppColors.success,
+                      )
+                    else
+                      _productList(
+                        products: expired,
+                        status: 'Expired',
+                        color: AppColors.danger,
+                        icon: Icons.cancel_outlined,
+                        isCompact: isCompact,
+                      ),
+
+                    SizedBox(
+                      height: isCompact ? 12 : 20,
+                    ),
+                  ],
                 ),
               );
             },
@@ -432,54 +237,137 @@ class ExpiryReportScreen extends StatelessWidget {
   }
 
   // ============================================================
+  // SUMMARY SECTION
+  // ============================================================
+
+  Widget _summarySection({
+    required int expiringCount,
+    required int expiredCount,
+    required int totalAtRisk,
+    required bool isCompact,
+  }) {
+    final cards = [
+      _SummaryData(
+        title: 'Expiring Soon',
+        value: '$expiringCount',
+        subtitle: 'Within 3 months',
+        icon: Icons.warning_amber_rounded,
+        color: AppColors.warning,
+      ),
+      _SummaryData(
+        title: 'Expired',
+        value: '$expiredCount',
+        subtitle: 'Require immediate action',
+        icon: Icons.cancel_outlined,
+        color: AppColors.danger,
+      ),
+      _SummaryData(
+        title: 'Total At Risk',
+        value: '$totalAtRisk',
+        subtitle: 'Products requiring attention',
+        icon: Icons.inventory_2_outlined,
+        color: AppColors.info,
+      ),
+    ];
+
+    // ==========================================================
+    // COMPACT / MOBILE
+    // ==========================================================
+
+    if (isCompact) {
+      return Column(
+        children: [
+          for (var i = 0; i < cards.length; i++) ...[
+            _summaryCard(
+              data: cards[i],
+              isCompact: true,
+            ),
+            if (i < cards.length - 1)
+              const SizedBox(height: 12),
+          ],
+        ],
+      );
+    }
+
+    // ==========================================================
+    // TABLET / DESKTOP
+    // ==========================================================
+    //
+    // IMPORTANT:
+    // Do NOT use CrossAxisAlignment.stretch here.
+    //
+    // This Row is inside a vertically scrolling
+    // SingleChildScrollView, which gives it an unbounded height.
+    // CrossAxisAlignment.stretch would therefore try to give the
+    // children an infinite height and cause:
+    //
+    // BoxConstraints forces an infinite height.
+    //
+    // ==========================================================
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < cards.length; i++) ...[
+          Expanded(
+            child: _summaryCard(
+              data: cards[i],
+              isCompact: false,
+            ),
+          ),
+          if (i < cards.length - 1)
+            const SizedBox(width: 16),
+        ],
+      ],
+    );
+  }
+
+  // ============================================================
   // PAGE HEADER
   // ============================================================
 
-  Widget _pageHeader() {
-    return Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+  Widget _pageHeader({
+    required bool isCompact,
+  }) {
+    final icon = Container(
+      padding: EdgeInsets.all(
+        isCompact ? 10 : 12,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.warningLight,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(
+        Icons.event_busy_outlined,
+        color: AppColors.warning,
+        size: isCompact ? 22 : 25,
+      ),
+    );
 
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 48,
-          height: 48,
-
-          decoration: BoxDecoration(
-            color: AppColors.warningLight,
-            borderRadius:
-                BorderRadius.circular(12),
-          ),
-
-          child: const Icon(
-            Icons.event_busy_outlined,
-            color: AppColors.warning,
-            size: 25,
-          ),
+        Text(
+          'Expiry Overview',
+          style: isCompact
+              ? AppTextStyles.title
+              : AppTextStyles.heading,
         ),
+        const SizedBox(height: 4),
+        Text(
+          'Monitor stock that requires attention before it becomes a loss.',
+          style: AppTextStyles.bodySecondary,
+        ),
+      ],
+    );
 
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        icon,
         const SizedBox(width: 14),
-
-        const Expanded(
-          child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
-
-            children: [
-              Text(
-                'Expiry Overview',
-                style: AppTextStyles.heading,
-              ),
-
-              SizedBox(height: 4),
-
-              Text(
-                'Monitor stock that requires attention before it becomes a loss.',
-                style:
-                    AppTextStyles.bodySecondary,
-              ),
-            ],
-          ),
+        Expanded(
+          child: content,
         ),
       ],
     );
@@ -490,101 +378,63 @@ class ExpiryReportScreen extends StatelessWidget {
   // ============================================================
 
   Widget _summaryCard({
-    required String title,
-    required String value,
-    required String subtitle,
-    required IconData icon,
-    required Color color,
+    required _SummaryData data,
+    required bool isCompact,
   }) {
-    return Container(
-      width: double.infinity,
-
-      padding:
-          const EdgeInsets.all(18),
-
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-
-        borderRadius:
-            BorderRadius.circular(14),
-
-        border: Border.all(
-          color: AppColors.border,
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: EdgeInsets.all(
+          isCompact ? 14 : 18,
         ),
-
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(
-              alpha: 0.03,
-            ),
-            blurRadius: 10,
-            offset:
-                const Offset(0, 3),
-          ),
-        ],
-      ),
-
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-
-            decoration: BoxDecoration(
-              color: color.withValues(
-                alpha: 0.10,
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(
+                isCompact ? 9 : 10,
               ),
-
-              borderRadius:
-                  BorderRadius.circular(11),
+              decoration: BoxDecoration(
+                color: data.color.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: Icon(
+                data.icon,
+                color: data.color,
+                size: isCompact ? 21 : 23,
+              ),
             ),
-
-            child: Icon(
-              icon,
-              color: color,
-              size: 23,
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    data.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.small,
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    data.value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.price,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    data.subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.small,
+                  ),
+                ],
+              ),
             ),
-          ),
-
-          const SizedBox(width: 13),
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-
-              children: [
-                Text(
-                  title,
-                  style:
-                      AppTextStyles.small,
-                ),
-
-                const SizedBox(height: 3),
-
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow:
-                      TextOverflow.ellipsis,
-                  style:
-                      AppTextStyles.price,
-                ),
-
-                const SizedBox(height: 2),
-
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow:
-                      TextOverflow.ellipsis,
-                  style:
-                      AppTextStyles.small,
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -599,85 +449,93 @@ class ExpiryReportScreen extends StatelessWidget {
     required int count,
     required Color color,
     required IconData icon,
+    required bool isCompact,
   }) {
-    return Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+    final badge = Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 10,
+        vertical: 6,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        '$count',
+        style: AppTextStyles.small.copyWith(
+          color: color,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
 
+    final titleContent = Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: AppTextStyles.title,
+          ),
+          const SizedBox(height: 3),
+          Text(
+            subtitle,
+            maxLines: isCompact ? 2 : 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTextStyles.small,
+          ),
+        ],
+      ),
+    );
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 38,
-          height: 38,
-
+          padding: const EdgeInsets.all(9),
           decoration: BoxDecoration(
-            color: color.withValues(
-              alpha: 0.10,
-            ),
-
-            borderRadius:
-                BorderRadius.circular(10),
+            color: color.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(10),
           ),
-
           child: Icon(
             icon,
             color: color,
             size: 20,
           ),
         ),
-
         const SizedBox(width: 12),
+        titleContent,
+        const SizedBox(width: 12),
+        badge,
+      ],
+    );
+  }
 
-        Expanded(
-          child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+  // ============================================================
+  // PRODUCT LIST
+  // ============================================================
 
-            children: [
-              Text(
-                title,
-                style:
-                    AppTextStyles.title,
-              ),
-
-              const SizedBox(height: 3),
-
-              Text(
-                subtitle,
-                style:
-                    AppTextStyles.small,
-              ),
-            ],
+  Widget _productList({
+    required List<Product> products,
+    required String status,
+    required Color color,
+    required IconData icon,
+    required bool isCompact,
+  }) {
+    return Column(
+      children: [
+        for (var i = 0; i < products.length; i++) ...[
+          _productCard(
+            name: products[i].name,
+            expiryDate: products[i].expiryDate,
+            status: status,
+            color: color,
+            icon: icon,
+            isCompact: isCompact,
           ),
-        ),
-
-        Container(
-          padding:
-              const EdgeInsets.symmetric(
-            horizontal: 10,
-            vertical: 6,
-          ),
-
-          decoration: BoxDecoration(
-            color: color.withValues(
-              alpha: 0.10,
-            ),
-
-            borderRadius:
-                BorderRadius.circular(20),
-          ),
-
-          child: Text(
-            '$count',
-
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              color: color,
-              fontSize: 12,
-              fontWeight:
-                  FontWeight.w700,
-            ),
-          ),
-        ),
+          if (i < products.length - 1)
+            const SizedBox(height: 10),
+        ],
       ],
     );
   }
@@ -692,200 +550,129 @@ class ExpiryReportScreen extends StatelessWidget {
     required String status,
     required Color color,
     required IconData icon,
+    required bool isCompact,
   }) {
-    return Container(
-      padding:
-          const EdgeInsets.all(16),
-
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-
-        borderRadius:
-            BorderRadius.circular(14),
-
-        border: Border.all(
-          color: color.withValues(
-            alpha: 0.18,
-          ),
-        ),
-
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(
-              alpha: 0.025,
-            ),
-            blurRadius: 8,
-            offset:
-                const Offset(0, 2),
-          ),
-        ],
+    final statusBadge = Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 9,
+        vertical: 5,
       ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        status,
+        style: AppTextStyles.small.copyWith(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
 
-      child: Row(
+    final iconContainer = Container(
+      padding: EdgeInsets.all(
+        isCompact ? 10 : 11,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(
+        icon,
+        color: color,
+        size: isCompact ? 21 : 23,
+      ),
+    );
+
+    final details = Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 46,
-            height: 46,
-
-            decoration: BoxDecoration(
-              color: color.withValues(
-                alpha: 0.10,
-              ),
-
-              borderRadius:
-                  BorderRadius.circular(12),
-            ),
-
-            child: Icon(
-              icon,
-              color: color,
-              size: 23,
+          Text(
+            name,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: AppTextStyles.body.copyWith(
+              fontWeight: FontWeight.w600,
             ),
           ),
-
-          const SizedBox(width: 14),
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-
-              children: [
-                Text(
-                  name,
-                  maxLines: 1,
-                  overflow:
-                      TextOverflow.ellipsis,
-
-                  style:
-                      AppTextStyles.body.copyWith(
-                    fontWeight:
-                        FontWeight.w600,
-                  ),
-                ),
-
-                const SizedBox(height: 5),
-
-                Row(
-                  children: [
-                    const Icon(
-                      Icons
-                          .calendar_today_outlined,
-                      size: 13,
-                      color:
-                          AppColors.textMuted,
-                    ),
-
-                    const SizedBox(width: 5),
-
-                    Expanded(
-                      child: Text(
-                        status == 'Expired'
-                            ? 'Expired: ${_formatDate(expiryDate)}'
-                            : 'Expires: ${_formatDate(expiryDate)}',
-
-                        maxLines: 1,
-                        overflow:
-                            TextOverflow.ellipsis,
-
-                        style:
-                            AppTextStyles.small,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(width: 12),
-
-          Container(
-            padding:
-                const EdgeInsets.symmetric(
-              horizontal: 9,
-              vertical: 5,
-            ),
-
-            decoration: BoxDecoration(
-              color: color.withValues(
-                alpha: 0.10,
+          const SizedBox(height: 5),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.calendar_today_outlined,
+                size: 13,
+                color: AppColors.textMuted,
               ),
-
-              borderRadius:
-                  BorderRadius.circular(20),
-            ),
-
-            child: Text(
-              status,
-
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                color: color,
-                fontSize: 10,
-                fontWeight:
-                    FontWeight.w700,
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(
+                  status == 'Expired'
+                      ? 'Expired: ${_formatDate(expiryDate)}'
+                      : 'Expires: ${_formatDate(expiryDate)}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.small,
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),
     );
-  }
 
-  // ============================================================
-  // ERROR STATE
-  // ============================================================
+    // ==========================================================
+    // COMPACT / MOBILE
+    // ==========================================================
 
-  Widget _errorState(Object? error) {
-    return Center(
+    if (isCompact) {
+      return Card(
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  iconContainer,
+                  const SizedBox(width: 12),
+                  details,
+                ],
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: statusBadge,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // ==========================================================
+    // TABLET / DESKTOP
+    // ==========================================================
+
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
       child: Padding(
-        padding:
-            const EdgeInsets.all(24),
-
-        child: Column(
-          mainAxisSize:
-              MainAxisSize.min,
-
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Container(
-              width: 64,
-              height: 64,
-
-              decoration: BoxDecoration(
-                color:
-                    AppColors.dangerLight,
-                shape: BoxShape.circle,
-              ),
-
-              child: const Icon(
-                Icons.error_outline,
-                size: 32,
-                color:
-                    AppColors.danger,
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            const Text(
-              'Unable to load expiry report',
-              textAlign:
-                  TextAlign.center,
-              style:
-                  AppTextStyles.title,
-            ),
-
-            const SizedBox(height: 8),
-
-            Text(
-              '$error',
-              textAlign:
-                  TextAlign.center,
-
-              style:
-                  AppTextStyles.bodySecondary,
-            ),
+            iconContainer,
+            const SizedBox(width: 14),
+            details,
+            const SizedBox(width: 12),
+            statusBadge,
           ],
         ),
       ),
@@ -902,72 +689,113 @@ class ExpiryReportScreen extends StatelessWidget {
     required String subtitle,
     required Color color,
   }) {
-    return Container(
-      width: double.infinity,
-
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 24,
-        vertical: 28,
-      ),
-
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-
-        borderRadius:
-            BorderRadius.circular(14),
-
-        border: Border.all(
-          color: AppColors.border,
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: 28,
         ),
-      ),
-
-      child: Column(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-
-            decoration: BoxDecoration(
-              color: color.withValues(
-                alpha: 0.10,
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.10),
+                shape: BoxShape.circle,
               ),
-              shape: BoxShape.circle,
+              child: Icon(
+                icon,
+                color: color,
+                size: 25,
+              ),
             ),
-
-            child: Icon(
-              icon,
-              color: color,
-              size: 25,
+            const SizedBox(height: 12),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.body.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-
-          const SizedBox(height: 12),
-
-          Text(
-            title,
-            textAlign:
-                TextAlign.center,
-
-            style:
-                AppTextStyles.body.copyWith(
-              fontWeight:
-                  FontWeight.w600,
+            const SizedBox(height: 5),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodySecondary,
             ),
-          ),
-
-          const SizedBox(height: 5),
-
-          Text(
-            subtitle,
-            textAlign:
-                TextAlign.center,
-
-            style:
-                AppTextStyles.bodySecondary,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
+
+  // ============================================================
+  // ERROR STATE
+  // ============================================================
+
+  Widget _errorState(Object? error) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Card(
+          elevation: 0,
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.dangerLight,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.error_outline,
+                    size: 32,
+                    color: AppColors.danger,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Unable to load expiry report',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.title,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '$error',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.bodySecondary,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// SUMMARY DATA
+// ============================================================================
+
+class _SummaryData {
+  final String title;
+  final String value;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+
+  const _SummaryData({
+    required this.title,
+    required this.value,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+  });
 }

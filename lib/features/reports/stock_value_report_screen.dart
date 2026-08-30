@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../core/responsive/responsive.dart';
 import '../../core/theme/styles.dart';
 import '../../database/app_database.dart';
 import '../../database/daos/sales_dao.dart';
@@ -15,7 +16,8 @@ class StockValueReportScreen extends StatefulWidget {
       _StockValueReportScreenState();
 }
 
-class _StockValueReportScreenState extends State<StockValueReportScreen> {
+class _StockValueReportScreenState
+    extends State<StockValueReportScreen> {
   late final SalesDao salesDao;
 
   double _totalStockValue = 0;
@@ -81,28 +83,36 @@ class _StockValueReportScreenState extends State<StockValueReportScreen> {
   // ============================================================
 
   PreferredSizeWidget _buildAppBar() {
+    final responsive = context.responsive;
+
     return AppBar(
       backgroundColor: AppColors.surface,
       elevation: 0,
       surfaceTintColor: Colors.transparent,
       automaticallyImplyLeading: true,
-      titleSpacing: 20,
+      titleSpacing: responsive.isCompact
+          ? AppSpacing.lg
+          : AppSpacing.xl,
       title: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: responsive.isCompact ? 38 : 40,
+            height: responsive.isCompact ? 38 : 40,
             decoration: BoxDecoration(
-              color: AppColors.inventory.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(10),
+              color: AppColors.inventory.withValues(
+                alpha: 0.10,
+              ),
+              borderRadius: BorderRadius.circular(
+                AppRadius.lg,
+              ),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.inventory_2_outlined,
               color: AppColors.inventory,
-              size: 22,
+              size: responsive.isCompact ? 21 : 22,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.md),
           const Text(
             'Stock Value Report',
             style: AppTextStyles.title,
@@ -111,7 +121,11 @@ class _StockValueReportScreenState extends State<StockValueReportScreen> {
       ),
       actions: [
         Padding(
-          padding: const EdgeInsets.only(right: 16),
+          padding: EdgeInsets.only(
+            right: responsive.isCompact
+                ? AppSpacing.sm
+                : AppSpacing.lg,
+          ),
           child: IconButton(
             tooltip: 'Refresh',
             onPressed: _isLoading ? null : _loadReport,
@@ -148,54 +162,58 @@ class _StockValueReportScreenState extends State<StockValueReportScreen> {
       );
     }
 
+    final responsive = context.responsive;
+
     return RefreshIndicator(
       color: AppColors.primary,
       onRefresh: _loadReport,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isDesktop = constraints.maxWidth >= 1000;
-
-          return SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.symmetric(
-              horizontal: isDesktop ? 32 : 16,
-              vertical: 24,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.symmetric(
+          horizontal: responsive.horizontalPadding,
+          vertical: responsive.verticalPadding,
+        ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: responsive.contentMaxWidth,
             ),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: 1400,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildPageHeader(),
+
+                const SizedBox(
+                  height: AppSpacing.xxl,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildPageHeader(),
 
-                    const SizedBox(height: 24),
-
-                    _buildOverviewSection(
-                      totalStockValue: _totalStockValue,
-                    ),
-
-                    const SizedBox(height: 28),
-
-                    _buildInformationSection(
-                      totalStockValue: _totalStockValue,
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    _buildExportSection(
-                      totalStockValue: _totalStockValue,
-                    ),
-
-                    const SizedBox(height: 24),
-                  ],
+                _buildOverviewSection(
+                  totalStockValue: _totalStockValue,
                 ),
-              ),
+
+                const SizedBox(
+                  height: AppSpacing.xxxl,
+                ),
+
+                _buildInformationSection(
+                  totalStockValue: _totalStockValue,
+                ),
+
+                const SizedBox(
+                  height: AppSpacing.xxxl,
+                ),
+
+                _buildExportSection(
+                  totalStockValue: _totalStockValue,
+                ),
+
+                const SizedBox(
+                  height: AppSpacing.xxl,
+                ),
+              ],
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }
@@ -205,27 +223,34 @@ class _StockValueReportScreenState extends State<StockValueReportScreen> {
   // ============================================================
 
   Widget _buildPageHeader() {
-    return const Column(
+    final responsive = context.responsive;
+
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Inventory valuation',
-          style: AppTextStyles.heading,
+          style: responsive.isCompact
+              ? AppTextStyles.title.copyWith(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                )
+              : AppTextStyles.heading,
         ),
-        SizedBox(height: 6),
-        Text(
+        const SizedBox(height: AppSpacing.xs + 2),
+        const Text(
           'View the current value of all inventory in your business.',
           style: AppTextStyles.bodySecondary,
         ),
-        SizedBox(height: 10),
-        Row(
+        const SizedBox(height: AppSpacing.sm + 2),
+        const Row(
           children: [
             Icon(
               Icons.inventory_2_outlined,
               size: 14,
               color: AppColors.textMuted,
             ),
-            SizedBox(width: 6),
+            SizedBox(width: AppSpacing.sm - 2),
             Text(
               'Current inventory',
               style: AppTextStyles.small,
@@ -250,7 +275,9 @@ class _StockValueReportScreenState extends State<StockValueReportScreen> {
           'Overview',
           style: AppTextStyles.title,
         ),
-        const SizedBox(height: 14),
+        const SizedBox(
+          height: AppSpacing.md,
+        ),
         _buildStockValueCard(
           totalStockValue: totalStockValue,
         ),
@@ -265,12 +292,20 @@ class _StockValueReportScreenState extends State<StockValueReportScreen> {
   Widget _buildStockValueCard({
     required double totalStockValue,
   }) {
+    final responsive = context.responsive;
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(22),
+      padding: EdgeInsets.all(
+        responsive.isCompact
+            ? AppSpacing.lg
+            : AppSpacing.xxl,
+      ),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(
+          AppRadius.xl,
+        ),
         border: Border.all(
           color: AppColors.border,
         ),
@@ -288,12 +323,19 @@ class _StockValueReportScreenState extends State<StockValueReportScreen> {
 
           if (compact) {
             return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
               children: [
                 _buildStockValueIcon(),
-                const SizedBox(height: 16),
-                _buildStockValueContent(totalStockValue),
-                const SizedBox(height: 16),
+                const SizedBox(
+                  height: AppSpacing.lg,
+                ),
+                _buildStockValueContent(
+                  totalStockValue,
+                ),
+                const SizedBox(
+                  height: AppSpacing.lg,
+                ),
                 _buildStatusBadge(),
               ],
             );
@@ -302,11 +344,17 @@ class _StockValueReportScreenState extends State<StockValueReportScreen> {
           return Row(
             children: [
               _buildStockValueIcon(),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildStockValueContent(totalStockValue),
+              const SizedBox(
+                width: AppSpacing.lg,
               ),
-              const SizedBox(width: 20),
+              Expanded(
+                child: _buildStockValueContent(
+                  totalStockValue,
+                ),
+              ),
+              const SizedBox(
+                width: AppSpacing.xl,
+              ),
               _buildStatusBadge(),
             ],
           );
@@ -316,22 +364,34 @@ class _StockValueReportScreenState extends State<StockValueReportScreen> {
   }
 
   Widget _buildStockValueIcon() {
+    final responsive = context.responsive;
+
+    final size = responsive.isCompact ? 54.0 : 58.0;
+
     return Container(
-      width: 58,
-      height: 58,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
-        color: AppColors.inventory.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(14),
+        color: AppColors.inventory.withValues(
+          alpha: 0.10,
+        ),
+        borderRadius: BorderRadius.circular(
+          AppRadius.lg,
+        ),
       ),
-      child: const Icon(
+      child: Icon(
         Icons.inventory_2_outlined,
         color: AppColors.inventory,
-        size: 28,
+        size: responsive.isCompact ? 26 : 28,
       ),
     );
   }
 
-  Widget _buildStockValueContent(double totalStockValue) {
+  Widget _buildStockValueContent(
+    double totalStockValue,
+  ) {
+    final responsive = context.responsive;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -339,15 +399,20 @@ class _StockValueReportScreenState extends State<StockValueReportScreen> {
           'Total Stock Value',
           style: AppTextStyles.bodySecondary,
         ),
-        const SizedBox(height: 6),
+        const SizedBox(
+          height: AppSpacing.xs + 2,
+        ),
         Text(
           _formatCurrency(totalStockValue),
           style: AppTextStyles.price.copyWith(
-            fontSize: 28,
+            fontSize: responsive.isCompact ? 24 : 28,
           ),
+          maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        const SizedBox(height: 5),
+        const SizedBox(
+          height: AppSpacing.xs,
+        ),
         const Text(
           'Current estimated value of inventory',
           style: AppTextStyles.small,
@@ -359,14 +424,18 @@ class _StockValueReportScreenState extends State<StockValueReportScreen> {
   Widget _buildStatusBadge() {
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: 11,
-        vertical: 7,
+        horizontal: AppSpacing.md - 1,
+        vertical: AppSpacing.sm - 1,
       ),
       decoration: BoxDecoration(
         color: AppColors.successLight,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(
+          AppRadius.md,
+        ),
         border: Border.all(
-          color: AppColors.success.withValues(alpha: 0.20),
+          color: AppColors.success.withValues(
+            alpha: 0.20,
+          ),
         ),
       ),
       child: const Row(
@@ -377,7 +446,7 @@ class _StockValueReportScreenState extends State<StockValueReportScreen> {
             size: 15,
             color: AppColors.success,
           ),
-          SizedBox(width: 6),
+          SizedBox(width: AppSpacing.xs + 2),
           Text(
             'Inventory tracked',
             style: TextStyle(
@@ -406,13 +475,19 @@ class _StockValueReportScreenState extends State<StockValueReportScreen> {
           'Stock valuation',
           style: AppTextStyles.title,
         ),
-        const SizedBox(height: 14),
+        const SizedBox(
+          height: AppSpacing.md,
+        ),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(
+            AppSpacing.lg + 2,
+          ),
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(
+              AppRadius.lg,
+            ),
             border: Border.all(
               color: AppColors.border,
             ),
@@ -422,11 +497,13 @@ class _StockValueReportScreenState extends State<StockValueReportScreen> {
               _informationRow(
                 icon: Icons.inventory_2_outlined,
                 title: 'Current stock value',
-                value: _formatCurrency(totalStockValue),
+                value: _formatCurrency(
+                  totalStockValue,
+                ),
                 color: AppColors.inventory,
               ),
               const Divider(
-                height: 24,
+                height: AppSpacing.xxl,
                 color: AppColors.divider,
               ),
               _informationRow(
@@ -448,29 +525,41 @@ class _StockValueReportScreenState extends State<StockValueReportScreen> {
     required String value,
     required Color color,
   }) {
+    final responsive = context.responsive;
+
     return Row(
       children: [
         Container(
-          width: 38,
-          height: 38,
+          width: responsive.isCompact ? 36 : 38,
+          height: responsive.isCompact ? 36 : 38,
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(9),
+            color: color.withValues(
+              alpha: 0.10,
+            ),
+            borderRadius: BorderRadius.circular(
+              AppRadius.md + 1,
+            ),
           ),
           child: Icon(
             icon,
             color: color,
-            size: 19,
+            size: responsive.isCompact ? 18 : 19,
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(
+          width: AppSpacing.md,
+        ),
         Expanded(
           child: Text(
             title,
             style: AppTextStyles.bodySecondary,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(
+          width: AppSpacing.md,
+        ),
         Flexible(
           child: Text(
             value,
@@ -479,6 +568,7 @@ class _StockValueReportScreenState extends State<StockValueReportScreen> {
               fontWeight: FontWeight.w600,
             ),
             textAlign: TextAlign.right,
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -494,7 +584,10 @@ class _StockValueReportScreenState extends State<StockValueReportScreen> {
     required double totalStockValue,
   }) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      width: double.infinity,
+      padding: const EdgeInsets.all(
+        AppSpacing.xl,
+      ),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [
@@ -504,7 +597,9 @@ class _StockValueReportScreenState extends State<StockValueReportScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(
+          AppRadius.xl,
+        ),
         boxShadow: const [
           BoxShadow(
             color: Color(0x18000000),
@@ -519,10 +614,13 @@ class _StockValueReportScreenState extends State<StockValueReportScreen> {
 
           if (compact) {
             return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
               children: [
                 _exportContent(),
-                const SizedBox(height: 16),
+                const SizedBox(
+                  height: AppSpacing.lg,
+                ),
                 _exportButton(
                   totalStockValue: totalStockValue,
                 ),
@@ -535,7 +633,9 @@ class _StockValueReportScreenState extends State<StockValueReportScreen> {
               Expanded(
                 child: _exportContent(),
               ),
-              const SizedBox(width: 20),
+              const SizedBox(
+                width: AppSpacing.xl,
+              ),
               _exportButton(
                 totalStockValue: totalStockValue,
               ),
@@ -548,17 +648,21 @@ class _StockValueReportScreenState extends State<StockValueReportScreen> {
 
   Widget _exportContent() {
     return const Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
       children: [
         Icon(
           Icons.picture_as_pdf_outlined,
           color: Colors.white,
           size: 30,
         ),
-        SizedBox(width: 14),
+        SizedBox(
+          width: AppSpacing.md + 2,
+        ),
         Expanded(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
             children: [
               Text(
                 'Export stock valuation',
@@ -569,7 +673,9 @@ class _StockValueReportScreenState extends State<StockValueReportScreen> {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              SizedBox(height: 5),
+              SizedBox(
+                height: AppSpacing.xs + 1,
+              ),
               Text(
                 'Generate a PDF containing the current inventory valuation.',
                 style: TextStyle(
@@ -588,32 +694,38 @@ class _StockValueReportScreenState extends State<StockValueReportScreen> {
   Widget _exportButton({
     required double totalStockValue,
   }) {
-    return ElevatedButton.icon(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.primary,
-        elevation: 0,
-        padding: const EdgeInsets.symmetric(
-          horizontal: 18,
-          vertical: 13,
+    final responsive = context.responsive;
+
+    return SizedBox(
+      height: responsive.buttonHeight,
+      child: ElevatedButton.icon(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: AppColors.primary,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg + 2,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(
+              AppRadius.md + 2,
+            ),
+          ),
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+        icon: const Icon(
+          Icons.download_outlined,
+          size: 19,
         ),
-      ),
-      icon: const Icon(
-        Icons.download_outlined,
-        size: 19,
-      ),
-      label: const Text(
-        'Export PDF',
-        style: TextStyle(
-          fontFamily: 'Poppins',
-          fontWeight: FontWeight.w600,
+        label: const Text(
+          'Export PDF',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w600,
+          ),
         ),
-      ),
-      onPressed: () => _exportPdf(
-        totalStockValue: totalStockValue,
+        onPressed: () => _exportPdf(
+          totalStockValue: totalStockValue,
+        ),
       ),
     );
   }
@@ -638,7 +750,9 @@ class _StockValueReportScreenState extends State<StockValueReportScreen> {
             'rows': [
               [
                 'Total Stock Value',
-                _formatCurrency(totalStockValue),
+                _formatCurrency(
+                  totalStockValue,
+                ),
               ],
             ],
           },
@@ -694,7 +808,8 @@ class _StockValueReportScreenState extends State<StockValueReportScreen> {
     final buffer = StringBuffer();
 
     for (int i = 0; i < string.length; i++) {
-      if (i > 0 && (string.length - i) % 3 == 0) {
+      if (i > 0 &&
+          (string.length - i) % 3 == 0) {
         buffer.write(',');
       }
 
@@ -728,24 +843,34 @@ class _StockValueReportScreenState extends State<StockValueReportScreen> {
 // LOADING STATE
 // ============================================================
 
-class _StockValueLoadingState extends StatelessWidget {
+class _StockValueLoadingState
+    extends StatelessWidget {
   const _StockValueLoadingState();
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    final responsive = context.responsive;
+
+    return Center(
       child: Padding(
-        padding: EdgeInsets.all(40),
-        child: Column(
+        padding: EdgeInsets.all(
+          responsive.isCompact
+              ? AppSpacing.xxxl
+              : AppSpacing.huge,
+        ),
+        child: const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             CircularProgressIndicator(
               color: AppColors.primary,
             ),
-            SizedBox(height: 16),
+            SizedBox(
+              height: AppSpacing.lg,
+            ),
             Text(
               'Loading stock valuation...',
-              style: AppTextStyles.bodySecondary,
+              style:
+                  AppTextStyles.bodySecondary,
             ),
           ],
         ),
@@ -758,7 +883,8 @@ class _StockValueLoadingState extends StatelessWidget {
 // ERROR STATE
 // ============================================================
 
-class _StockValueErrorState extends StatelessWidget {
+class _StockValueErrorState
+    extends StatelessWidget {
   final String error;
   final VoidCallback onRetry;
 
@@ -769,17 +895,29 @@ class _StockValueErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final responsive = context.responsive;
+
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(32),
+        padding: EdgeInsets.all(
+          responsive.isCompact
+              ? AppSpacing.xl
+              : AppSpacing.xxxl,
+        ),
         child: Container(
           constraints: const BoxConstraints(
             maxWidth: 600,
           ),
-          padding: const EdgeInsets.all(28),
+          padding: EdgeInsets.all(
+            responsive.isCompact
+                ? AppSpacing.xl
+                : AppSpacing.xxxl,
+          ),
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(
+              AppRadius.xl,
+            ),
             border: Border.all(
               color: AppColors.border,
             ),
@@ -792,7 +930,10 @@ class _StockValueErrorState extends StatelessWidget {
                 height: 56,
                 decoration: BoxDecoration(
                   color: AppColors.dangerLight,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius:
+                      BorderRadius.circular(
+                    AppRadius.lg + 2,
+                  ),
                 ),
                 child: const Icon(
                   Icons.error_outline,
@@ -800,19 +941,28 @@ class _StockValueErrorState extends StatelessWidget {
                   size: 30,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(
+                height: AppSpacing.lg,
+              ),
               const Text(
                 'Unable to load stock value',
                 style: AppTextStyles.title,
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 10),
+              const SizedBox(
+                height: AppSpacing.sm + 2,
+              ),
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(
+                  AppSpacing.md + 2,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.surfaceSoft,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius:
+                      BorderRadius.circular(
+                    AppRadius.md + 2,
+                  ),
                   border: Border.all(
                     color: AppColors.border,
                   ),
@@ -823,30 +973,42 @@ class _StockValueErrorState extends StatelessWidget {
                   textAlign: TextAlign.left,
                 ),
               ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                onPressed: onRetry,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 13,
+              const SizedBox(
+                height: AppSpacing.xl,
+              ),
+              SizedBox(
+                height: responsive.buttonHeight,
+                child: ElevatedButton.icon(
+                  onPressed: onRetry,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding:
+                        const EdgeInsets.symmetric(
+                      horizontal:
+                          AppSpacing.xl,
+                    ),
+                    shape:
+                        RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(
+                        AppRadius.md + 2,
+                      ),
+                    ),
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                  icon: const Icon(
+                    Icons.refresh,
+                    size: 18,
                   ),
-                ),
-                icon: const Icon(
-                  Icons.refresh,
-                  size: 18,
-                ),
-                label: const Text(
-                  'Try Again',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
+                  label: const Text(
+                    'Try Again',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight:
+                          FontWeight.w600,
+                    ),
                   ),
                 ),
               ),

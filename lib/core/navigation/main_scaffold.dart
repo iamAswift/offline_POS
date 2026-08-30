@@ -66,6 +66,58 @@ class MainScaffold extends StatelessWidget {
   }
 
   // ============================================================
+  // CENTRALIZED LOGOUT
+  // ============================================================
+  //
+  // Every logout action from the application should eventually
+  // come through this method.
+  //
+  // IMPORTANT:
+  // This does NOT modify navigation indexes.
+  // ============================================================
+
+  Future<void> _logout(
+    BuildContext context,
+  ) async {
+    try {
+      // --------------------------------------------------------
+      // Clear the persisted + in-memory session.
+      // --------------------------------------------------------
+
+      await Session.logout();
+
+      // --------------------------------------------------------
+      // Return to the login screen.
+      //
+      // IMPORTANT:
+      // If your actual login route is not /login, change ONLY
+      // this route.
+      // --------------------------------------------------------
+
+      if (!context.mounted) {
+        return;
+      }
+
+      context.go('/');
+    } catch (e) {
+      debugPrint(
+        'Logout failed: $e',
+      );
+
+      if (!context.mounted) {
+        return;
+      }
+
+      // --------------------------------------------------------
+      // Even if something unexpected happens, do not leave
+      // the user sitting inside the authenticated area.
+      // --------------------------------------------------------
+
+      context.go('/login');
+    }
+  }
+
+  // ============================================================
   // BUILD
   // ============================================================
 
@@ -113,11 +165,22 @@ class MainScaffold extends StatelessWidget {
             crossAxisAlignment:
                 CrossAxisAlignment.stretch,
             children: [
+
+              // ==================================================
+              // SIDEBAR
+              // ==================================================
+
               DashboardSidebar(
                 selectedIndex:
                     currentIndex,
+
                 isPrivileged:
                     isPrivileged,
+
+                // ------------------------------------------------
+                // PRIMARY NAVIGATION
+                // ------------------------------------------------
+
                 onDestinationSelected:
                     (index) {
                   _handleNavigation(
@@ -126,7 +189,24 @@ class MainScaffold extends StatelessWidget {
                     isPrivileged,
                   );
                 },
+
+                // ------------------------------------------------
+                // CENTRALIZED LOGOUT
+                //
+                // DashboardSidebar does not perform the logout
+                // itself. It simply calls this callback.
+                //
+                // The actual logout remains here in MainScaffold.
+                // ------------------------------------------------
+
+                onLogout: () {
+                  _logout(context);
+                },
               ),
+
+              // ==================================================
+              // PAGE CONTENT
+              // ==================================================
 
               Expanded(
                 child: child,
@@ -322,3 +402,4 @@ class MainScaffold extends StatelessWidget {
     return 1;
   }
 }
+

@@ -2,6 +2,9 @@
 
 import 'package:flutter/material.dart';
 
+import '../../core/responsive/responsive.dart';
+import '../../core/theme/styles.dart';
+import '../../core/widgets/back_button.dart';
 import '../../database/daos/staff_debt_payment_dao.dart';
 import '../../database/daos/staff_purchase_dao.dart';
 
@@ -48,25 +51,13 @@ class _StaffDebtManagementScreenState
     }
 
     try {
-      // --------------------------------------------------------
-      // GET STAFF WITH CREDIT PURCHASES
-      // --------------------------------------------------------
-
       final debtSummary =
           await widget.staffPurchaseDao.getStaffDebtSummary();
-
-      // --------------------------------------------------------
-      // GET MAXIMUM ALLOWED STAFF DEBT
-      // --------------------------------------------------------
 
       final maxDebt =
           await widget.staffPurchaseDao.getMaxStaffDebt();
 
       final List<Map<String, dynamic>> updated = [];
-
-      // --------------------------------------------------------
-      // CALCULATE EACH STAFF MEMBER'S CURRENT BALANCE
-      // --------------------------------------------------------
 
       for (final staff in debtSummary) {
         final dynamic rawStaffId = staff['staffId'];
@@ -95,27 +86,15 @@ class _StaffDebtManagementScreenState
                     ) ??
                     0.0;
 
-        // ------------------------------------------------------
-        // GET ALL PAYMENTS MADE BY THIS STAFF MEMBER
-        // ------------------------------------------------------
-
         final double totalPaid =
             await widget.debtPaymentDao
                 .getTotalDebtPayments(staffId);
-
-        // ------------------------------------------------------
-        // CURRENT OUTSTANDING BALANCE
-        // ------------------------------------------------------
 
         final double rawBalance =
             totalDebt - totalPaid;
 
         final double balance =
             rawBalance > 0 ? rawBalance : 0.0;
-
-        // ------------------------------------------------------
-        // REMAINING CREDIT LIMIT
-        // ------------------------------------------------------
 
         final double rawRemaining =
             maxDebt - balance;
@@ -132,10 +111,6 @@ class _StaffDebtManagementScreenState
           'remainingCredit': remainingCredit,
         });
       }
-
-      // --------------------------------------------------------
-      // SORT BY STAFF NAME
-      // --------------------------------------------------------
 
       updated.sort(
         (a, b) => a['staffName']
@@ -244,25 +219,40 @@ class _StaffDebtManagementScreenState
       await showDialog(
         context: context,
         builder: (dialogContext) {
+          final responsive =
+              Responsive(dialogContext);
+
           return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(
+                AppRadius.lg,
+              ),
+            ),
             title: Text(
               '$staffName - Repayment History',
+              style: AppTextStyles.title,
             ),
             content: SizedBox(
-              width: 600,
-              height: 450,
+              width: responsive.isCompact
+                  ? double.infinity
+                  : 600,
+              height: responsive.isCompact
+                  ? 380
+                  : 450,
               child: payments.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Text(
                         'No repayments recorded.',
+                        style:
+                            AppTextStyles.bodySecondary,
                       ),
                     )
                   : ListView.separated(
-                      itemCount:
-                          payments.length,
-                      separatorBuilder:
-                          (_, __) =>
-                              const Divider(),
+                      itemCount: payments.length,
+                      separatorBuilder: (_, __) =>
+                          const Divider(
+                        color: AppColors.divider,
+                      ),
                       itemBuilder:
                           (context, index) {
                         final payment =
@@ -274,10 +264,17 @@ class _StaffDebtManagementScreenState
                                 '';
 
                         return ListTile(
-                          leading:
-                              const CircleAvatar(
-                            child: Icon(
-                              Icons.payments,
+                          contentPadding:
+                              const EdgeInsets.symmetric(
+                            vertical: AppSpacing.xs,
+                          ),
+                          leading: CircleAvatar(
+                            backgroundColor:
+                                AppColors.successLight,
+                            foregroundColor:
+                                AppColors.success,
+                            child: const Icon(
+                              Icons.payments_outlined,
                             ),
                           ),
                           title: Text(
@@ -286,15 +283,14 @@ class _StaffDebtManagementScreenState
                                   .toDouble(),
                             ),
                             style:
-                                const TextStyle(
-                              fontWeight:
-                                  FontWeight.bold,
-                            ),
+                                AppTextStyles.price,
                           ),
                           subtitle: Text(
                             '${payment.paymentMethod.toUpperCase()}'
                             '${note.isEmpty ? '' : '\n$note'}'
                             '\n${payment.createdAt}',
+                            style:
+                                AppTextStyles.small,
                           ),
                         );
                       },
@@ -307,8 +303,7 @@ class _StaffDebtManagementScreenState
                     dialogContext,
                   ).pop();
                 },
-                child:
-                    const Text('Close'),
+                child: const Text('Close'),
               ),
             ],
           );
@@ -334,12 +329,27 @@ class _StaffDebtManagementScreenState
   }) {
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(
+          message,
+          style: const TextStyle(
+            fontFamily: 'Poppins',
+          ),
+        ),
         backgroundColor:
-            isError ? Colors.red : null,
+            isError
+                ? AppColors.danger
+                : AppColors.success,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(
+          AppSpacing.lg,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(
+            AppRadius.md,
+          ),
+        ),
       ),
     );
   }
@@ -359,6 +369,8 @@ class _StaffDebtManagementScreenState
   Widget _buildStaffCard(
     Map<String, dynamic> staff,
   ) {
+    final responsive = Responsive(context);
+
     final String staffName =
         staff['staffName'].toString();
 
@@ -366,20 +378,16 @@ class _StaffDebtManagementScreenState
         staff['staffId'] as int;
 
     final double balance =
-        (staff['balance'] as num)
-            .toDouble();
+        (staff['balance'] as num).toDouble();
 
     final double totalDebt =
-        (staff['totalDebt'] as num)
-            .toDouble();
+        (staff['totalDebt'] as num).toDouble();
 
     final double totalPaid =
-        (staff['totalPaid'] as num)
-            .toDouble();
+        (staff['totalPaid'] as num).toDouble();
 
     final double remainingCredit =
-        (staff['remainingCredit'] as num)
-            .toDouble();
+        (staff['remainingCredit'] as num).toDouble();
 
     final double progress =
         _maxDebt <= 0
@@ -390,12 +398,34 @@ class _StaffDebtManagementScreenState
     final bool hasDebt =
         balance > 0;
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(
-        bottom: 16,
+        bottom: AppSpacing.lg,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(
+          AppRadius.lg,
+        ),
+        border: Border.all(
+          color: AppColors.border,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(
+              alpha: 0.04,
+            ),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(
+          responsive.isCompact
+              ? AppSpacing.lg
+              : AppSpacing.xl,
+        ),
         child: Column(
           children: [
             // ==================================================
@@ -403,9 +433,17 @@ class _StaffDebtManagementScreenState
             // ==================================================
 
             Row(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
               children: [
                 CircleAvatar(
-                  radius: 25,
+                  radius: responsive.isCompact
+                      ? 22
+                      : 25,
+                  backgroundColor:
+                      AppColors.primaryLight,
+                  foregroundColor:
+                      AppColors.primary,
                   child: Text(
                     staffName.trim().isEmpty
                         ? '?'
@@ -416,10 +454,17 @@ class _StaffDebtManagementScreenState
                               1,
                             )
                             .toUpperCase(),
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight:
+                          FontWeight.w700,
+                    ),
                   ),
                 ),
 
-                const SizedBox(width: 14),
+                const SizedBox(
+                  width: AppSpacing.md,
+                ),
 
                 Expanded(
                   child: Column(
@@ -429,24 +474,25 @@ class _StaffDebtManagementScreenState
                       Text(
                         staffName,
                         style:
-                            const TextStyle(
-                          fontSize: 18,
-                          fontWeight:
-                              FontWeight.bold,
-                        ),
+                            AppTextStyles.title,
+                        maxLines: 1,
+                        overflow:
+                            TextOverflow.ellipsis,
                       ),
                       const SizedBox(
-                        height: 4,
+                        height: AppSpacing.xs,
                       ),
                       Text(
                         'Staff ID: $staffId',
-                        style: TextStyle(
-                          color:
-                              Colors.grey.shade600,
-                        ),
+                        style:
+                            AppTextStyles.small,
                       ),
                     ],
                   ),
+                ),
+
+                const SizedBox(
+                  width: AppSpacing.md,
                 ),
 
                 // CURRENT BALANCE
@@ -456,24 +502,23 @@ class _StaffDebtManagementScreenState
                   children: [
                     Text(
                       'Outstanding',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color:
-                            Colors.grey.shade600,
-                      ),
+                      style:
+                          AppTextStyles.small,
                     ),
                     const SizedBox(
-                      height: 2,
+                      height: AppSpacing.xs,
                     ),
                     Text(
                       _money(balance),
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight:
-                            FontWeight.bold,
+                      style: AppTextStyles.price
+                          .copyWith(
                         color: hasDebt
-                            ? Colors.red
-                            : Colors.green,
+                            ? AppColors.danger
+                            : AppColors.success,
+                        fontSize:
+                            responsive.isCompact
+                                ? 16
+                                : 20,
                       ),
                     ),
                   ],
@@ -481,37 +526,58 @@ class _StaffDebtManagementScreenState
               ],
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(
+              height: AppSpacing.xl,
+            ),
 
             // ==================================================
             // DEBT PROGRESS
             // ==================================================
 
-            LinearProgressIndicator(
-              value: progress,
-              minHeight: 8,
+            ClipRRect(
+              borderRadius:
+                  BorderRadius.circular(
+                AppRadius.round,
+              ),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 8,
+                backgroundColor:
+                    AppColors.divider,
+                color: hasDebt
+                    ? AppColors.warning
+                    : AppColors.success,
+              ),
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(
+              height: AppSpacing.sm,
+            ),
 
             Row(
               mainAxisAlignment:
-                  MainAxisAlignment
-                      .spaceBetween,
+                  MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Debt usage: '
-                  '${_money(balance)} / '
-                  '${_money(_maxDebt)}',
+                Expanded(
+                  child: Text(
+                    'Debt usage: '
+                    '${_money(balance)} / '
+                    '${_money(_maxDebt)}',
+                    style:
+                        AppTextStyles.small,
+                  ),
+                ),
+                const SizedBox(
+                  width: AppSpacing.sm,
                 ),
                 Text(
                   'Available: '
                   '${_money(remainingCredit)}',
-                  style: TextStyle(
-                    color:
-                        remainingCredit > 0
-                            ? Colors.green
-                            : Colors.red,
+                  style:
+                      AppTextStyles.small.copyWith(
+                    color: remainingCredit > 0
+                        ? AppColors.success
+                        : AppColors.danger,
                     fontWeight:
                         FontWeight.w600,
                   ),
@@ -519,7 +585,9 @@ class _StaffDebtManagementScreenState
               ],
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(
+              height: AppSpacing.xl,
+            ),
 
             // ==================================================
             // SUMMARY
@@ -528,89 +596,170 @@ class _StaffDebtManagementScreenState
             Container(
               padding:
                   const EdgeInsets.symmetric(
-                vertical: 16,
+                vertical: AppSpacing.lg,
+                horizontal: AppSpacing.sm,
               ),
               decoration: BoxDecoration(
-                color: Colors.grey
-                    .withValues(alpha: 0.08),
+                color: AppColors.surfaceSoft,
                 borderRadius:
-                    BorderRadius.circular(12),
+                    BorderRadius.circular(
+                  AppRadius.md,
+                ),
+                border: Border.all(
+                  color: AppColors.divider,
+                ),
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _buildSummaryItem(
-                      'Credit Purchases',
-                      _money(totalDebt),
-                      Icons.shopping_cart,
+              child: responsive.isCompact
+                  ? Column(
+                      children: [
+                        _buildSummaryItem(
+                          'Credit Purchases',
+                          _money(totalDebt),
+                          Icons.shopping_cart_outlined,
+                        ),
+                        const Divider(
+                          height: AppSpacing.xl,
+                        ),
+                        _buildSummaryItem(
+                          'Repaid',
+                          _money(totalPaid),
+                          Icons.check_circle_outline,
+                        ),
+                        const Divider(
+                          height: AppSpacing.xl,
+                        ),
+                        _buildSummaryItem(
+                          'Balance',
+                          _money(balance),
+                          Icons.account_balance_wallet_outlined,
+                        ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        Expanded(
+                          child:
+                              _buildSummaryItem(
+                            'Credit Purchases',
+                            _money(totalDebt),
+                            Icons.shopping_cart_outlined,
+                          ),
+                        ),
+                        Expanded(
+                          child:
+                              _buildSummaryItem(
+                            'Repaid',
+                            _money(totalPaid),
+                            Icons.check_circle_outline,
+                          ),
+                        ),
+                        Expanded(
+                          child:
+                              _buildSummaryItem(
+                            'Balance',
+                            _money(balance),
+                            Icons.account_balance_wallet_outlined,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  Expanded(
-                    child: _buildSummaryItem(
-                      'Repaid',
-                      _money(totalPaid),
-                      Icons.check_circle,
-                    ),
-                  ),
-                  Expanded(
-                    child: _buildSummaryItem(
-                      'Balance',
-                      _money(balance),
-                      Icons
-                          .account_balance_wallet,
-                    ),
-                  ),
-                ],
-              ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(
+              height: AppSpacing.xl,
+            ),
 
             // ==================================================
             // ACTIONS
             // ==================================================
 
-            Row(
-              children: [
-                Expanded(
-                  child:
+            responsive.isCompact
+                ? Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.stretch,
+                    children: [
                       OutlinedButton.icon(
-                    onPressed: () {
-                      _showPaymentHistory(
-                        staff,
-                      );
-                    },
-                    icon: const Icon(
-                      Icons.history,
-                    ),
-                    label: const Text(
-                      'History',
-                    ),
-                  ),
-                ),
-
-                const SizedBox(width: 12),
-
-                Expanded(
-                  child:
+                        onPressed: () {
+                          _showPaymentHistory(
+                            staff,
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.history,
+                        ),
+                        label: const Text(
+                          'History',
+                        ),
+                        style:
+                            _outlinedButtonStyle(),
+                      ),
+                      const SizedBox(
+                        height: AppSpacing.sm,
+                      ),
                       ElevatedButton.icon(
-                    onPressed: hasDebt
-                        ? () {
-                            _showRepaymentDialog(
+                        onPressed: hasDebt
+                            ? () {
+                                _showRepaymentDialog(
+                                  staff,
+                                );
+                              }
+                            : null,
+                        icon: const Icon(
+                          Icons.payments_outlined,
+                        ),
+                        label: const Text(
+                          'Record Repayment',
+                        ),
+                        style:
+                            _primaryButtonStyle(),
+                      ),
+                    ],
+                  )
+                : Row(
+                    children: [
+                      Expanded(
+                        child:
+                            OutlinedButton.icon(
+                          onPressed: () {
+                            _showPaymentHistory(
                               staff,
                             );
-                          }
-                        : null,
-                    icon: const Icon(
-                      Icons.payments,
-                    ),
-                    label: const Text(
-                      'Record Repayment',
-                    ),
+                          },
+                          icon: const Icon(
+                            Icons.history,
+                          ),
+                          label: const Text(
+                            'History',
+                          ),
+                          style:
+                              _outlinedButtonStyle(),
+                        ),
+                      ),
+                      const SizedBox(
+                        width: AppSpacing.md,
+                      ),
+                      Expanded(
+                        child:
+                            ElevatedButton.icon(
+                          onPressed: hasDebt
+                              ? () {
+                                  _showRepaymentDialog(
+                                    staff,
+                                  );
+                                }
+                              : null,
+                          icon: const Icon(
+                            Icons.payments_outlined,
+                          ),
+                          label: const Text(
+                            'Record Repayment',
+                          ),
+                          style:
+                              _primaryButtonStyle(),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
           ],
         ),
       ),
@@ -631,32 +780,83 @@ class _StaffDebtManagementScreenState
         Icon(
           icon,
           size: 22,
+          color: AppColors.primary,
         ),
 
-        const SizedBox(height: 6),
+        const SizedBox(
+          height: AppSpacing.xs,
+        ),
 
         Text(
           label,
-          style: TextStyle(
-            fontSize: 12,
-            color:
-                Colors.grey.shade600,
-          ),
+          style: AppTextStyles.small,
           textAlign: TextAlign.center,
         ),
 
-        const SizedBox(height: 4),
+        const SizedBox(
+          height: AppSpacing.xs,
+        ),
 
         Text(
           value,
-          style:
-              const TextStyle(
-            fontWeight:
-                FontWeight.bold,
+          style: AppTextStyles.body.copyWith(
+            fontWeight: FontWeight.w700,
           ),
           textAlign: TextAlign.center,
         ),
       ],
+    );
+  }
+
+  // ============================================================
+  // BUTTON STYLES
+  // ============================================================
+
+  ButtonStyle _primaryButtonStyle() {
+    return ElevatedButton.styleFrom(
+      backgroundColor: AppColors.primary,
+      foregroundColor: Colors.white,
+      minimumSize: const Size(
+        0,
+        AppSizes.buttonHeight,
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(
+          AppRadius.md,
+        ),
+      ),
+      textStyle: AppTextStyles.body.copyWith(
+        color: Colors.white,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+
+  ButtonStyle _outlinedButtonStyle() {
+    return OutlinedButton.styleFrom(
+      foregroundColor: AppColors.primary,
+      minimumSize: const Size(
+        0,
+        AppSizes.buttonHeight,
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+      ),
+      side: const BorderSide(
+        color: AppColors.border,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(
+          AppRadius.md,
+        ),
+      ),
+      textStyle: AppTextStyles.body.copyWith(
+        color: AppColors.primary,
+        fontWeight: FontWeight.w600,
+      ),
     );
   }
 
@@ -666,11 +866,20 @@ class _StaffDebtManagementScreenState
 
   @override
   Widget build(BuildContext context) {
+    final responsive = Responsive(context);
+
     return Scaffold(
+      backgroundColor: AppColors.background,
+
       appBar: AppBar(
+        leading: const CentralBackButton(),
         title: const Text(
           'Staff Debt Management',
+          style: AppTextStyles.heading,
         ),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
         actions: [
           IconButton(
             tooltip: 'Refresh',
@@ -686,76 +895,159 @@ class _StaffDebtManagementScreenState
 
       body: _isLoading
           ? const Center(
-              child:
-                  CircularProgressIndicator(),
+              child: CircularProgressIndicator(
+                color: AppColors.primary,
+              ),
             )
           : RefreshIndicator(
+              color: AppColors.primary,
               onRefresh: _loadDebtData,
               child: _staffDebt.isEmpty
                   ? ListView(
                       physics:
                           const AlwaysScrollableScrollPhysics(),
-                      children: const [
-                        SizedBox(
-                          height: 250,
+                      padding: EdgeInsets.symmetric(
+                        horizontal:
+                            responsive.horizontalPadding,
+                      ),
+                      children: [
+                        const SizedBox(
+                          height: 180,
                         ),
-                        Center(
-                          child: Text(
-                            'No outstanding staff debt records found.',
-                          ),
-                        ),
+                        _buildEmptyState(),
                       ],
                     )
                   : ListView(
                       physics:
                           const AlwaysScrollableScrollPhysics(),
-                      padding:
-                          const EdgeInsets.all(
-                        20,
+                      padding: EdgeInsets.symmetric(
+                        horizontal:
+                            responsive.horizontalPadding,
+                        vertical:
+                            responsive.verticalPadding,
                       ),
                       children: [
-                        Text(
-                          'Staff Debt Overview',
-                          style:
-                              Theme.of(
-                                context,
-                              )
-                                  .textTheme
-                                  .headlineSmall
-                                  ?.copyWith(
-                                    fontWeight:
-                                        FontWeight.bold,
-                                  ),
-                        ),
+                        Center(
+                          child: ConstrainedBox(
+                            constraints:
+                                BoxConstraints(
+                              maxWidth:
+                                  responsive.contentMaxWidth,
+                            ),
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment
+                                      .start,
+                              children: [
+                                // ==================================
+                                // PAGE HEADER
+                                // ==================================
 
-                        const SizedBox(
-                          height: 6,
-                        ),
+                                Text(
+                                  'Staff Debt Overview',
+                                  style:
+                                      AppTextStyles
+                                          .dashboardTitle,
+                                ),
 
-                        Text(
-                          'Monitor staff credit purchases, repayments and outstanding balances.',
-                          style:
-                              Theme.of(
-                                context,
-                              )
-                                  .textTheme
-                                  .bodyMedium,
-                        ),
+                                const SizedBox(
+                                  height:
+                                      AppSpacing.xs,
+                                ),
 
-                        const SizedBox(
-                          height: 20,
-                        ),
+                                Text(
+                                  'Monitor staff credit purchases, repayments and outstanding balances.',
+                                  style:
+                                      AppTextStyles
+                                          .dashboardSubtitle,
+                                ),
 
-                        ..._staffDebt.map(
-                          _buildStaffCard,
-                        ),
+                                const SizedBox(
+                                  height:
+                                      AppSpacing.xxl,
+                                ),
 
-                        const SizedBox(
-                          height: 30,
+                                // ==================================
+                                // STAFF CARDS
+                                // ==================================
+
+                                ..._staffDebt.map(
+                                  _buildStaffCard,
+                                ),
+
+                                const SizedBox(
+                                  height:
+                                      AppSpacing.lg,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ],
                     ),
             ),
+    );
+  }
+
+  // ============================================================
+  // EMPTY STATE
+  // ============================================================
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(
+          maxWidth: 500,
+        ),
+        padding: const EdgeInsets.all(
+          AppSpacing.xxxl,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(
+            AppRadius.lg,
+          ),
+          border: Border.all(
+            color: AppColors.border,
+          ),
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: AppColors.successLight,
+                borderRadius:
+                    BorderRadius.circular(
+                  AppRadius.round,
+                ),
+              ),
+              child: const Icon(
+                Icons.check_circle_outline,
+                size: 32,
+                color: AppColors.success,
+              ),
+            ),
+            const SizedBox(
+              height: AppSpacing.lg,
+            ),
+            Text(
+              'No Outstanding Debt',
+              style: AppTextStyles.title,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(
+              height: AppSpacing.sm,
+            ),
+            Text(
+              'No outstanding staff debt records were found.',
+              style: AppTextStyles.bodySecondary,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -889,8 +1181,22 @@ class _RepaymentDialogState
     ScaffoldMessenger.of(context)
         .showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
+        content: Text(
+          message,
+          style: const TextStyle(
+            fontFamily: 'Poppins',
+          ),
+        ),
+        backgroundColor: AppColors.danger,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(
+          AppSpacing.lg,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(
+            AppRadius.md,
+          ),
+        ),
       ),
     );
   }
@@ -901,41 +1207,129 @@ class _RepaymentDialogState
 
   @override
   Widget build(BuildContext context) {
+    final responsive = Responsive(context);
+
     return AlertDialog(
-      title: const Text(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(
+          AppRadius.lg,
+        ),
+      ),
+
+      title: Text(
         'Record Debt Repayment',
+        style: AppTextStyles.title,
       ),
 
       content: SizedBox(
-        width: 420,
+        width: responsive.isCompact
+            ? double.infinity
+            : 420,
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment:
                 CrossAxisAlignment.start,
             children: [
-              Text(
-                widget.staffName,
-                style:
-                    const TextStyle(
-                  fontSize: 18,
-                  fontWeight:
-                      FontWeight.bold,
+              // ================================================
+              // STAFF
+              // ================================================
+
+              Container(
+                padding: const EdgeInsets.all(
+                  AppSpacing.md,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  borderRadius:
+                      BorderRadius.circular(
+                    AppRadius.md,
+                  ),
+                  border: Border.all(
+                    color:
+                        AppColors.primary.withValues(
+                      alpha: 0.15,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 22,
+                      backgroundColor:
+                          AppColors.primary,
+                      foregroundColor:
+                          Colors.white,
+                      child: Text(
+                        widget.staffName
+                                .trim()
+                                .isEmpty
+                            ? '?'
+                            : widget.staffName
+                                .trim()
+                                .substring(
+                                  0,
+                                  1,
+                                )
+                                .toUpperCase(),
+                        style:
+                            const TextStyle(
+                          fontFamily:
+                              'Poppins',
+                          fontWeight:
+                              FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(
+                      width: AppSpacing.md,
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment:
+                            CrossAxisAlignment
+                                .start,
+                        children: [
+                          Text(
+                            widget.staffName,
+                            style:
+                                AppTextStyles.title,
+                          ),
+                          const SizedBox(
+                            height:
+                                AppSpacing.xs,
+                          ),
+                          Text(
+                            'Outstanding debt',
+                            style:
+                                AppTextStyles.small,
+                          ),
+                          const SizedBox(
+                            height:
+                                AppSpacing.xs,
+                          ),
+                          Text(
+                            '₦${widget.balance.toStringAsFixed(2)}',
+                            style: AppTextStyles
+                                .price
+                                .copyWith(
+                              color:
+                                  AppColors.danger,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
 
-              const SizedBox(height: 8),
-
-              Text(
-                'Outstanding debt: '
-                '₦${widget.balance.toStringAsFixed(2)}',
-                style:
-                    const TextStyle(
-                  fontWeight:
-                      FontWeight.w600,
-                ),
+              const SizedBox(
+                height: AppSpacing.xl,
               ),
 
-              const SizedBox(height: 20),
+              // ================================================
+              // AMOUNT
+              // ================================================
 
               TextField(
                 controller:
@@ -957,7 +1351,13 @@ class _RepaymentDialogState
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(
+                height: AppSpacing.lg,
+              ),
+
+              // ================================================
+              // PAYMENT METHOD
+              // ================================================
 
               DropdownButtonFormField<
                   String>(
@@ -1008,7 +1408,13 @@ class _RepaymentDialogState
                       },
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(
+                height: AppSpacing.lg,
+              ),
+
+              // ================================================
+              // NOTE
+              // ================================================
 
               TextField(
                 controller:
@@ -1030,6 +1436,14 @@ class _RepaymentDialogState
         ),
       ),
 
+      actionsPadding:
+          const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.lg,
+      ),
+
       actions: [
         TextButton(
           onPressed: _isSaving
@@ -1047,6 +1461,22 @@ class _RepaymentDialogState
           onPressed: _isSaving
               ? null
               : _savePayment,
+          style: ElevatedButton.styleFrom(
+            backgroundColor:
+                AppColors.primary,
+            foregroundColor:
+                Colors.white,
+            minimumSize: const Size(
+              0,
+              AppSizes.buttonHeight,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius:
+                  BorderRadius.circular(
+                AppRadius.md,
+              ),
+            ),
+          ),
           icon: _isSaving
               ? const SizedBox(
                   width: 18,
@@ -1054,15 +1484,22 @@ class _RepaymentDialogState
                   child:
                       CircularProgressIndicator(
                     strokeWidth: 2,
+                    color: Colors.white,
                   ),
                 )
               : const Icon(
-                  Icons.payments,
+                  Icons.payments_outlined,
                 ),
           label: Text(
             _isSaving
                 ? 'Saving...'
                 : 'Record Payment',
+            style:
+                AppTextStyles.body.copyWith(
+              color: Colors.white,
+              fontWeight:
+                  FontWeight.w600,
+            ),
           ),
         ),
       ],

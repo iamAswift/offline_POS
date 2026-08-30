@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../core/responsive/responsive.dart';
 import '../../core/theme/styles.dart';
 import '../../database/app_database.dart';
 import '../../database/daos/sales_dao.dart';
@@ -121,11 +122,9 @@ class _GrossRevenueReportScreenState
           const Duration(days: 1),
         );
 
-        final end = today;
-
         return _DateRange(
           start: start,
-          end: end,
+          end: today,
         );
 
       case _RevenuePeriod.thisWeek:
@@ -188,11 +187,10 @@ class _GrossRevenueReportScreenState
         );
 
       case _RevenuePeriod.allTime:
-        // Use a very old start and tomorrow as the end.
+        // Temporary compatibility with the existing DAO signature.
         //
-        // This lets the existing SalesDao method remain
-        // completely unchanged while effectively returning
-        // all sales in the database.
+        // The preferred architecture is for SalesDao.getGrossRevenue()
+        // to support nullable boundaries for a true unbounded query.
         final start = DateTime(
           2000,
           1,
@@ -271,41 +269,48 @@ class _GrossRevenueReportScreenState
   // ============================================================
 
   PreferredSizeWidget _buildAppBar() {
+    final responsive = context.responsive;
+
     return AppBar(
       backgroundColor: AppColors.surface,
       elevation: 0,
       surfaceTintColor: Colors.transparent,
       automaticallyImplyLeading: true,
-      titleSpacing: 20,
+      titleSpacing: responsive.horizontalPadding,
       title: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: AppSizes.iconButton,
+            height: AppSizes.iconButton,
             decoration: BoxDecoration(
               color: AppColors.accent.withValues(
                 alpha: 0.10,
               ),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(
+                AppRadius.lg,
+              ),
             ),
             child: const Icon(
               Icons.payments_outlined,
               color: AppColors.accent,
-              size: 22,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(
+            width: AppSpacing.md,
+          ),
           const Text(
-            "Gross Revenue Report",
+            'Gross Revenue Report',
             style: AppTextStyles.title,
           ),
         ],
       ),
       actions: [
         Padding(
-          padding: const EdgeInsets.only(right: 16),
+          padding: EdgeInsets.only(
+            right: responsive.horizontalPadding,
+          ),
           child: IconButton(
-            tooltip: "Refresh",
+            tooltip: 'Refresh',
             onPressed: _isLoading
                 ? null
                 : _loadReport,
@@ -316,10 +321,11 @@ class _GrossRevenueReportScreenState
           ),
         ),
       ],
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(1),
-        child: Container(
+      bottom: const PreferredSize(
+        preferredSize: Size.fromHeight(1),
+        child: Divider(
           height: 1,
+          thickness: 1,
           color: AppColors.divider,
         ),
       ),
@@ -342,60 +348,60 @@ class _GrossRevenueReportScreenState
       );
     }
 
+    final responsive = context.responsive;
+
     return RefreshIndicator(
       color: AppColors.primary,
       onRefresh: _loadReport,
-      child: LayoutBuilder(
-        builder: (
-          context,
-          constraints,
-        ) {
-          final isDesktop =
-              constraints.maxWidth >= 1000;
-
-          return SingleChildScrollView(
-            physics:
-                const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.symmetric(
-              horizontal:
-                  isDesktop ? 32 : 16,
-              vertical: 24,
+      child: SingleChildScrollView(
+        physics:
+            const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.symmetric(
+          horizontal: responsive.horizontalPadding,
+          vertical: responsive.verticalPadding,
+        ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: responsive.contentMaxWidth,
             ),
-            child: Center(
-              child: ConstrainedBox(
-                constraints:
-                    const BoxConstraints(
-                  maxWidth: 1400,
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                _buildPageHeader(),
+
+                const SizedBox(
+                  height: AppSpacing.xl,
                 ),
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
-                    _buildPageHeader(),
 
-                    const SizedBox(height: 24),
+                _buildPeriodSelector(),
 
-                    _buildPeriodSelector(),
-
-                    const SizedBox(height: 28),
-
-                    _buildRevenueCard(),
-
-                    const SizedBox(height: 28),
-
-                    _buildInformationSection(),
-
-                    const SizedBox(height: 32),
-
-                    _buildExportSection(),
-
-                    const SizedBox(height: 24),
-                  ],
+                const SizedBox(
+                  height: AppSpacing.xxl,
                 ),
-              ),
+
+                _buildRevenueCard(),
+
+                const SizedBox(
+                  height: AppSpacing.xxl,
+                ),
+
+                _buildInformationSection(),
+
+                const SizedBox(
+                  height: AppSpacing.xxxl,
+                ),
+
+                _buildExportSection(),
+
+                const SizedBox(
+                  height: AppSpacing.xl,
+                ),
+              ],
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }
@@ -405,31 +411,40 @@ class _GrossRevenueReportScreenState
   // ============================================================
 
   Widget _buildPageHeader() {
-    return const Column(
+    return Column(
       crossAxisAlignment:
           CrossAxisAlignment.start,
       children: [
-        Text(
-          "Revenue performance",
+        const Text(
+          'Revenue performance',
           style: AppTextStyles.heading,
         ),
-        SizedBox(height: 6),
-        Text(
-          "View the total gross revenue generated from sales.",
-          style:
-              AppTextStyles.bodySecondary,
+
+        SizedBox(
+          height: AppSpacing.xs,
         ),
-        SizedBox(height: 10),
+
+        const Text(
+          'View the total gross revenue generated from sales.',
+          style: AppTextStyles.bodySecondary,
+        ),
+
+        SizedBox(
+          height: AppSpacing.sm,
+        ),
+
         Row(
           children: [
-            Icon(
+            const Icon(
               Icons.trending_up_outlined,
               size: 14,
               color: AppColors.textMuted,
             ),
-            SizedBox(width: 6),
-            Text(
-              "Sales revenue",
+            SizedBox(
+              width: AppSpacing.xs,
+            ),
+            const Text(
+              'Sales revenue',
               style: AppTextStyles.small,
             ),
           ],
@@ -443,68 +458,77 @@ class _GrossRevenueReportScreenState
   // ============================================================
 
   Widget _buildPeriodSelector() {
+    final responsive = context.responsive;
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(
+        AppSpacing.lg,
+      ),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius:
-            BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(
+          AppRadius.xl,
+        ),
         border: Border.all(
           color: AppColors.border,
         ),
       ),
-      child: LayoutBuilder(
-        builder: (
-          context,
-          constraints,
-        ) {
-          final compact =
-              constraints.maxWidth < 700;
+      child: responsive.isCompact
+          ? _buildCompactPeriodSelector()
+          : _buildWidePeriodSelector(),
+    );
+  }
 
-          if (compact) {
-            return Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-              children: [
-                _buildPeriodLabel(),
+  Widget _buildCompactPeriodSelector() {
+    return Column(
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
+      children: [
+        _buildPeriodLabel(),
 
-                const SizedBox(height: 12),
+        const SizedBox(
+          height: AppSpacing.md,
+        ),
 
-                _buildPeriodDropdown(
-                  fullWidth: true,
-                ),
+        _buildPeriodDropdown(
+          fullWidth: true,
+        ),
 
-                if (_selectedPeriod ==
-                    _RevenuePeriod.custom) ...[
-                  const SizedBox(height: 12),
-                  _buildCustomDateButton(
-                    fullWidth: true,
-                  ),
-                ],
-              ],
-            );
-          }
+        if (_selectedPeriod ==
+            _RevenuePeriod.custom) ...[
+          const SizedBox(
+            height: AppSpacing.md,
+          ),
+          _buildCustomDateButton(
+            fullWidth: true,
+          ),
+        ],
+      ],
+    );
+  }
 
-          return Row(
-            children: [
-              Expanded(
-                child: _buildPeriodLabel(),
-              ),
+  Widget _buildWidePeriodSelector() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildPeriodLabel(),
+        ),
 
-              const SizedBox(width: 20),
+        const SizedBox(
+          width: AppSpacing.lg,
+        ),
 
-              _buildPeriodDropdown(),
+        _buildPeriodDropdown(),
 
-              if (_selectedPeriod ==
-                  _RevenuePeriod.custom) ...[
-                const SizedBox(width: 12),
-                _buildCustomDateButton(),
-              ],
-            ],
-          );
-        },
-      ),
+        if (_selectedPeriod ==
+            _RevenuePeriod.custom) ...[
+          const SizedBox(
+            width: AppSpacing.md,
+          ),
+          _buildCustomDateButton(),
+        ],
+      ],
     );
   }
 
@@ -514,14 +538,17 @@ class _GrossRevenueReportScreenState
           CrossAxisAlignment.start,
       children: [
         const Text(
-          "Revenue period",
+          'Revenue period',
           style: AppTextStyles.title,
         ),
-        const SizedBox(height: 4),
+
+        SizedBox(
+          height: AppSpacing.xs,
+        ),
+
         Text(
           _periodDescription(),
-          style:
-              AppTextStyles.bodySecondary,
+          style: AppTextStyles.bodySecondary,
         ),
       ],
     );
@@ -531,90 +558,82 @@ class _GrossRevenueReportScreenState
     bool fullWidth = false,
   }) {
     return SizedBox(
-      width: fullWidth ? double.infinity : 220,
+      width: fullWidth
+          ? double.infinity
+          : AppSizes.maxFormWidth / 2,
       child: DropdownButtonFormField<
           _RevenuePeriod>(
-        value: _selectedPeriod,
-        decoration:
-            InputDecoration(
-          labelText: "Period",
+        initialValue: _selectedPeriod,
+        decoration: InputDecoration(
+          labelText: 'Period',
           filled: true,
-          fillColor:
-              AppColors.surfaceSoft,
-          border:
-              OutlineInputBorder(
+          fillColor: AppColors.surfaceSoft,
+          contentPadding:
+              EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
+          ),
+          border: OutlineInputBorder(
             borderRadius:
                 BorderRadius.circular(
-              10,
+              AppRadius.lg,
             ),
             borderSide:
                 const BorderSide(
-              color:
-                  AppColors.border,
+              color: AppColors.border,
             ),
           ),
           enabledBorder:
               OutlineInputBorder(
             borderRadius:
                 BorderRadius.circular(
-              10,
+              AppRadius.lg,
             ),
             borderSide:
                 const BorderSide(
-              color:
-                  AppColors.border,
+              color: AppColors.border,
+            ),
+          ),
+          focusedBorder:
+              OutlineInputBorder(
+            borderRadius:
+                BorderRadius.circular(
+              AppRadius.lg,
+            ),
+            borderSide:
+                const BorderSide(
+              color: AppColors.primary,
             ),
           ),
         ),
         items: const [
           DropdownMenuItem(
-            value:
-                _RevenuePeriod.allTime,
-            child: Text(
-              "All Time",
-            ),
+            value: _RevenuePeriod.allTime,
+            child: Text('All Time'),
           ),
           DropdownMenuItem(
-            value:
-                _RevenuePeriod.today,
-            child: Text(
-              "Today",
-            ),
+            value: _RevenuePeriod.today,
+            child: Text('Today'),
           ),
           DropdownMenuItem(
-            value:
-                _RevenuePeriod.yesterday,
-            child: Text(
-              "Yesterday",
-            ),
+            value: _RevenuePeriod.yesterday,
+            child: Text('Yesterday'),
           ),
           DropdownMenuItem(
-            value:
-                _RevenuePeriod.thisWeek,
-            child: Text(
-              "This Week",
-            ),
+            value: _RevenuePeriod.thisWeek,
+            child: Text('This Week'),
           ),
           DropdownMenuItem(
-            value:
-                _RevenuePeriod.thisMonth,
-            child: Text(
-              "This Month",
-            ),
+            value: _RevenuePeriod.thisMonth,
+            child: Text('This Month'),
           ),
           DropdownMenuItem(
-            value:
-                _RevenuePeriod.thisYear,
-            child: Text(
-              "This Year",
-            ),
+            value: _RevenuePeriod.thisYear,
+            child: Text('This Year'),
           ),
           DropdownMenuItem(
-            value:
-                _RevenuePeriod.custom,
-            child: Text(
-              "Custom Range",
-            ),
+            value: _RevenuePeriod.custom,
+            child: Text('Custom Range'),
           ),
         ],
         onChanged: (value) {
@@ -642,26 +661,29 @@ class _GrossRevenueReportScreenState
   Widget _buildCustomDateButton({
     bool fullWidth = false,
   }) {
+    final responsive = context.responsive;
+
     return SizedBox(
-      width: fullWidth ? double.infinity : 220,
+      width: fullWidth
+          ? double.infinity
+          : AppSizes.maxFormWidth / 2,
+      height: responsive.buttonHeight,
       child: OutlinedButton.icon(
-        onPressed:
-            _selectCustomDateRange,
+        onPressed: _selectCustomDateRange,
         style: OutlinedButton.styleFrom(
-          foregroundColor:
-              AppColors.primary,
-          padding:
-              const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 15,
+          foregroundColor: AppColors.primary,
+          padding: EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.sm,
           ),
           side: const BorderSide(
             color: AppColors.border,
           ),
-          shape:
-              RoundedRectangleBorder(
+          shape: RoundedRectangleBorder(
             borderRadius:
-                BorderRadius.circular(10),
+                BorderRadius.circular(
+              AppRadius.lg,
+            ),
           ),
         ),
         icon: const Icon(
@@ -670,15 +692,13 @@ class _GrossRevenueReportScreenState
         ),
         label: Text(
           _customRangeLabel(),
-          overflow:
-              TextOverflow.ellipsis,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     );
   }
 
-  Future<void>
-      _selectCustomDateRange() async {
+  Future<void> _selectCustomDateRange() async {
     final now = DateTime.now();
 
     final initialStart =
@@ -706,8 +726,7 @@ class _GrossRevenueReportScreenState
         now.month,
         now.day,
       ),
-      initialDateRange:
-          DateTimeRange(
+      initialDateRange: DateTimeRange(
         start: initialStart,
         end: initialEnd,
       ),
@@ -716,15 +735,13 @@ class _GrossRevenueReportScreenState
         child,
       ) {
         return Theme(
-          data: Theme.of(context)
-              .copyWith(
+          data: Theme.of(context).copyWith(
             colorScheme:
                 Theme.of(context)
                     .colorScheme
                     .copyWith(
-                      primary:
-                          AppColors.primary,
-                    ),
+              primary: AppColors.primary,
+            ),
           ),
           child: child!,
         );
@@ -746,11 +763,8 @@ class _GrossRevenueReportScreenState
     }
 
     setState(() {
-      _customStartDate =
-          picked.start;
-
-      _customEndDate =
-          picked.end;
+      _customStartDate = picked.start;
+      _customEndDate = picked.end;
     });
 
     await _loadReport();
@@ -761,92 +775,83 @@ class _GrossRevenueReportScreenState
   // ============================================================
 
   Widget _buildRevenueCard() {
+    final responsive = context.responsive;
+
     return Container(
       width: double.infinity,
-      padding:
-          const EdgeInsets.all(22),
+      padding: EdgeInsets.all(
+        AppSpacing.xl,
+      ),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius:
-            BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(
+          AppRadius.xl,
+        ),
         border: Border.all(
           color: AppColors.border,
         ),
         boxShadow: const [
           BoxShadow(
-            color:
-                Color(0x08000000),
+            color: Color(0x08000000),
             blurRadius: 8,
-            offset:
-                Offset(0, 3),
+            offset: Offset(0, 3),
           ),
         ],
       ),
-      child: LayoutBuilder(
-        builder: (
-          context,
-          constraints,
-        ) {
-          final compact =
-              constraints.maxWidth < 600;
-
-          if (compact) {
-            return Column(
+      child: responsive.isCompact
+          ? Column(
               crossAxisAlignment:
                   CrossAxisAlignment.start,
               children: [
                 _buildRevenueIcon(),
 
                 const SizedBox(
-                  height: 16,
+                  height: AppSpacing.lg,
                 ),
 
                 _buildRevenueContent(),
               ],
-            );
-          }
+            )
+          : Row(
+              children: [
+                _buildRevenueIcon(),
 
-          return Row(
-            children: [
-              _buildRevenueIcon(),
+                const SizedBox(
+                  width: AppSpacing.lg,
+                ),
 
-              const SizedBox(
-                width: 16,
-              ),
+                Expanded(
+                  child:
+                      _buildRevenueContent(),
+                ),
 
-              Expanded(
-                child:
-                    _buildRevenueContent(),
-              ),
+                const SizedBox(
+                  width: AppSpacing.xl,
+                ),
 
-              const SizedBox(
-                width: 20,
-              ),
-
-              _buildStatusBadge(),
-            ],
-          );
-        },
-      ),
+                _buildStatusBadge(),
+              ],
+            ),
     );
   }
 
   Widget _buildRevenueIcon() {
     return Container(
-      width: 58,
-      height: 58,
+      width: AppSizes.iconButton +
+          AppSpacing.md,
+      height: AppSizes.iconButton +
+          AppSpacing.md,
       decoration: BoxDecoration(
-        color:
-            AppColors.accent.withValues(
+        color: AppColors.accent.withValues(
           alpha: 0.10,
         ),
-        borderRadius:
-            BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(
+          AppRadius.xl,
+        ),
       ),
       child: const Icon(
         Icons.payments_outlined,
         color: AppColors.accent,
-        size: 28,
       ),
     );
   }
@@ -857,29 +862,26 @@ class _GrossRevenueReportScreenState
           CrossAxisAlignment.start,
       children: [
         const Text(
-          "Gross Revenue",
-          style:
-              AppTextStyles.bodySecondary,
+          'Gross Revenue',
+          style: AppTextStyles.bodySecondary,
         ),
 
-        const SizedBox(height: 6),
+        const SizedBox(
+          height: AppSpacing.xs,
+        ),
 
         Text(
-          _formatCurrency(
-            _grossRevenue,
+          _formatCurrency(_grossRevenue),
+          style: AppTextStyles.price.copyWith(
+            fontSize: AppTextStyles.price.fontSize,
+            color: AppColors.textPrimary,
           ),
-          style:
-              AppTextStyles.price
-                  .copyWith(
-            fontSize: 30,
-            color:
-                AppColors.textPrimary,
-          ),
-          overflow:
-              TextOverflow.ellipsis,
+          overflow: TextOverflow.ellipsis,
         ),
 
-        const SizedBox(height: 5),
+        const SizedBox(
+          height: AppSpacing.xs,
+        ),
 
         Text(
           _periodDescription(),
@@ -891,45 +893,41 @@ class _GrossRevenueReportScreenState
 
   Widget _buildStatusBadge() {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 11,
-        vertical: 7,
+      padding: EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
       ),
       decoration: BoxDecoration(
-        color:
-            AppColors.successLight,
-        borderRadius:
-            BorderRadius.circular(8),
+        color: AppColors.successLight,
+        borderRadius: BorderRadius.circular(
+          AppRadius.md,
+        ),
         border: Border.all(
-          color:
-              AppColors.success
-                  .withValues(
+          color: AppColors.success.withValues(
             alpha: 0.20,
           ),
         ),
       ),
-      child: const Row(
-        mainAxisSize:
-            MainAxisSize.min,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
+          const Icon(
             Icons.check_circle_outline,
             size: 15,
-            color:
-                AppColors.success,
+            color: AppColors.success,
           ),
-          SizedBox(width: 6),
-          Text(
-            "Revenue tracked",
+
+          SizedBox(
+            width: AppSpacing.xs,
+          ),
+
+          const Text(
+            'Revenue tracked',
             style: TextStyle(
-              fontFamily:
-                  'Poppins',
+              fontFamily: 'Poppins',
               fontSize: 11,
-              fontWeight:
-                  FontWeight.w600,
-              color:
-                  AppColors.success,
+              fontWeight: FontWeight.w600,
+              color: AppColors.success,
             ),
           ),
         ],
@@ -942,28 +940,32 @@ class _GrossRevenueReportScreenState
   // ============================================================
 
   Widget _buildInformationSection() {
-    final range =
-        _getDateRange();
+    final range = _getDateRange();
 
     return Column(
       crossAxisAlignment:
           CrossAxisAlignment.start,
       children: [
         const Text(
-          "Revenue details",
+          'Revenue details',
           style: AppTextStyles.title,
         ),
 
-        const SizedBox(height: 14),
+        const SizedBox(
+          height: AppSpacing.md,
+        ),
 
         Container(
           width: double.infinity,
-          padding:
-              const EdgeInsets.all(18),
+          padding: EdgeInsets.all(
+            AppSpacing.lg,
+          ),
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius:
-                BorderRadius.circular(14),
+                BorderRadius.circular(
+              AppRadius.xl,
+            ),
             border: Border.all(
               color: AppColors.border,
             ),
@@ -971,57 +973,53 @@ class _GrossRevenueReportScreenState
           child: Column(
             children: [
               _informationRow(
-                icon:
-                    Icons.payments_outlined,
-                title:
-                    "Gross revenue",
+                icon: Icons.payments_outlined,
+                title: 'Gross revenue',
                 value:
                     _formatCurrency(
                   _grossRevenue,
                 ),
-                color:
-                    AppColors.accent,
+                color: AppColors.accent,
               ),
 
-              const Divider(
-                height: 24,
-                color:
-                    AppColors.divider,
-              ),
+              _buildDivider(),
 
               _informationRow(
                 icon:
                     Icons.calendar_today_outlined,
-                title:
-                    "Period",
-                value:
-                    _periodLabel(),
-                color:
-                    AppColors.info,
+                title: 'Period',
+                value: _periodLabel(),
+                color: AppColors.info,
               ),
 
-              const Divider(
-                height: 24,
-                color:
-                    AppColors.divider,
-              ),
+              _buildDivider(),
 
               _informationRow(
                 icon:
                     Icons.date_range_outlined,
-                title:
-                    "Date range",
+                title: 'Date range',
                 value:
                     _formatDateRange(
                   range,
                 ),
-                color:
-                    AppColors.inventory,
+                color: AppColors.inventory,
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildDivider() {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        vertical: AppSpacing.md,
+      ),
+      child: const Divider(
+        height: 1,
+        color: AppColors.divider,
+      ),
     );
   }
 
@@ -1034,17 +1032,17 @@ class _GrossRevenueReportScreenState
     return Row(
       children: [
         Container(
-          width: 38,
-          height: 38,
-          decoration:
-              BoxDecoration(
-            color:
-                color.withValues(
+          width: AppSizes.iconButton -
+              AppSpacing.xs,
+          height: AppSizes.iconButton -
+              AppSpacing.xs,
+          decoration: BoxDecoration(
+            color: color.withValues(
               alpha: 0.10,
             ),
             borderRadius:
                 BorderRadius.circular(
-              9,
+              AppRadius.md,
             ),
           ),
           child: Icon(
@@ -1055,35 +1053,29 @@ class _GrossRevenueReportScreenState
         ),
 
         const SizedBox(
-          width: 12,
+          width: AppSpacing.md,
         ),
 
         Expanded(
           child: Text(
             title,
-            style:
-                AppTextStyles
-                    .bodySecondary,
+            style: AppTextStyles.bodySecondary,
           ),
         ),
 
         const SizedBox(
-          width: 12,
+          width: AppSpacing.md,
         ),
 
         Flexible(
           child: Text(
             value,
-            style: AppTextStyles
-                .bodySecondary
+            style: AppTextStyles.bodySecondary
                 .copyWith(
-              color:
-                  AppColors.textPrimary,
-              fontWeight:
-                  FontWeight.w600,
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w600,
             ),
-            textAlign:
-                TextAlign.right,
+            textAlign: TextAlign.right,
           ),
         ),
       ],
@@ -1095,116 +1087,101 @@ class _GrossRevenueReportScreenState
   // ============================================================
 
   Widget _buildExportSection() {
+    final responsive = context.responsive;
+
     return Container(
-      padding:
-          const EdgeInsets.all(20),
+      padding: EdgeInsets.all(
+        AppSpacing.xl,
+      ),
       decoration: BoxDecoration(
-        gradient:
-            const LinearGradient(
+        gradient: const LinearGradient(
           colors: [
             AppColors.primary,
             AppColors.primaryDark,
           ],
-          begin:
-              Alignment.topLeft,
-          end:
-              Alignment.bottomRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        borderRadius:
-            BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(
+          AppRadius.xl,
+        ),
         boxShadow: const [
           BoxShadow(
-            color:
-                Color(0x18000000),
+            color: Color(0x18000000),
             blurRadius: 10,
-            offset:
-                Offset(0, 4),
+            offset: Offset(0, 4),
           ),
         ],
       ),
-      child: LayoutBuilder(
-        builder: (
-          context,
-          constraints,
-        ) {
-          final compact =
-              constraints.maxWidth < 650;
-
-          if (compact) {
-            return Column(
+      child: responsive.isCompact
+          ? Column(
               crossAxisAlignment:
                   CrossAxisAlignment.start,
               children: [
                 _exportContent(),
 
                 const SizedBox(
-                  height: 16,
+                  height: AppSpacing.lg,
                 ),
 
                 _exportButton(),
               ],
-            );
-          }
+            )
+          : Row(
+              children: [
+                Expanded(
+                  child: _exportContent(),
+                ),
 
-          return Row(
-            children: [
-              Expanded(
-                child:
-                    _exportContent(),
-              ),
+                const SizedBox(
+                  width: AppSpacing.xl,
+                ),
 
-              const SizedBox(
-                width: 20,
-              ),
-
-              _exportButton(),
-            ],
-          );
-        },
-      ),
+                _exportButton(),
+              ],
+            ),
     );
   }
 
   Widget _exportContent() {
-    return const Row(
+    return Row(
       crossAxisAlignment:
           CrossAxisAlignment.start,
       children: [
-        Icon(
+        const Icon(
           Icons.picture_as_pdf_outlined,
           color: Colors.white,
           size: 30,
         ),
 
-        SizedBox(width: 14),
+        SizedBox(
+          width: AppSpacing.md,
+        ),
 
         Expanded(
           child: Column(
             crossAxisAlignment:
                 CrossAxisAlignment.start,
             children: [
-              Text(
-                "Export gross revenue",
+              const Text(
+                'Export gross revenue',
                 style: TextStyle(
-                  fontFamily:
-                      'Poppins',
-                  color:
-                      Colors.white,
+                  fontFamily: 'Poppins',
+                  color: Colors.white,
                   fontSize: 16,
-                  fontWeight:
-                      FontWeight.w700,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
 
-              SizedBox(height: 5),
+              SizedBox(
+                height: AppSpacing.xs,
+              ),
 
-              Text(
-                "Generate a PDF containing the selected revenue period.",
+              const Text(
+                'Generate a PDF containing the selected revenue period.',
                 style: TextStyle(
-                  fontFamily:
-                      'Poppins',
-                  color:
-                      Colors.white70,
+                  fontFamily: 'Poppins',
+                  color: Colors.white70,
                   fontSize: 12,
                 ),
               ),
@@ -1216,39 +1193,38 @@ class _GrossRevenueReportScreenState
   }
 
   Widget _exportButton() {
-    return ElevatedButton.icon(
-      style:
-          ElevatedButton.styleFrom(
-        backgroundColor:
-            Colors.white,
-        foregroundColor:
-            AppColors.primary,
-        elevation: 0,
-        padding:
-            const EdgeInsets.symmetric(
-          horizontal: 18,
-          vertical: 13,
+    final responsive = context.responsive;
+
+    return SizedBox(
+      height: responsive.buttonHeight,
+      child: ElevatedButton.icon(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: AppColors.primary,
+          elevation: 0,
+          padding: EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius:
+                BorderRadius.circular(
+              AppRadius.lg,
+            ),
+          ),
         ),
-        shape:
-            RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.circular(10),
+        icon: const Icon(
+          Icons.download_outlined,
+          size: 19,
         ),
-      ),
-      icon: const Icon(
-        Icons.download_outlined,
-        size: 19,
-      ),
-      label: const Text(
-        "Export PDF",
-        style: TextStyle(
-          fontFamily:
-              'Poppins',
-          fontWeight:
-              FontWeight.w600,
+        label: const Text(
+          'Export PDF',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w600,
+          ),
         ),
+        onPressed: _exportPdf,
       ),
-      onPressed: _exportPdf,
     );
   }
 
@@ -1260,29 +1236,27 @@ class _GrossRevenueReportScreenState
     try {
       final file =
           await PdfReport.generateReport(
-        title:
-            "Gross Revenue Report",
+        title: 'Gross Revenue Report',
         sections: [
           {
-            "title":
-                "Gross Revenue Summary",
-            "headers": [
-              "Metric",
-              "Value",
+            'title': 'Gross Revenue Summary',
+            'headers': [
+              'Metric',
+              'Value',
             ],
-            "rows": [
+            'rows': [
               [
-                "Period",
+                'Period',
                 _periodLabel(),
               ],
               [
-                "Date Range",
+                'Date Range',
                 _formatDateRange(
                   _getDateRange(),
                 ),
               ],
               [
-                "Gross Revenue",
+                'Gross Revenue',
                 _formatCurrency(
                   _grossRevenue,
                 ),
@@ -1302,13 +1276,10 @@ class _GrossRevenueReportScreenState
           backgroundColor:
               AppColors.success,
           content: Text(
-            "PDF saved at ${file.path}",
-            style:
-                const TextStyle(
-              fontFamily:
-                  'Poppins',
-              color:
-                  Colors.white,
+            'PDF saved at ${file.path}',
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              color: Colors.white,
             ),
           ),
         ),
@@ -1324,13 +1295,10 @@ class _GrossRevenueReportScreenState
           backgroundColor:
               AppColors.danger,
           content: Text(
-            "Unable to generate PDF: $e",
-            style:
-                const TextStyle(
-              fontFamily:
-                  'Poppins',
-              color:
-                  Colors.white,
+            'Unable to generate PDF: $e',
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              color: Colors.white,
             ),
           ),
         ),
@@ -1345,62 +1313,62 @@ class _GrossRevenueReportScreenState
   String _periodLabel() {
     switch (_selectedPeriod) {
       case _RevenuePeriod.allTime:
-        return "All Time";
+        return 'All Time';
 
       case _RevenuePeriod.today:
-        return "Today";
+        return 'Today';
 
       case _RevenuePeriod.yesterday:
-        return "Yesterday";
+        return 'Yesterday';
 
       case _RevenuePeriod.thisWeek:
-        return "This Week";
+        return 'This Week';
 
       case _RevenuePeriod.thisMonth:
-        return "This Month";
+        return 'This Month';
 
       case _RevenuePeriod.thisYear:
-        return "This Year";
+        return 'This Year';
 
       case _RevenuePeriod.custom:
-        return "Custom Range";
+        return 'Custom Range';
     }
   }
 
   String _periodDescription() {
     switch (_selectedPeriod) {
       case _RevenuePeriod.allTime:
-        return "Revenue from all recorded sales";
+        return 'Revenue from all recorded sales';
 
       case _RevenuePeriod.today:
-        return "Revenue generated today";
+        return 'Revenue generated today';
 
       case _RevenuePeriod.yesterday:
-        return "Revenue generated yesterday";
+        return 'Revenue generated yesterday';
 
       case _RevenuePeriod.thisWeek:
-        return "Revenue generated this week";
+        return 'Revenue generated this week';
 
       case _RevenuePeriod.thisMonth:
-        return "Revenue generated this month";
+        return 'Revenue generated this month';
 
       case _RevenuePeriod.thisYear:
-        return "Revenue generated this year";
+        return 'Revenue generated this year';
 
       case _RevenuePeriod.custom:
-        return "Revenue for the selected date range";
+        return 'Revenue for the selected date range';
     }
   }
 
   String _customRangeLabel() {
     if (_customStartDate == null ||
         _customEndDate == null) {
-      return "Select dates";
+      return 'Select dates';
     }
 
-    return "${_formatDate(_customStartDate!)}"
-        " – "
-        "${_formatDate(_customEndDate!)}";
+    return '${_formatDate(_customStartDate!)}'
+        ' – '
+        '${_formatDate(_customEndDate!)}';
   }
 
   String _formatDateRange(
@@ -1408,32 +1376,34 @@ class _GrossRevenueReportScreenState
   ) {
     if (_selectedPeriod ==
         _RevenuePeriod.allTime) {
-      return "All recorded sales";
+      return 'All recorded sales';
     }
 
-    return "${_formatDate(range.start)}"
-        " – "
-        "${_formatDate(range.end.subtract(const Duration(days: 1)))}";
+    return '${_formatDate(range.start)}'
+        ' – '
+        '${_formatDate(
+      range.end.subtract(
+        const Duration(days: 1),
+      ),
+    )}';
   }
 
   String _formatDate(DateTime date) {
-    return "${date.day.toString().padLeft(2, '0')}/"
-        "${date.month.toString().padLeft(2, '0')}/"
-        "${date.year}";
+    return '${date.day.toString().padLeft(2, '0')}/'
+        '${date.month.toString().padLeft(2, '0')}/'
+        '${date.year}';
   }
 
   String _formatCurrency(double value) {
-    return "₦${_formatNumber(value.round())}";
+    return '₦${_formatNumber(value.round())}';
   }
 
   String _formatNumber(num value) {
     final number = value.toInt();
 
-    final string =
-        number.toString();
+    final string = number.toString();
 
-    final buffer =
-        StringBuffer();
+    final buffer = StringBuffer();
 
     for (
       int i = 0;
@@ -1441,10 +1411,9 @@ class _GrossRevenueReportScreenState
       i++
     ) {
       if (
-        i > 0 &&
-        (string.length - i) % 3 == 0
-      ) {
-        buffer.write(",");
+          i > 0 &&
+          (string.length - i) % 3 == 0) {
+        buffer.write(',');
       }
 
       buffer.write(string[i]);
@@ -1467,7 +1436,7 @@ class _GrossRevenueReportScreenState
     }
 
     return double.tryParse(
-          value?.toString() ?? "",
+          value?.toString() ?? '',
         ) ??
         0.0;
   }
@@ -1514,24 +1483,25 @@ class _GrossRevenueLoadingState
   Widget build(
     BuildContext context,
   ) {
-    return const Center(
+    return Center(
       child: Padding(
-        padding:
-            EdgeInsets.all(40),
+        padding: EdgeInsets.all(
+          AppSpacing.huge,
+        ),
         child: Column(
-          mainAxisSize:
-              MainAxisSize.min,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(
-              color:
-                  AppColors.primary,
+            const CircularProgressIndicator(
+              color: AppColors.primary,
             ),
-            SizedBox(height: 16),
-            Text(
-              "Loading gross revenue...",
-              style:
-                  AppTextStyles
-                      .bodySecondary,
+
+            SizedBox(
+              height: AppSpacing.lg,
+            ),
+
+            const Text(
+              'Loading gross revenue...',
+              style: AppTextStyles.bodySecondary,
             ),
           ],
         ),
@@ -1560,146 +1530,125 @@ class _GrossRevenueErrorState
     BuildContext context,
   ) {
     return Center(
-      child:
-          SingleChildScrollView(
-        padding:
-            const EdgeInsets.all(32),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.all(
+          AppSpacing.xxxl,
+        ),
         child: Container(
-          constraints:
-              const BoxConstraints(
-            maxWidth: 600,
+          constraints: BoxConstraints(
+            maxWidth: AppSizes.maxFormWidth +
+                AppSpacing.xxxl * 4,
           ),
-          padding:
-              const EdgeInsets.all(28),
-          decoration:
-              BoxDecoration(
-            color:
-                AppColors.surface,
+          padding: EdgeInsets.all(
+            AppSpacing.xxxl,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
             borderRadius:
                 BorderRadius.circular(
-              16,
+              AppRadius.xl,
             ),
             border: Border.all(
-              color:
-                  AppColors.border,
+              color: AppColors.border,
             ),
           ),
           child: Column(
-            mainAxisSize:
-                MainAxisSize.min,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 56,
-                height: 56,
-                decoration:
-                    BoxDecoration(
-                  color:
-                      AppColors
-                          .dangerLight,
+                width: AppSizes.iconButton +
+                    AppSpacing.md,
+                height: AppSizes.iconButton +
+                    AppSpacing.md,
+                decoration: BoxDecoration(
+                  color: AppColors.dangerLight,
                   borderRadius:
-                      BorderRadius
-                          .circular(
-                    14,
+                      BorderRadius.circular(
+                    AppRadius.xl,
                   ),
                 ),
                 child: const Icon(
-                  Icons
-                      .error_outline,
-                  color:
-                      AppColors.danger,
+                  Icons.error_outline,
+                  color: AppColors.danger,
                   size: 30,
                 ),
               ),
 
-              const SizedBox(
-                height: 16,
+              SizedBox(
+                height: AppSpacing.lg,
               ),
 
               const Text(
-                "Unable to load gross revenue",
-                style:
-                    AppTextStyles.title,
-                textAlign:
-                    TextAlign.center,
+                'Unable to load gross revenue',
+                style: AppTextStyles.title,
+                textAlign: TextAlign.center,
               ),
 
-              const SizedBox(
-                height: 10,
+              SizedBox(
+                height: AppSpacing.sm,
               ),
 
               Container(
                 width: double.infinity,
-                padding:
-                    const EdgeInsets.all(
-                  14,
+                padding: EdgeInsets.all(
+                  AppSpacing.md,
                 ),
-                decoration:
-                    BoxDecoration(
-                  color:
-                      AppColors
-                          .surfaceSoft,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceSoft,
                   borderRadius:
                       BorderRadius.circular(
-                    10,
+                    AppRadius.lg,
                   ),
                   border: Border.all(
-                    color:
-                        AppColors.border,
+                    color: AppColors.border,
                   ),
                 ),
-                child:
-                    SelectableText(
+                child: SelectableText(
                   error,
-                  style:
-                      AppTextStyles.small,
-                  textAlign:
-                      TextAlign.left,
+                  style: AppTextStyles.small,
+                  textAlign: TextAlign.left,
                 ),
               ),
 
-              const SizedBox(
-                height: 20,
+              SizedBox(
+                height: AppSpacing.xl,
               ),
 
-              ElevatedButton.icon(
-                onPressed:
-                    onRetry,
-                style:
-                    ElevatedButton
-                        .styleFrom(
-                  backgroundColor:
-                      AppColors.primary,
-                  foregroundColor:
-                      Colors.white,
-                  elevation: 0,
-                  padding:
-                      const EdgeInsets
-                          .symmetric(
-                    horizontal: 20,
-                    vertical: 13,
-                  ),
-                  shape:
-                      RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(
-                      10,
+              SizedBox(
+                height: context.responsive.buttonHeight,
+                child: ElevatedButton.icon(
+                  onPressed: onRetry,
+                  style:
+                      ElevatedButton.styleFrom(
+                    backgroundColor:
+                        AppColors.primary,
+                    foregroundColor:
+                        Colors.white,
+                    elevation: 0,
+                    padding:
+                        EdgeInsets.symmetric(
+                      horizontal:
+                          AppSpacing.xl,
+                    ),
+                    shape:
+                        RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(
+                        AppRadius.lg,
+                      ),
                     ),
                   ),
-                ),
-                icon:
-                    const Icon(
-                  Icons.refresh,
-                  size: 18,
-                ),
-                label:
-                    const Text(
-                  "Try Again",
-                  style:
-                      TextStyle(
-                    fontFamily:
-                        'Poppins',
-                    fontWeight:
-                        FontWeight.w600,
+                  icon: const Icon(
+                    Icons.refresh,
+                    size: 18,
+                  ),
+                  label: const Text(
+                    'Try Again',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight:
+                          FontWeight.w600,
+                    ),
                   ),
                 ),
               ),

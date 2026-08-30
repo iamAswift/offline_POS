@@ -112,10 +112,14 @@ class AppRadius {
 // ================================================================
 
 class AppSizes {
+
+  // General
   static const double buttonHeight = 48;
   static const double inputHeight = 52;
 
   static const double iconButton = 44;
+
+  // Cards
 
   static const double cardMinHeight = 80;
 
@@ -227,6 +231,9 @@ class AppTextStyles {
     fontSize: 12,
     color: AppColors.textSecondary,
   );
+
+
+  
 
   // ============================================================
   // FORM / OTHER

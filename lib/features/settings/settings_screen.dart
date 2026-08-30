@@ -1,8 +1,8 @@
 // lib/features/settings/settings_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:supermarket_inventory/features/reports/reports_dashboard.dart';
 
+import '../../core/responsive/responsive.dart';
 import '../../core/theme/styles.dart';
 import '../../database/business_settings.dart';
 import '../../database/daos/settings_dao.dart';
@@ -17,10 +17,7 @@ import 'reports_settings_screen.dart';
 class SettingsScreen extends StatefulWidget {
   final SettingsDao settingsDao;
 
-  const SettingsScreen({
-    super.key,
-    required this.settingsDao,
-  });
+  const SettingsScreen({super.key, required this.settingsDao});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -58,7 +55,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ============================================================
 
   bool _allowNegativeStock = false;
-
   bool _requireBarcode = false;
 
   // ============================================================
@@ -66,7 +62,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ============================================================
 
   bool _isLoading = true;
-
   bool _isSaving = false;
 
   // ============================================================
@@ -76,90 +71,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-
     _loadSettings();
   }
 
   // ============================================================
-  // OPEN BUSINESS PROFILE
+  // NAVIGATION
   // ============================================================
 
   void _openBusinessProfile() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => BusinessProfileScreen(
-          settingsDao: widget.settingsDao,
-        ),
+        builder: (_) => BusinessProfileScreen(settingsDao: widget.settingsDao),
       ),
     );
   }
-
-  // ============================================================
-  // OPEN POS SETTINGS
-  // ============================================================
 
   void _openPosSettings() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => PosSettingsScreen(
-          settingsDao: widget.settingsDao,
-        ),
+        builder: (_) => PosSettingsScreen(settingsDao: widget.settingsDao),
       ),
     );
   }
-
-  // ============================================================
-  // OPEN RECEIPT SETTINGS
-  // ============================================================
 
   void _openReceiptSettings() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ReceiptSettingsScreen(
-          settingsDao: widget.settingsDao,
-        ),
+        builder: (_) => ReceiptSettingsScreen(settingsDao: widget.settingsDao),
       ),
     );
   }
-
-  // ============================================================
-  // OPEN APPEARANCE SETTINGS
-  // ============================================================
 
   void _openAppearanceSettings() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => AppearanceSettingsScreen(
-          settingsDao: widget.settingsDao,
-        ),
+        builder: (_) =>
+            AppearanceSettingsScreen(settingsDao: widget.settingsDao),
       ),
     );
   }
-
-  // ============================================================
-  // OPEN SECURITY SETTINGS
-  // ============================================================
 
   void _openSecuritySettings() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => SecuritySettingsScreen(
-          settingsDao: widget.settingsDao,
-        ),
+        builder: (_) => SecuritySettingsScreen(settingsDao: widget.settingsDao),
       ),
     );
   }
 
-  // ============================================================
-  // OPEN REPORTS SETTINGS
-  // ============================================================
-
   void _openReportsSettings() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ReportsSettingsScreen(
-          settingsDao: widget.settingsDao,
-        ),
+        builder: (_) => ReportsSettingsScreen(settingsDao: widget.settingsDao),
       ),
     );
   }
@@ -175,28 +138,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
       // --------------------------------------------------------
 
       final currency =
-          await widget.settingsDao.getSetting(
-                BusinessSettings.currency,
-              ) ??
-              '₦';
+          await widget.settingsDao.getSetting(BusinessSettings.currency) ?? '₦';
 
       final currencyCode =
-          await widget.settingsDao.getSetting(
-                BusinessSettings.currencyCode,
-              ) ??
-              'NGN';
+          await widget.settingsDao.getSetting(BusinessSettings.currencyCode) ??
+          'NGN';
 
       final decimalPlaces =
           await widget.settingsDao.getIntSetting(
-                BusinessSettings.decimalPlaces,
-              ) ??
-              0;
+            BusinessSettings.decimalPlaces,
+          ) ??
+          0;
 
       final currencyPosition =
           await widget.settingsDao.getSetting(
-                BusinessSettings.currencyPosition,
-              ) ??
-              'before';
+            BusinessSettings.currencyPosition,
+          ) ??
+          'before';
 
       // --------------------------------------------------------
       // INVENTORY
@@ -204,21 +162,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       final lowStock =
           await widget.settingsDao.getIntSetting(
-                BusinessSettings.lowStockThreshold,
-              ) ??
-              10;
+            BusinessSettings.lowStockThreshold,
+          ) ??
+          10;
 
       final allowNegative =
           await widget.settingsDao.getSetting(
-                BusinessSettings.allowNegativeStock,
-              ) ??
-              'false';
+            BusinessSettings.allowNegativeStock,
+          ) ??
+          'false';
 
       final requireBarcode =
           await widget.settingsDao.getSetting(
-                BusinessSettings.requireBarcode,
-              ) ??
-              'false';
+            BusinessSettings.requireBarcode,
+          ) ??
+          'false';
 
       // --------------------------------------------------------
       // STAFF DEBT
@@ -226,36 +184,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       final maxDebt =
           await widget.settingsDao.getDoubleSetting(
-                BusinessSettings.maxStaffDebt,
-              ) ??
-              50000;
+            BusinessSettings.maxStaffDebt,
+          ) ??
+          50000;
 
       if (!mounted) return;
 
       setState(() {
-        // Currency
         _currencyController.text = currency;
 
         _currencyCodeController.text = currencyCode;
 
-        _decimalPlacesController.text =
-            decimalPlaces.toString();
+        _decimalPlacesController.text = decimalPlaces.toString();
 
         _currencyPosition = currencyPosition;
 
-        // Inventory
-        _lowStockController.text =
-            lowStock.toString();
+        _lowStockController.text = lowStock.toString();
 
-        _allowNegativeStock =
-            allowNegative == 'true';
+        _allowNegativeStock = allowNegative == 'true';
 
-        _requireBarcode =
-            requireBarcode == 'true';
+        _requireBarcode = requireBarcode == 'true';
 
-        // Staff Debt
-        _maxStaffDebtController.text =
-            maxDebt.toStringAsFixed(0);
+        _maxStaffDebtController.text = maxDebt.toStringAsFixed(0);
 
         _isLoading = false;
       });
@@ -266,27 +216,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _isLoading = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Failed to load settings: $e',
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to load settings: $e')));
     }
   }
 
   // ============================================================
   // SAVE SETTINGS
-  //
-  // IMPORTANT:
-  // Only settings that still belong on this main screen
-  // are saved here.
-  //
-  // POS -> pos_settings_screen.dart
-  // RECEIPTS -> receipt_settings_screen.dart
-  // APPEARANCE -> appearance_settings_screen.dart
-  // SECURITY -> security_settings_screen.dart
   // ============================================================
 
   Future<void> _saveSettings() async {
@@ -301,78 +238,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
       // VALIDATE CURRENCY
       // ========================================================
 
-      final currency =
-          _currencyController.text.trim();
+      final currency = _currencyController.text.trim();
 
       if (currency.isEmpty) {
-        throw Exception(
-          'Currency symbol cannot be empty.',
-        );
+        throw Exception('Currency symbol cannot be empty.');
       }
 
-      final currencyCode =
-          _currencyCodeController.text
-              .trim()
-              .toUpperCase();
+      final currencyCode = _currencyCodeController.text.trim().toUpperCase();
 
       if (currencyCode.isEmpty) {
-        throw Exception(
-          'Currency code cannot be empty.',
-        );
+        throw Exception('Currency code cannot be empty.');
       }
 
-      final decimalPlaces =
-          int.tryParse(
-        _decimalPlacesController.text.trim(),
-      );
+      final decimalPlaces = int.tryParse(_decimalPlacesController.text.trim());
 
-      if (decimalPlaces == null ||
-          decimalPlaces < 0 ||
-          decimalPlaces > 4) {
-        throw Exception(
-          'Decimal places must be between 0 and 4.',
-        );
+      if (decimalPlaces == null || decimalPlaces < 0 || decimalPlaces > 4) {
+        throw Exception('Decimal places must be between 0 and 4.');
       }
 
       // ========================================================
       // VALIDATE LOW STOCK
       // ========================================================
 
-      final lowStock =
-          int.tryParse(
-        _lowStockController.text.trim(),
-      );
+      final lowStock = int.tryParse(_lowStockController.text.trim());
 
       if (lowStock == null || lowStock < 0) {
-        throw Exception(
-          'Low stock threshold must be a valid number.',
-        );
+        throw Exception('Low stock threshold must be a valid number.');
       }
 
       // ========================================================
       // VALIDATE STAFF DEBT
       // ========================================================
 
-      final maxStaffDebt =
-          double.tryParse(
-        _maxStaffDebtController.text.trim(),
-      );
+      final maxStaffDebt = double.tryParse(_maxStaffDebtController.text.trim());
 
-      if (maxStaffDebt == null ||
-          maxStaffDebt < 0) {
-        throw Exception(
-          'Maximum staff debt must be a valid amount.',
-        );
+      if (maxStaffDebt == null || maxStaffDebt < 0) {
+        throw Exception('Maximum staff debt must be a valid amount.');
       }
 
       // ========================================================
       // CURRENCY & PRICING
       // ========================================================
 
-      await widget.settingsDao.setSetting(
-        BusinessSettings.currency,
-        currency,
-      );
+      await widget.settingsDao.setSetting(BusinessSettings.currency, currency);
 
       await widget.settingsDao.setSetting(
         BusinessSettings.currencyCode,
@@ -424,24 +332,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Settings saved successfully.',
-          ),
-        ),
+        const SnackBar(content: Text('Settings saved successfully.')),
       );
     } catch (e) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            e.toString().replaceFirst(
-              'Exception: ',
-              '',
-            ),
-          ),
-        ),
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
       );
     } finally {
       if (mounted) {
@@ -464,9 +361,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     String? prefixText,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(
-        bottom: 16,
-      ),
+      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
@@ -489,29 +384,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required List<Widget> children,
   }) {
     return Card(
-      margin: const EdgeInsets.only(
-        bottom: 20,
-      ),
+      margin: const EdgeInsets.only(bottom: AppSpacing.xl),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(
-                  icon,
-                  color: AppColors.primary,
+                Container(
+                  width: AppSizes.iconButton,
+                  height: AppSizes.iconButton,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: Icon(icon, color: AppColors.primary),
                 ),
-                const SizedBox(width: 10),
-                Text(
-                  title,
-                  style: AppTextStyles.title,
-                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(child: Text(title, style: AppTextStyles.title)),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.xl),
             ...children,
           ],
         ),
@@ -531,8 +426,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }) {
     return SwitchListTile(
       contentPadding: EdgeInsets.zero,
-      title: Text(title),
-      subtitle: Text(subtitle),
+      dense: false,
+      title: Text(title, style: AppTextStyles.body),
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: AppSpacing.xs),
+        child: Text(subtitle, style: AppTextStyles.bodySecondary),
+      ),
       value: value,
       onChanged: onChanged,
     );
@@ -540,6 +439,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // ============================================================
   // NAVIGATION CARD
+  //
+  // IMPORTANT:
+  // This intentionally does NOT use a fixed height.
+  //
+  // The previous layout could constrain the title/subtitle
+  // Column and cause RenderFlex bottom/right overflow.
   // ============================================================
 
   Widget _navigationCard({
@@ -551,44 +456,185 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Color? iconBackground,
   }) {
     return Card(
-      margin: const EdgeInsets.only(
-        bottom: 12,
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 6,
-        ),
-        leading: Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color:
-                iconBackground ??
-                AppColors.primaryLight,
-            borderRadius:
-                BorderRadius.circular(10),
-          ),
-          child: Icon(
-            icon,
-            color:
-                iconColor ??
-                AppColors.primary,
-          ),
-        ),
-        title: Text(
-          title,
-          style: AppTextStyles.title,
-        ),
-        subtitle: Text(
-          subtitle,
-          style: AppTextStyles.bodySecondary,
-        ),
-        trailing: const Icon(
-          Icons.chevron_right,
-        ),
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
         onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: AppSizes.iconButton,
+                height: AppSizes.iconButton,
+                decoration: BoxDecoration(
+                  color: iconBackground ?? AppColors.primaryLight,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Icon(icon, color: iconColor ?? AppColors.primary),
+              ),
+
+              const SizedBox(width: AppSpacing.lg),
+
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: AppTextStyles.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+
+                    const SizedBox(height: AppSpacing.xs),
+
+                    Text(
+                      subtitle,
+                      style: AppTextStyles.bodySecondary,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(width: AppSpacing.sm),
+
+              const Padding(
+                padding: EdgeInsets.only(top: AppSpacing.sm),
+                child: Icon(Icons.chevron_right, color: AppColors.textMuted),
+              ),
+            ],
+          ),
+        ),
       ),
+    );
+  }
+
+  // ============================================================
+  // SETTINGS NAVIGATION
+  // ============================================================
+
+  Widget _buildNavigation(Responsive responsive) {
+    final cards = <Widget>[
+      _navigationCard(
+        icon: Icons.business,
+        title: 'Business Profile',
+        subtitle:
+            'Business name, contact information, type and business details',
+        onTap: _openBusinessProfile,
+      ),
+
+      _navigationCard(
+        icon: Icons.point_of_sale,
+        title: 'POS / Sales',
+        subtitle:
+            'Payments, discounts, customers, price editing and customer display',
+        onTap: _openPosSettings,
+      ),
+
+      _navigationCard(
+        icon: Icons.receipt_long,
+        title: 'Receipt Settings',
+        subtitle: 'Receipt information, printing, paper size and preview',
+        onTap: _openReceiptSettings,
+      ),
+
+      _navigationCard(
+        icon: Icons.analytics_outlined,
+        title: 'Reports',
+        subtitle:
+            'Default period, dashboard cards, charts and PDF export preferences',
+        onTap: _openReportsSettings,
+        iconColor: AppColors.info,
+        iconBackground: AppColors.infoLight,
+      ),
+
+      _navigationCard(
+        icon: Icons.palette_outlined,
+        title: 'Appearance',
+        subtitle: 'Theme, colors, POS buttons, images and layout',
+        onTap: _openAppearanceSettings,
+      ),
+
+      _navigationCard(
+        icon: Icons.security,
+        title: 'Security',
+        subtitle: 'Login, automatic logout and protected actions',
+        onTap: _openSecuritySettings,
+      ),
+
+      _navigationCard(
+        icon: Icons.backup,
+        title: 'Backup & Data',
+        subtitle: 'Backup, restore and manage application data',
+        onTap: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Backup & Data will be available in a later phase.',
+              ),
+            ),
+          );
+        },
+      ),
+
+      _navigationCard(
+        icon: Icons.info_outline,
+        title: 'About / System Information',
+        subtitle: 'Application version, database and system information',
+        onTap: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'About / System Information will be available in a later phase.',
+              ),
+            ),
+          );
+        },
+      ),
+    ];
+
+    // ----------------------------------------------------------
+    // COMPACT
+    // ----------------------------------------------------------
+
+    if (responsive.isCompact) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (int i = 0; i < cards.length; i++) ...[
+            cards[i],
+            if (i < cards.length - 1) const SizedBox(height: AppSpacing.md),
+          ],
+        ],
+      );
+    }
+
+    // ----------------------------------------------------------
+    // TABLET / DESKTOP
+    // ----------------------------------------------------------
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final spacing = AppSpacing.md;
+
+        final columns = responsive.isTablet ? 2 : 2;
+
+        final cardWidth =
+            (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            for (final card in cards) SizedBox(width: cardWidth, child: card),
+          ],
+        );
+      },
     );
   }
 
@@ -598,436 +644,218 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final responsive = context.responsive;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(
-              right: 12,
-            ),
+            padding: EdgeInsets.only(right: responsive.horizontalPadding),
             child: ElevatedButton.icon(
-              onPressed:
-                  _isSaving
-                      ? null
-                      : _saveSettings,
+              onPressed: _isSaving ? null : _saveSettings,
               icon: _isSaving
                   ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child:
-                          CircularProgressIndicator(
-                        strokeWidth: 2,
-                      ),
+                      width: AppSpacing.lg,
+                      height: AppSpacing.lg,
+                      child:  CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(
-                      Icons.save,
-                    ),
-              label: const Text('Save'),
+                  : const Icon(Icons.save),
+              label: Text(responsive.isCompact ? 'Save' : 'Save'),
             ),
           ),
         ],
       ),
 
       body: _isLoading
-          ? const Center(
-              child:
-                  CircularProgressIndicator(),
-            )
-          : Center(
-              child: ConstrainedBox(
-                constraints:
-                    const BoxConstraints(
-                  maxWidth: 900,
-                ),
-                child: ListView(
-                  padding:
-                      const EdgeInsets.all(24),
-                  children: [
-
-                    // ==================================================
-                    // SETTINGS NAVIGATION
-                    // ==================================================
-
-                    _navigationCard(
-                      icon: Icons.business,
-                      title: 'Business Profile',
-                      subtitle:
-                          'Business name, contact information, '
-                          'type and business details',
-                      onTap:
-                          _openBusinessProfile,
+          ? const Center(child: CircularProgressIndicator())
+          : SafeArea(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: responsive.contentMaxWidth,
+                  ),
+                  child: ListView(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: responsive.horizontalPadding,
+                      vertical: responsive.verticalPadding,
                     ),
+                    children: [
+                      // ==================================================
+                      // PAGE HEADER
+                      // ==================================================
+                      const Text('Settings', style: AppTextStyles.dashboardTitle),
 
-                    // ==================================================
-                    // POS / SALES
-                    // ==================================================
+                      const SizedBox(height: AppSpacing.xs),
 
-                    _navigationCard(
-                      icon: Icons.point_of_sale,
-                      title: 'POS / Sales',
-                      subtitle:
-                          'Payments, discounts, customers, '
-                          'price editing and customer display',
-                      onTap:
-                          _openPosSettings,
-                    ),
+                      const Text(
+                        'Manage your business, POS, receipts, inventory, security and application preferences.',
+                        style: AppTextStyles.dashboardSubtitle,
+                      ),
 
-                    // ==================================================
-                    // RECEIPTS
-                    // ==================================================
+                      const SizedBox(height: AppSpacing.xxl),
 
-                    _navigationCard(
-                      icon: Icons.receipt_long,
-                      title: 'Receipt Settings',
-                      subtitle:
-                          'Receipt information, printing, '
-                          'paper size and preview',
-                      onTap:
-                          _openReceiptSettings,
-                    ),
+                      // ==================================================
+                      // SETTINGS NAVIGATION
+                      // ==================================================
+                      _buildNavigation(responsive),
 
-                    // ============================================================
-                    // REPORTS
-                    // ============================================================
+                      const SizedBox(height: AppSpacing.xxl),
 
-                    _navigationCard(
-                      icon: Icons.analytics_outlined,
-                      title: 'Reports',
-                      subtitle:
-                          'Default period, dashboard cards, charts '
-                          'and PDF export preferences',
-                      onTap:
-                          _openReportsSettings,
-                    ),
-
-                    // ==================================================
-                    // APPEARANCE
-                    // ==================================================
-
-                    _navigationCard(
-                      icon: Icons.palette_outlined,
-                      title: 'Appearance',
-                      subtitle:
-                          'Theme, colors, POS buttons, '
-                          'images and layout',
-                      onTap:
-                          _openAppearanceSettings,
-                    ),
-
-                    // ==================================================
-                    // SECURITY
-                    // ==================================================
-
-                    _navigationCard(
-                      icon: Icons.security,
-                      title: 'Security',
-                      subtitle:
-                          'Login, automatic logout '
-                          'and protected actions',
-                      onTap:
-                          _openSecuritySettings,
-                    ),
-
-                    const SizedBox(
-                      height: 12,
-                    ),
-
-                    // ==================================================
-                    // CURRENCY & PRICING
-                    // ==================================================
-
-                    _section(
-                      title:
-                          'Currency & Pricing',
-                      icon:
-                          Icons.payments,
-                      children: [
-
-                        _textField(
-                          label:
-                              'Currency Symbol',
-                          controller:
-                              _currencyController,
-                          hint: '₦',
-                        ),
-
-                        _textField(
-                          label:
-                              'Currency Code',
-                          controller:
-                              _currencyCodeController,
-                          hint: 'NGN',
-                        ),
-
-                        _textField(
-                          label:
-                              'Decimal Places',
-                          controller:
-                              _decimalPlacesController,
-                          keyboardType:
-                              TextInputType
-                                  .number,
-                          hint: '0',
-                        ),
-
-                        DropdownButtonFormField<
-                            String>(
-                          initialValue:
-                              _currencyPosition,
-                          decoration:
-                              const InputDecoration(
-                            labelText:
-                                'Currency Position',
+                      // ==================================================
+                      // CURRENCY & PRICING
+                      // ==================================================
+                      _section(
+                        title: 'Currency & Pricing',
+                        icon: Icons.payments,
+                        children: [
+                          _textField(
+                            label: 'Currency Symbol',
+                            controller: _currencyController,
+                            hint: '₦',
                           ),
-                          items: const [
-                            DropdownMenuItem(
-                              value: 'before',
-                              child: Text(
-                                'Before amount — ₦1,000',
+
+                          _textField(
+                            label: 'Currency Code',
+                            controller: _currencyCodeController,
+                            hint: 'NGN',
+                          ),
+
+                          _textField(
+                            label: 'Decimal Places',
+                            controller: _decimalPlacesController,
+                            keyboardType: TextInputType.number,
+                            hint: '0',
+                          ),
+
+                          DropdownButtonFormField<String>(
+                            initialValue: _currencyPosition,
+                            decoration: const InputDecoration(
+                              labelText: 'Currency Position',
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'before',
+                                child: Text('Before amount — ₦1,000'),
                               ),
-                            ),
-                            DropdownMenuItem(
-                              value: 'after',
-                              child: Text(
-                                'After amount — 1,000 ₦',
+                              DropdownMenuItem(
+                                value: 'after',
+                                child: Text('After amount — 1,000 ₦'),
                               ),
+                            ],
+                            onChanged: (value) {
+                              if (value == null) {
+                                return;
+                              }
+
+                              setState(() {
+                                _currencyPosition = value;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+
+                      // ==================================================
+                      // INVENTORY
+                      // ==================================================
+                      _section(
+                        title: 'Inventory',
+                        icon: Icons.inventory_2,
+                        children: [
+                          _textField(
+                            label: 'Low Stock Threshold',
+                            controller: _lowStockController,
+                            keyboardType: TextInputType.number,
+                            hint: '10',
+                          ),
+
+                          _switchTile(
+                            title: 'Allow Negative Stock',
+                            subtitle:
+                                'Allow sales even when available stock reaches zero.',
+                            value: _allowNegativeStock,
+                            onChanged: (value) {
+                              setState(() {
+                                _allowNegativeStock = value;
+                              });
+                            },
+                          ),
+
+                          _switchTile(
+                            title: 'Require Barcode',
+                            subtitle: 'Require products to have a barcode.',
+                            value: _requireBarcode,
+                            onChanged: (value) {
+                              setState(() {
+                                _requireBarcode = value;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+
+                      // ==================================================
+                      // STAFF & DEBT
+                      // ==================================================
+                      _section(
+                        title: 'Staff & Debt',
+                        icon: Icons.people_alt,
+                        children: [
+                          _textField(
+                            label: 'Maximum Staff Debt',
+                            controller: _maxStaffDebtController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
                             ),
-                          ],
-                          onChanged:
-                              (value) {
-                            if (value ==
-                                null) {
-                              return;
-                            }
-
-                            setState(() {
-                              _currencyPosition =
-                                  value;
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-
-                    // ==================================================
-                    // INVENTORY
-                    // ==================================================
-
-                    _section(
-                      title: 'Inventory',
-                      icon:
-                          Icons.inventory_2,
-                      children: [
-
-                        _textField(
-                          label:
-                              'Low Stock Threshold',
-                          controller:
-                              _lowStockController,
-                          keyboardType:
-                              TextInputType
-                                  .number,
-                          hint: '10',
-                        ),
-
-                        _switchTile(
-                          title:
-                              'Allow Negative Stock',
-                          subtitle:
-                              'Allow sales even when available '
-                              'stock reaches zero.',
-                          value:
-                              _allowNegativeStock,
-                          onChanged:
-                              (value) {
-                            setState(() {
-                              _allowNegativeStock =
-                                  value;
-                            });
-                          },
-                        ),
-
-                        _switchTile(
-                          title:
-                              'Require Barcode',
-                          subtitle:
-                              'Require products to have a barcode.',
-                          value:
-                              _requireBarcode,
-                          onChanged:
-                              (value) {
-                            setState(() {
-                              _requireBarcode =
-                                  value;
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-
-                    // ==================================================
-                    // STAFF & DEBT
-                    // ==================================================
-
-                    _section(
-                      title:
-                          'Staff & Debt',
-                      icon:
-                          Icons.people_alt,
-                      children: [
-
-                        _textField(
-                          label:
-                              'Maximum Staff Debt',
-                          controller:
-                              _maxStaffDebtController,
-                          keyboardType:
-                              const TextInputType
-                                  .numberWithOptions(
-                            decimal: true,
+                            hint: '50000',
+                            prefixText: '₦ ',
                           ),
-                          hint:
-                              '50000',
-                          prefixText:
-                              '₦ ',
-                        ),
 
-                        const Text(
-                          'This is the maximum outstanding '
-                          'credit a staff member can have '
-                          'at one time.',
-                          style:
-                              AppTextStyles.bodySecondary,
-                        ),
-
-                        const SizedBox(
-                          height: 10,
-                        ),
-
-                        Text(
-                          'Current default: ₦50,000',
-                          style:
-                              AppTextStyles.small
-                                  .copyWith(
-                            color:
-                                Theme.of(
-                              context,
-                            )
-                                    .colorScheme
-                                    .onSurfaceVariant,
+                          const Text(
+                            'This is the maximum outstanding credit a staff member can have at one time.',
+                            style: AppTextStyles.bodySecondary,
                           ),
-                        ),
-                      ],
-                    ),
 
-                    // ==================================================
-                    // FUTURE SETTINGS
-                    // ==================================================
+                          const SizedBox(height: AppSpacing.sm),
 
-                    _navigationCard(
-                      icon:
-                          Icons.bar_chart,
-                      title: 'Reports',
-                      subtitle:
-                          'Sales, inventory, profit and performance reports',
-                      onTap: () {
-                        Navigator.of(
-                          context,
-                        ).push(
-                          MaterialPageRoute(
-                            builder: (_) =>  ReportsSettingsScreen(
-                              settingsDao: widget.settingsDao,
-                            )
+                          const Text(
+                            'Current default: ₦50,000',
+                            style: AppTextStyles.small,
                           ),
-                        );
-                      },
-                      iconColor:
-                          AppColors.info,
-                      iconBackground:
-                          AppColors.infoLight,
-                    ),
+                        ],
+                      ),
 
-                    _navigationCard(
-                      icon:
-                          Icons.backup,
-                      title: 'Backup & Data',
-                      subtitle:
-                          'Backup, restore and manage application data',
-                      onTap: () {
-                        ScaffoldMessenger.of(
-                          context,
-                        ).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Backup & Data will be available in a later phase.',
-                            ),
+                      // ==================================================
+                      // SAVE
+                      // ==================================================
+                      const SizedBox(height: AppSpacing.sm),
+
+                      SizedBox(
+                        height: responsive.buttonHeight,
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _isSaving ? null : _saveSettings,
+                          icon: _isSaving
+                              ? const SizedBox(
+                                  width: AppSpacing.xl,
+                                  height: AppSpacing.xl,
+                                  child:  CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.save),
+                          label: Text(
+                            _isSaving ? 'Saving...' : 'Save Settings',
                           ),
-                        );
-                      },
-                    ),
-
-                    _navigationCard(
-                      icon:
-                          Icons.info_outline,
-                      title:
-                          'About / System Information',
-                      subtitle:
-                          'Application version, database and system information',
-                      onTap: () {
-                        ScaffoldMessenger.of(
-                          context,
-                        ).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'About / System Information will be available in a later phase.',
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-
-                    // ==================================================
-                    // SAVE
-                    // ==================================================
-
-                    const SizedBox(
-                      height: 10,
-                    ),
-
-                    SizedBox(
-                      height: 52,
-                      child:
-                          ElevatedButton.icon(
-                        onPressed:
-                            _isSaving
-                                ? null
-                                : _saveSettings,
-                        icon: _isSaving
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child:
-                                    CircularProgressIndicator(
-                                  strokeWidth:
-                                      2,
-                                ),
-                              )
-                            : const Icon(
-                                Icons.save,
-                              ),
-                        label: Text(
-                          _isSaving
-                              ? 'Saving...'
-                              : 'Save Settings',
                         ),
                       ),
-                    ),
 
-                    const SizedBox(
-                      height: 40,
-                    ),
-                  ],
+                      const SizedBox(height: AppSpacing.section),
+                    ],
+                  ),
                 ),
               ),
             ),

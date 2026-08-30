@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/pos/pos_settings_service.dart';
+import '../../core/responsive/responsive.dart';
 import '../../core/theme/styles.dart';
 import '../../database/daos/settings_dao.dart';
 import '../../models/pos_settings.dart';
@@ -135,14 +136,11 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
         // PAYMENT
         // --------------------------------------------------------
 
-        _paymentCash =
-            settings.paymentCash;
+        _paymentCash = settings.paymentCash;
 
-        _paymentPos =
-            settings.paymentPos;
+        _paymentPos = settings.paymentPos;
 
-        _paymentTransfer =
-            settings.paymentTransfer;
+        _paymentTransfer = settings.paymentTransfer;
 
         _defaultPaymentMethod =
             _paymentMethodOptions.contains(
@@ -155,8 +153,7 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
         // DISCOUNTS / PRICING
         // --------------------------------------------------------
 
-        _allowDiscount =
-            settings.allowDiscount;
+        _allowDiscount = settings.allowDiscount;
 
         _maximumDiscountController.text =
             settings.maximumDiscount.toString();
@@ -196,7 +193,7 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
           settings.customerDisplayDevice,
         )
                 ? settings.customerDisplayDevice
-                : 'iPad';
+                : _displayDeviceOptions.first;
 
         _isLoading = false;
       });
@@ -324,9 +321,7 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
       // SAVE
       // --------------------------------------------------------
 
-      await _posSettingsService.save(
-        settings,
-      );
+      await _posSettingsService.save(settings);
 
       if (!mounted) return;
 
@@ -401,7 +396,7 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
       return 'transfer';
     }
 
-    return 'cash';
+    return _paymentMethodOptions.first;
   }
 
   // ============================================================
@@ -511,7 +506,10 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
   }) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(
+          message,
+          style: AppTextStyles.body,
+        ),
         backgroundColor:
             isError ? AppColors.danger : null,
       ),
@@ -530,15 +528,19 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
   }) {
     return SwitchListTile(
       contentPadding: EdgeInsets.zero,
+
       title: Text(
         title,
         style: AppTextStyles.body,
       ),
+
       subtitle: Text(
         subtitle,
         style: AppTextStyles.bodySecondary,
       ),
+
       value: value,
+
       onChanged: onChanged,
     );
   }
@@ -555,47 +557,65 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
   }) {
     return Card(
       margin: const EdgeInsets.only(
-        bottom: 20,
+        bottom: AppSpacing.lg,
       ),
+
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(
+          AppSpacing.xl,
+        ),
+
         child: Column(
           crossAxisAlignment:
               CrossAxisAlignment.start,
+
           children: [
             Row(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+
               children: [
                 Container(
-                  width: 42,
-                  height: 42,
+                  width: AppSizes.iconButton,
+                  height: AppSizes.iconButton,
+
                   decoration: BoxDecoration(
                     color:
                         AppColors.primaryLight,
+
                     borderRadius:
                         BorderRadius.circular(
-                      10,
+                      AppRadius.md,
                     ),
                   ),
+
                   child: Icon(
                     icon,
                     color:
                         AppColors.primary,
                   ),
                 ),
-                const SizedBox(width: 12),
+
+                const SizedBox(
+                  width: AppSpacing.md,
+                ),
+
                 Expanded(
                   child: Column(
                     crossAxisAlignment:
                         CrossAxisAlignment.start,
+
                     children: [
                       Text(
                         title,
                         style:
                             AppTextStyles.title,
                       ),
+
                       const SizedBox(
-                        height: 3,
+                        height: AppSpacing.xs,
                       ),
+
                       Text(
                         subtitle,
                         style:
@@ -607,7 +627,11 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+
+            const SizedBox(
+              height: AppSpacing.xl,
+            ),
+
             child,
           ],
         ),
@@ -628,30 +652,142 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
   }) {
     return Card(
       margin: const EdgeInsets.only(
-        bottom: 10,
+        bottom: AppSpacing.sm,
       ),
+
       elevation: 0,
-      color: AppColors.surfaceSoft,
+
+      color:
+          AppColors.surfaceSoft,
+
       child: SwitchListTile(
         contentPadding:
             const EdgeInsets.symmetric(
-          horizontal: 12,
+          horizontal: AppSpacing.md,
         ),
+
         secondary: Icon(
           icon,
-          color: AppColors.primary,
+          color:
+              AppColors.primary,
         ),
+
         title: Text(
           title,
-          style: AppTextStyles.body,
+          style:
+              AppTextStyles.body,
         ),
+
         subtitle: Text(
           subtitle,
           style:
               AppTextStyles.bodySecondary,
         ),
+
         value: value,
+
         onChanged: onChanged,
+      ),
+    );
+  }
+
+  // ============================================================
+  // INFO BOX
+  // ============================================================
+
+  Widget _infoBox({
+    required IconData icon,
+    required String message,
+  }) {
+    return Container(
+      width: double.infinity,
+
+      padding: const EdgeInsets.all(
+        AppSpacing.md,
+      ),
+
+      decoration: BoxDecoration(
+        color:
+            AppColors.infoLight,
+
+        borderRadius:
+            BorderRadius.circular(
+          AppRadius.md,
+        ),
+      ),
+
+      child: Row(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+
+        children: [
+          Icon(
+            icon,
+            size: AppSizes.iconButton / 2,
+            color:
+                AppColors.info,
+          ),
+
+          const SizedBox(
+            width: AppSpacing.sm,
+          ),
+
+          Expanded(
+            child: Text(
+              message,
+              style:
+                  AppTextStyles.bodySecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // SAVE BUTTON
+  // ============================================================
+
+  Widget _saveButton({
+    required Responsive responsive,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+
+      height:
+          responsive.buttonHeight,
+
+      child: ElevatedButton.icon(
+        onPressed:
+            _isSaving
+                ? null
+                : _saveSettings,
+
+        icon: _isSaving
+            ? const SizedBox(
+                width:
+                    AppSpacing.lg,
+
+                height:
+                    AppSpacing.lg,
+
+                child:
+                     CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : const Icon(
+                Icons.save,
+              ),
+
+        label: Text(
+          _isSaving
+              ? 'Saving...'
+              : 'Save POS Settings',
+          style:
+              AppTextStyles.body,
+        ),
       ),
     );
   }
@@ -662,27 +798,38 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final responsive =
+        context.responsive;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
           'POS / Sales Settings',
         ),
+
         actions: [
           Padding(
-            padding: const EdgeInsets.only(
-              right: 12,
+            padding: EdgeInsets.only(
+              right:
+                  responsive.horizontalPadding,
             ),
+
             child: ElevatedButton.icon(
               onPressed:
                   _isSaving
                       ? null
                       : _saveSettings,
+
               icon: _isSaving
                   ? const SizedBox(
-                      width: 16,
-                      height: 16,
+                      width:
+                          AppSpacing.lg,
+
+                      height:
+                          AppSpacing.lg,
+
                       child:
-                          CircularProgressIndicator(
+                           CircularProgressIndicator(
                         strokeWidth: 2,
                         color: Colors.white,
                       ),
@@ -690,13 +837,17 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
                   : const Icon(
                       Icons.save,
                     ),
+
               label: const Text(
                 'Save',
+                style:
+                    AppTextStyles.body,
               ),
             ),
           ),
         ],
       ),
+
       body: _isLoading
           ? const Center(
               child:
@@ -704,39 +855,52 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
             )
           : Center(
               child: ConstrainedBox(
-                constraints:
-                    const BoxConstraints(
-                  maxWidth: 900,
+                constraints: BoxConstraints(
+                  maxWidth:
+                      responsive.contentMaxWidth,
                 ),
+
                 child: ListView(
-                  padding:
-                      AppTextStyles.screenPadding,
+                  padding: EdgeInsets.symmetric(
+                    horizontal:
+                        responsive.horizontalPadding,
+
+                    vertical:
+                        responsive.verticalPadding,
+                  ),
+
                   children: [
                     // ==================================================
                     // INTRO
                     // ==================================================
 
-                    Card(
+                    const Card(
                       color:
                           AppColors.infoLight,
+
                       child: Padding(
                         padding:
-                            const EdgeInsets.all(
-                          16,
+                            EdgeInsets.all(
+                          AppSpacing.lg,
                         ),
+
                         child: Row(
                           crossAxisAlignment:
                               CrossAxisAlignment
                                   .start,
+
                           children: [
                             const Icon(
                               Icons.info_outline,
                               color:
                                   AppColors.info,
                             ),
-                            const SizedBox(
-                              width: 12,
+
+                            SizedBox(
+                              width:
+                                  AppSpacing.md,
                             ),
+
                             Expanded(
                               child: Text(
                                 'Configure how the point-of-sale '
@@ -753,7 +917,8 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
                     ),
 
                     const SizedBox(
-                      height: 20,
+                      height:
+                          AppSpacing.lg,
                     ),
 
                     // ==================================================
@@ -763,38 +928,47 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
                     _sectionCard(
                       title:
                           'Default Payment',
+
                       subtitle:
                           'Choose the payment method selected by default at checkout.',
+
                       icon:
                           Icons.payments,
+
                       child:
                           DropdownButtonFormField<
                               String>(
                         initialValue:
                             _defaultPaymentMethod,
+
                         decoration:
                             const InputDecoration(
                           labelText:
                               'Default Payment Method',
                         ),
+
                         items: const [
                           DropdownMenuItem(
                             value: 'cash',
                             child:
                                 Text('Cash'),
                           ),
+
                           DropdownMenuItem(
                             value: 'pos',
                             child:
                                 Text('POS'),
                           ),
+
                           DropdownMenuItem(
                             value: 'transfer',
-                            child: Text(
+                            child:
+                                Text(
                               'Bank Transfer',
                             ),
                           ),
                         ],
+
                         onChanged:
                             _setDefaultPaymentMethod,
                       ),
@@ -807,20 +981,28 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
                     _sectionCard(
                       title:
                           'Payment Methods',
+
                       subtitle:
                           'Choose which payment methods are available at checkout.',
+
                       icon:
                           Icons.account_balance_wallet,
+
                       child: Column(
                         children: [
                           _paymentMethodTile(
-                            title: 'Cash',
+                            title:
+                                'Cash',
+
                             subtitle:
                                 'Allow customers to pay with cash.',
+
                             icon:
                                 Icons.money,
+
                             value:
                                 _paymentCash,
+
                             onChanged:
                                 (value) {
                               _setPaymentMethodEnabled(
@@ -831,13 +1013,18 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
                           ),
 
                           _paymentMethodTile(
-                            title: 'POS',
+                            title:
+                                'POS',
+
                             subtitle:
                                 'Allow card payments through a POS terminal.',
+
                             icon:
                                 Icons.credit_card,
+
                             value:
                                 _paymentPos,
+
                             onChanged:
                                 (value) {
                               _setPaymentMethodEnabled(
@@ -850,12 +1037,16 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
                           _paymentMethodTile(
                             title:
                                 'Bank Transfer',
+
                             subtitle:
                                 'Allow customers to pay by bank transfer.',
+
                             icon:
                                 Icons.account_balance,
+
                             value:
                                 _paymentTransfer,
+
                             onChanged:
                                 (value) {
                               _setPaymentMethodEnabled(
@@ -866,48 +1057,16 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
                           ),
 
                           const SizedBox(
-                            height: 8,
+                            height:
+                                AppSpacing.sm,
                           ),
 
-                          Container(
-                            padding:
-                                const EdgeInsets.all(
-                              12,
-                            ),
-                            decoration:
-                                BoxDecoration(
-                              color:
-                                  AppColors.infoLight,
-                              borderRadius:
-                                  BorderRadius.circular(
-                                8,
-                              ),
-                            ),
-                            child: Row(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment
-                                      .start,
-                              children: [
-                                const Icon(
-                                  Icons
-                                      .call_split,
-                                  size: 20,
-                                  color:
-                                      AppColors.info,
-                                ),
-                                const SizedBox(
-                                  width: 10,
-                                ),
-                                Expanded(
-                                  child: Text(
-                                    'Split payments are handled directly on the sales screen using the enabled payment methods.',
-                                    style:
-                                        AppTextStyles
-                                            .bodySecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
+                          _infoBox(
+                            icon:
+                                Icons.call_split,
+
+                            message:
+                                'Split payments are handled directly on the sales screen using the enabled payment methods.',
                           ),
                         ],
                       ),
@@ -920,19 +1079,25 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
                     _sectionCard(
                       title:
                           'Discounts & Pricing',
+
                       subtitle:
                           'Control discounts and manual price changes at checkout.',
+
                       icon:
                           Icons.discount,
+
                       child: Column(
                         children: [
                           _switchTile(
                             title:
                                 'Allow Discounts',
+
                             subtitle:
                                 'Allow staff to apply discounts during sales.',
+
                             value:
                                 _allowDiscount,
+
                             onChanged:
                                 (value) {
                               setState(() {
@@ -943,41 +1108,51 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
                           ),
 
                           const SizedBox(
-                            height: 8,
+                            height:
+                                AppSpacing.sm,
                           ),
 
                           TextField(
                             controller:
                                 _maximumDiscountController,
+
                             enabled:
                                 _allowDiscount,
+
                             keyboardType:
                                 const TextInputType
                                     .numberWithOptions(
                               decimal: true,
                             ),
+
                             decoration:
                                 const InputDecoration(
                               labelText:
                                   'Maximum Discount',
+
                               suffixText:
                                   '%',
+
                               hintText:
                                   '20',
                             ),
                           ),
 
                           const SizedBox(
-                            height: 8,
+                            height:
+                                AppSpacing.sm,
                           ),
 
                           _switchTile(
                             title:
                                 'Require Discount Approval',
+
                             subtitle:
                                 'Require approval before applying a discount.',
+
                             value:
                                 _requireDiscountApproval,
+
                             onChanged:
                                 _allowDiscount
                                     ? (value) {
@@ -994,10 +1169,13 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
                           _switchTile(
                             title:
                                 'Allow Price Editing',
+
                             subtitle:
                                 'Allow the cashier to manually change a product price during checkout.',
+
                             value:
                                 _allowPriceEditing,
+
                             onChanged:
                                 (value) {
                               setState(() {
@@ -1017,19 +1195,25 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
                     _sectionCard(
                       title:
                           'Customer Information',
+
                       subtitle:
                           'Control customer information collected during sales.',
+
                       icon:
                           Icons.person,
+
                       child: Column(
                         children: [
                           _switchTile(
                             title:
                                 'Require Customer Name',
+
                             subtitle:
                                 'Require a customer name before completing a sale.',
+
                             value:
                                 _requireCustomerName,
+
                             onChanged:
                                 (value) {
                               setState(() {
@@ -1042,10 +1226,13 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
                           _switchTile(
                             title:
                                 'Require Customer Phone',
+
                             subtitle:
                                 'Require a customer phone number before completing a sale.',
+
                             value:
                                 _requireCustomerPhone,
+
                             onChanged:
                                 (value) {
                               setState(() {
@@ -1065,17 +1252,24 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
                     _sectionCard(
                       title:
                           'Receipt Printing',
+
                       subtitle:
                           'Control how receipts are produced after sales.',
+
                       icon:
                           Icons.print,
-                      child: _switchTile(
+
+                      child:
+                          _switchTile(
                         title:
                             'Automatically Print Receipt',
+
                         subtitle:
                             'Automatically send the receipt to the configured printer after a successful sale.',
+
                         value:
                             _automaticallyPrintReceipt,
+
                         onChanged:
                             (value) {
                           setState(() {
@@ -1093,19 +1287,25 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
                     _sectionCard(
                       title:
                           'Customer Display',
+
                       subtitle:
                           'Configure a screen that shows checkout information to the customer.',
+
                       icon:
                           Icons.desktop_mac,
+
                       child: Column(
                         children: [
                           _switchTile(
                             title:
                                 'Show Customer Display',
+
                             subtitle:
                                 'Enable a customer-facing display during checkout.',
+
                             value:
                                 _showCustomerDisplay,
+
                             onChanged:
                                 (value) {
                               setState(() {
@@ -1116,18 +1316,21 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
                           ),
 
                           const SizedBox(
-                            height: 8,
+                            height:
+                                AppSpacing.sm,
                           ),
 
                           DropdownButtonFormField<
                               String>(
                             initialValue:
                                 _customerDisplayDevice,
+
                             decoration:
                                 const InputDecoration(
                               labelText:
                                   'Display Device',
                             ),
+
                             items:
                                 _displayDeviceOptions
                                     .map(
@@ -1138,6 +1341,7 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
                                               String>(
                                         value:
                                             device,
+
                                         child:
                                             Text(
                                           device,
@@ -1145,6 +1349,7 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
                                       ),
                                     )
                                     .toList(),
+
                             onChanged:
                                 _showCustomerDisplay
                                     ? (value) {
@@ -1171,42 +1376,18 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
                     // ==================================================
 
                     const SizedBox(
-                      height: 10,
+                      height:
+                          AppSpacing.sm,
                     ),
 
-                    SizedBox(
-                      height: 52,
-                      child:
-                          ElevatedButton.icon(
-                        onPressed:
-                            _isSaving
-                                ? null
-                                : _saveSettings,
-                        icon: _isSaving
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child:
-                                    CircularProgressIndicator(
-                                  strokeWidth:
-                                      2,
-                                  color:
-                                      Colors.white,
-                                ),
-                              )
-                            : const Icon(
-                                Icons.save,
-                              ),
-                        label: Text(
-                          _isSaving
-                              ? 'Saving...'
-                              : 'Save POS Settings',
-                        ),
-                      ),
+                    _saveButton(
+                      responsive:
+                          responsive,
                     ),
 
                     const SizedBox(
-                      height: 40,
+                      height:
+                          AppSpacing.section,
                     ),
                   ],
                 ),
@@ -1226,3 +1407,4 @@ class _PosSettingsScreenState extends State<PosSettingsScreen> {
     super.dispose();
   }
 }
+

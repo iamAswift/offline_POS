@@ -2,9 +2,10 @@
 
 import 'package:flutter/material.dart';
 
-import '../../database/daos/settings_dao.dart';
-import '../../database/business_settings.dart';
+import '../../core/responsive/responsive.dart';
 import '../../core/theme/styles.dart';
+import '../../database/business_settings.dart';
+import '../../database/daos/settings_dao.dart';
 
 class AppearanceSettingsScreen extends StatefulWidget {
   final SettingsDao settingsDao;
@@ -43,7 +44,7 @@ class _AppearanceSettingsScreenState
   // ACCENT COLORS
   // ============================================================
 
-  final List<Map<String, dynamic>> _accentColors = [
+  static const List<Map<String, dynamic>> _accentColors = [
     {
       'name': 'blue',
       'label': 'Blue',
@@ -62,7 +63,7 @@ class _AppearanceSettingsScreenState
     {
       'name': 'purple',
       'label': 'Purple',
-      'color': Color(0xFF7F56D9),
+      'color': AppColors.pos,
     },
     {
       'name': 'red',
@@ -242,7 +243,10 @@ class _AppearanceSettingsScreenState
   }) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(
+          message,
+          style: AppTextStyles.body,
+        ),
         backgroundColor:
             isError ? AppColors.danger : null,
       ),
@@ -259,34 +263,51 @@ class _AppearanceSettingsScreenState
     required IconData icon,
     required Widget child,
   }) {
+    final responsive = context.responsive;
+
     return Card(
       margin: const EdgeInsets.only(
-        bottom: 20,
+        bottom: AppSpacing.xl,
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(
+          responsive.isCompact
+              ? AppSpacing.lg
+              : AppSpacing.xl,
+        ),
         child: Column(
           crossAxisAlignment:
               CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
               children: [
                 Container(
-                  width: 42,
-                  height: 42,
+                  width: responsive.isCompact
+                      ? AppSizes.iconButton
+                      : AppSizes.iconButton,
+                  height: responsive.isCompact
+                      ? AppSizes.iconButton
+                      : AppSizes.iconButton,
                   decoration: BoxDecoration(
                     color:
                         AppColors.primaryLight,
                     borderRadius:
-                        BorderRadius.circular(8),
+                        BorderRadius.circular(
+                      AppRadius.md,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.palette_outlined,
-                    color:
-                        AppColors.primary,
+                  child: Icon(
+                    icon,
+                    color: AppColors.primary,
                   ),
                 ),
-                const SizedBox(width: 12),
+
+                const SizedBox(
+                  width: AppSpacing.md,
+                ),
+
                 Expanded(
                   child: Column(
                     crossAxisAlignment:
@@ -297,20 +318,26 @@ class _AppearanceSettingsScreenState
                         style:
                             AppTextStyles.title,
                       ),
+
                       const SizedBox(
-                        height: 3,
+                        height: AppSpacing.xs,
                       ),
+
                       Text(
                         subtitle,
-                        style:
-                            AppTextStyles.bodySecondary,
+                        style: AppTextStyles
+                            .bodySecondary,
                       ),
                     ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+
+            const SizedBox(
+              height: AppSpacing.xl,
+            ),
+
             child,
           ],
         ),
@@ -327,19 +354,23 @@ class _AppearanceSettingsScreenState
       crossAxisAlignment:
           CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'Theme',
           style: AppTextStyles.title,
         ),
 
-        const SizedBox(height: 6),
+        const SizedBox(
+          height: AppSpacing.xs,
+        ),
 
-        Text(
+        const Text(
           'Choose how the application should appear.',
           style: AppTextStyles.bodySecondary,
         ),
 
-        const SizedBox(height: 16),
+        const SizedBox(
+          height: AppSpacing.lg,
+        ),
 
         RadioGroup<String>(
           groupValue: _themeMode,
@@ -357,27 +388,34 @@ class _AppearanceSettingsScreenState
                 title: 'System Default',
                 subtitle:
                     'Follow your device appearance setting.',
-                icon: Icons.settings_suggest_outlined,
+                icon:
+                    Icons.settings_suggest_outlined,
               ),
 
-              const Divider(),
+              const Divider(
+                color: AppColors.divider,
+              ),
 
               _themeOption(
                 value: 'light',
                 title: 'Light',
                 subtitle:
                     'Use the light application theme.',
-                icon: Icons.light_mode_outlined,
+                icon:
+                    Icons.light_mode_outlined,
               ),
 
-              const Divider(),
+              const Divider(
+                color: AppColors.divider,
+              ),
 
               _themeOption(
                 value: 'dark',
                 title: 'Dark',
                 subtitle:
                     'Use the dark application theme.',
-                icon: Icons.dark_mode_outlined,
+                icon:
+                    Icons.dark_mode_outlined,
               ),
             ],
           ),
@@ -398,15 +436,22 @@ class _AppearanceSettingsScreenState
   }) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      leading: Icon(icon),
+
+      leading: Icon(
+        icon,
+        color: AppColors.textSecondary,
+      ),
+
       title: Text(
         title,
         style: AppTextStyles.body,
       ),
+
       subtitle: Text(
         subtitle,
         style: AppTextStyles.bodySecondary,
       ),
+
       trailing: Radio<String>(
         value: value,
       ),
@@ -414,112 +459,166 @@ class _AppearanceSettingsScreenState
   }
 
   // ============================================================
-  // ACCENT COLOR
+  // ACCENT COLOR SELECTOR
   // ============================================================
 
   Widget _buildAccentColorSelector() {
+    final responsive = context.responsive;
+
     return Column(
       crossAxisAlignment:
           CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'Accent Color',
           style: AppTextStyles.title,
         ),
 
-        const SizedBox(height: 6),
+        const SizedBox(
+          height: AppSpacing.xs,
+        ),
 
-        Text(
+        const Text(
           'Choose the primary accent used throughout the interface.',
           style: AppTextStyles.bodySecondary,
         ),
 
-        const SizedBox(height: 16),
+        const SizedBox(
+          height: AppSpacing.lg,
+        ),
 
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: _accentColors.map(
-            (accent) {
-              final name =
-                  accent['name'] as String;
+        LayoutBuilder(
+          builder: (
+            context,
+            constraints,
+          ) {
+            final columns = responsive.isCompact
+                ? 1
+                : responsive.isTablet
+                    ? 2
+                    : 3;
 
-              final label =
-                  accent['label'] as String;
+            final spacing = AppSpacing.md;
 
-              final color =
-                  accent['color'] as Color;
+            final itemWidth =
+                (constraints.maxWidth -
+                        (spacing *
+                            (columns - 1))) /
+                    columns;
 
-              final selected =
-                  _accentColor == name;
+            return Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children:
+                  _accentColors.map(
+                (accent) {
+                  final name =
+                      accent['name'] as String;
 
-              return InkWell(
-                borderRadius:
-                    BorderRadius.circular(10),
-                onTap: () {
-                  setState(() {
-                    _accentColor = name;
-                  });
+                  final label =
+                      accent['label'] as String;
+
+                  final color =
+                      accent['color'] as Color;
+
+                  final selected =
+                      _accentColor == name;
+
+                  return SizedBox(
+                    width: itemWidth,
+                    child: _accentColorOption(
+                      name: name,
+                      label: label,
+                      color: color,
+                      selected: selected,
+                    ),
+                  );
                 },
-                child: Container(
-                  width: 130,
-                  padding:
-                      const EdgeInsets.all(12),
-                  decoration:
-                      BoxDecoration(
-                    color: selected
-                        ? color.withValues(
-                            alpha: 0.08,
-                          )
-                        : null,
-                    borderRadius:
-                        BorderRadius.circular(
-                      10,
-                    ),
-                    border: Border.all(
-                      color: selected
-                          ? color
-                          : AppColors.border,
-                      width:
-                          selected ? 2 : 1,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 24,
-                        height: 24,
-                        decoration:
-                            BoxDecoration(
-                          color: color,
-                          shape:
-                              BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(
-                        width: 8,
-                      ),
-                      Expanded(
-                        child: Text(
-                          label,
-                          style:
-                              AppTextStyles.body,
-                        ),
-                      ),
-                      if (selected)
-                        Icon(
-                          Icons.check_circle,
-                          size: 18,
-                          color: color,
-                        ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ).toList(),
+              ).toList(),
+            );
+          },
         ),
       ],
+    );
+  }
+
+  // ============================================================
+  // ACCENT COLOR OPTION
+  // ============================================================
+
+  Widget _accentColorOption({
+    required String name,
+    required String label,
+    required Color color,
+    required bool selected,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius:
+            BorderRadius.circular(
+          AppRadius.lg,
+        ),
+        onTap: () {
+          setState(() {
+            _accentColor = name;
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.all(
+            AppSpacing.md,
+          ),
+          decoration: BoxDecoration(
+            color: selected
+                ? color.withValues(
+                    alpha: 0.08,
+                  )
+                : AppColors.surfaceSoft,
+            borderRadius:
+                BorderRadius.circular(
+              AppRadius.lg,
+            ),
+            border: Border.all(
+              color: selected
+                  ? color
+                  : AppColors.border,
+              width: selected
+                  ? AppSpacing.xs / 2
+                  : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: AppSpacing.xl,
+                height: AppSpacing.xl,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                ),
+              ),
+
+              const SizedBox(
+                width: AppSpacing.sm,
+              ),
+
+              Expanded(
+                child: Text(
+                  label,
+                  style: AppTextStyles.body,
+                ),
+              ),
+
+              if (selected)
+                Icon(
+                  Icons.check_circle,
+                  size: AppSpacing.xl,
+                  color: color,
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -536,18 +635,119 @@ class _AppearanceSettingsScreenState
   }) {
     return SwitchListTile(
       contentPadding: EdgeInsets.zero,
-      secondary:
-          icon != null ? Icon(icon) : null,
+
+      secondary: icon != null
+          ? Icon(
+              icon,
+              color: AppColors.textSecondary,
+            )
+          : null,
+
       title: Text(
         title,
         style: AppTextStyles.body,
       ),
+
       subtitle: Text(
         subtitle,
         style: AppTextStyles.bodySecondary,
       ),
+
       value: value,
       onChanged: onChanged,
+    );
+  }
+
+  // ============================================================
+  // SAVE BUTTON
+  // ============================================================
+
+  Widget _buildSaveButton() {
+    final responsive = context.responsive;
+
+    return SizedBox(
+      height: responsive.buttonHeight,
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed:
+            _isSaving ? null : _saveSettings,
+
+        icon: _isSaving
+            ? const SizedBox(
+                width: AppSpacing.lg,
+                height: AppSpacing.lg,
+                child:
+                     CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : const Icon(
+                Icons.save,
+              ),
+
+        label: Text(
+          _isSaving
+              ? 'Saving...'
+              : 'Save Appearance Settings',
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // APP BAR SAVE ACTION
+  // ============================================================
+
+  Widget _buildAppBarSaveAction() {
+    final responsive = context.responsive;
+
+    if (responsive.isCompact) {
+      return IconButton(
+        tooltip: 'Save',
+        onPressed:
+            _isSaving ? null : _saveSettings,
+        icon: _isSaving
+            ? const SizedBox(
+                width: AppSpacing.lg,
+                height: AppSpacing.lg,
+                child:
+                     CircularProgressIndicator(
+                  strokeWidth: 2,
+                ),
+              )
+            : const Icon(
+                Icons.save,
+              ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(
+        right: AppSpacing.md,
+      ),
+      child: ElevatedButton.icon(
+        onPressed:
+            _isSaving ? null : _saveSettings,
+
+        icon: _isSaving
+            ? const SizedBox(
+                width: AppSpacing.lg,
+                height: AppSpacing.lg,
+                child:
+                     CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : const Icon(
+                Icons.save,
+              ),
+
+        label: const Text(
+          'Save',
+        ),
+      ),
     );
   }
 
@@ -557,39 +757,15 @@ class _AppearanceSettingsScreenState
 
   @override
   Widget build(BuildContext context) {
+    final responsive = context.responsive;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
           'Appearance',
         ),
         actions: [
-          Padding(
-            padding:
-                const EdgeInsets.only(
-              right: 12,
-            ),
-            child: ElevatedButton.icon(
-              onPressed: _isSaving
-                  ? null
-                  : _saveSettings,
-              icon: _isSaving
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child:
-                          CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(
-                      Icons.save,
-                    ),
-              label: const Text(
-                'Save',
-              ),
-            ),
-          ),
+          _buildAppBarSaveAction(),
         ],
       ),
 
@@ -600,29 +776,33 @@ class _AppearanceSettingsScreenState
             )
           : Center(
               child: ConstrainedBox(
-                constraints:
-                    const BoxConstraints(
-                  maxWidth: 900,
+                constraints: BoxConstraints(
+                  maxWidth:
+                      responsive.contentMaxWidth,
                 ),
                 child: ListView(
-                  padding:
-                      const EdgeInsets.all(24),
+                  padding: EdgeInsets.symmetric(
+                    horizontal:
+                        responsive.horizontalPadding,
+                    vertical:
+                        responsive.verticalPadding,
+                  ),
                   children: [
                     // ==================================================
                     // PAGE INTRO
                     // ==================================================
 
-                    Text(
+                    const Text(
                       'Appearance Settings',
                       style:
                           AppTextStyles.heading,
                     ),
 
                     const SizedBox(
-                      height: 6,
+                      height: AppSpacing.xs,
                     ),
 
-                    Text(
+                    const Text(
                       'Customize how the inventory and POS application '
                       'looks and behaves on your device.',
                       style:
@@ -630,7 +810,7 @@ class _AppearanceSettingsScreenState
                     ),
 
                     const SizedBox(
-                      height: 24,
+                      height: AppSpacing.xxl,
                     ),
 
                     // ==================================================
@@ -691,7 +871,10 @@ class _AppearanceSettingsScreenState
                                 Icons.touch_app_outlined,
                           ),
 
-                          const Divider(),
+                          const Divider(
+                            color:
+                                AppColors.divider,
+                          ),
 
                           _switchTile(
                             title:
@@ -748,41 +931,10 @@ class _AppearanceSettingsScreenState
                     // SAVE
                     // ==================================================
 
-                    const SizedBox(
-                      height: 10,
-                    ),
-
-                    SizedBox(
-                      height: 52,
-                      child:
-                          ElevatedButton.icon(
-                        onPressed: _isSaving
-                            ? null
-                            : _saveSettings,
-                        icon: _isSaving
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child:
-                                    CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color:
-                                      Colors.white,
-                                ),
-                              )
-                            : const Icon(
-                                Icons.save,
-                              ),
-                        label: Text(
-                          _isSaving
-                              ? 'Saving...'
-                              : 'Save Appearance Settings',
-                        ),
-                      ),
-                    ),
+                    _buildSaveButton(),
 
                     const SizedBox(
-                      height: 40,
+                      height: AppSpacing.huge,
                     ),
                   ],
                 ),

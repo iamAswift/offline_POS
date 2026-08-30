@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../core/responsive/responsive.dart';
 import '../../core/theme/styles.dart';
 import '../../database/app_database.dart';
 import '../../database/daos/sales_dao.dart';
@@ -11,12 +12,10 @@ class CategoryReportScreen extends StatefulWidget {
   const CategoryReportScreen({super.key});
 
   @override
-  State<CategoryReportScreen> createState() =>
-      _CategoryReportScreenState();
+  State<CategoryReportScreen> createState() => _CategoryReportScreenState();
 }
 
-class _CategoryReportScreenState
-    extends State<CategoryReportScreen> {
+class _CategoryReportScreenState extends State<CategoryReportScreen> {
   late final SalesDao salesDao;
 
   String _selectedFilter = "Month";
@@ -32,6 +31,7 @@ class _CategoryReportScreenState
 
   @override
   Widget build(BuildContext context) {
+    final responsive = context.responsive;
     final range = _getRange();
 
     return Scaffold(
@@ -40,8 +40,7 @@ class _CategoryReportScreenState
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _loadCategories(range),
         builder: (context, snapshot) {
-          if (snapshot.connectionState ==
-              ConnectionState.waiting) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const _CategoryLoadingState();
           }
 
@@ -56,102 +55,82 @@ class _CategoryReportScreenState
 
           final categories = snapshot.data ?? [];
 
+          final totalSales = categories.fold<double>(
+            0,
+            (sum, category) => sum + _toDouble(category["totalSales"]),
+          );
+
+          final totalProfit = categories.fold<double>(
+            0,
+            (sum, category) => sum + _toDouble(category["profit"]),
+          );
+
+          final itemsSold = categories.fold<int>(
+            0,
+            (sum, category) => sum + _toInt(category["itemsSold"]),
+          );
+
+          final stockValue = categories.fold<double>(
+            0,
+            (sum, category) => sum + _toDouble(category["stockValue"]),
+          );
+
           return RefreshIndicator(
             color: AppColors.primary,
             onRefresh: () async {
               setState(() {});
             },
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isCompact =
-                    constraints.maxWidth < 650;
-
-                final totalSales = categories.fold<double>(
-                  0,
-                  (sum, category) =>
-                      sum + _toDouble(category["totalSales"]),
-                );
-
-                final totalProfit = categories.fold<double>(
-                  0,
-                  (sum, category) =>
-                      sum + _toDouble(category["profit"]),
-                );
-
-                final itemsSold = categories.fold<int>(
-                  0,
-                  (sum, category) =>
-                      sum + _toInt(category["itemsSold"]),
-                );
-
-                final stockValue = categories.fold<double>(
-                  0,
-                  (sum, category) =>
-                      sum + _toDouble(category["stockValue"]),
-                );
-
-                return SingleChildScrollView(
-                  physics:
-                      const AlwaysScrollableScrollPhysics(),
-                  padding: EdgeInsets.symmetric(
-                    horizontal:
-                        isCompact ? 16 : 24,
-                    vertical: 24,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.symmetric(
+                horizontal: responsive.horizontalPadding,
+                vertical: responsive.verticalPadding,
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: responsive.contentMaxWidth,
                   ),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(
-                        maxWidth: 1200,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildPageHeader(range),
+
+                      const SizedBox(height: AppSpacing.xxl),
+
+                      _buildOverview(
+                        totalSales: totalSales,
+                        totalProfit: totalProfit,
+                        itemsSold: itemsSold,
+                        stockValue: stockValue,
                       ),
-                      child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
-                        children: [
-                          _buildPageHeader(range),
-                          const SizedBox(height: 24),
 
-                          _buildOverview(
-                            totalSales: totalSales,
-                            totalProfit: totalProfit,
-                            itemsSold: itemsSold,
-                            stockValue: stockValue,
-                            isCompact: isCompact,
-                          ),
+                      const SizedBox(height: AppSpacing.xxxl),
 
-                          const SizedBox(height: 30),
+                      _buildSectionHeader(categoryCount: categories.length),
 
-                          _buildSectionHeader(
-                            categoryCount:
-                                categories.length,
-                          ),
+                      const SizedBox(height: AppSpacing.md),
 
-                          const SizedBox(height: 14),
+                      if (categories.isEmpty)
+                        const _CategoryEmptyState()
+                      else
+                        _buildCategoryList(categories),
 
-                          if (categories.isEmpty)
-                            const _CategoryEmptyState()
-                          else
-                            _buildCategoryList(
-                              categories,
-                              isCompact,
-                            ),
+                      const SizedBox(height: AppSpacing.xxxl),
 
-                          const SizedBox(height: 30),
-
-                          _buildExportSection(
-                            categories: categories,
-                            totalSales: totalSales,
-                            totalProfit: totalProfit,
-                            itemsSold: itemsSold,
-                            stockValue: stockValue,
-                          ),
-
-                          const SizedBox(height: 24),
-                        ],
+                      _buildExportSection(
+                        categories: categories,
+                        totalSales: totalSales,
+                        totalProfit: totalProfit,
+                        itemsSold: itemsSold,
+                        stockValue: stockValue,
                       ),
-                    ),
+
+                      const SizedBox(height: AppSpacing.xxl),
+                    ],
                   ),
-                );
-              },
+                ),
+              ),
             ),
           );
         },
@@ -166,15 +145,10 @@ class _CategoryReportScreenState
   Future<List<Map<String, dynamic>>> _loadCategories(
     DateTimeRange range,
   ) async {
-    final result = await salesDao.getCategorySummary(
-      range.start,
-      range.end,
-    );
+    final result = await salesDao.getCategorySummary(range.start, range.end);
 
     return List<Map<String, dynamic>>.from(
-      result.map(
-        (item) => Map<String, dynamic>.from(item),
-      ),
+      result.map((item) => Map<String, dynamic>.from(item)),
     );
   }
 
@@ -188,16 +162,15 @@ class _CategoryReportScreenState
       elevation: 0,
       surfaceTintColor: Colors.transparent,
       automaticallyImplyLeading: true,
-      titleSpacing: 20,
+      titleSpacing: AppSpacing.xl,
       title: Row(
         children: [
           Container(
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: AppColors.inventory
-                  .withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(10),
+              color: AppColors.inventory.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             child: const Icon(
               Icons.category_outlined,
@@ -205,25 +178,21 @@ class _CategoryReportScreenState
               size: 22,
             ),
           ),
-          const SizedBox(width: 12),
-          const Text(
-            "Category Report",
-            style: AppTextStyles.title,
-          ),
+
+          const SizedBox(width: AppSpacing.md),
+
+          const Text("Category Report", style: AppTextStyles.title),
         ],
       ),
       actions: [
         Padding(
-          padding: const EdgeInsets.only(right: 16),
+          padding: const EdgeInsets.only(right: AppSpacing.lg),
           child: _buildFilterDropdown(),
         ),
       ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
-        child: Container(
-          height: 1,
-          color: AppColors.divider,
-        ),
+        child: Container(height: 1, color: AppColors.divider),
       ),
     );
   }
@@ -236,16 +205,17 @@ class _CategoryReportScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "Category performance",
-          style: AppTextStyles.heading,
-        ),
-        const SizedBox(height: 6),
+        const Text("Category performance", style: AppTextStyles.heading),
+
+        const SizedBox(height: AppSpacing.xs + 2),
+
         const Text(
           "Analyze sales, profit and inventory performance by category.",
           style: AppTextStyles.bodySecondary,
         ),
-        const SizedBox(height: 10),
+
+        const SizedBox(height: AppSpacing.sm + 2),
+
         Row(
           children: [
             const Icon(
@@ -253,11 +223,10 @@ class _CategoryReportScreenState
               size: 14,
               color: AppColors.textMuted,
             ),
-            const SizedBox(width: 6),
-            Text(
-              _formatDateRange(range),
-              style: AppTextStyles.small,
-            ),
+
+            const SizedBox(width: AppSpacing.xs + 2),
+
+            Text(_formatDateRange(range), style: AppTextStyles.small),
           ],
         ),
       ],
@@ -273,8 +242,9 @@ class _CategoryReportScreenState
     required double totalProfit,
     required int itemsSold,
     required double stockValue,
-    required bool isCompact,
   }) {
+    final responsive = context.responsive;
+
     final cards = [
       _OverviewCardData(
         title: "Total Sales",
@@ -302,55 +272,41 @@ class _CategoryReportScreenState
         value: _formatCurrency(stockValue),
         icon: Icons.inventory_2_outlined,
         color: AppColors.inventory,
-        backgroundColor:
-            AppColors.inventory.withValues(alpha: 0.10),
+        backgroundColor: AppColors.inventory.withValues(alpha: 0.10),
       ),
     ];
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        int columns;
+    final columns = responsive.isCompact
+        ? 1
+        : responsive.isTablet
+        ? 2
+        : 4;
 
-        if (constraints.maxWidth >= 950) {
-          columns = 4;
-        } else if (constraints.maxWidth >= 600) {
-          columns = 2;
-        } else {
-          columns = 1;
-        }
+    final aspectRatio = columns == 1 ? 3.1 : 2.05;
 
-        return GridView.builder(
-          shrinkWrap: true,
-          physics:
-              const NeverScrollableScrollPhysics(),
-          itemCount: cards.length,
-          gridDelegate:
-              SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            crossAxisSpacing: 14,
-            mainAxisSpacing: 14,
-            childAspectRatio:
-                columns == 1 ? 3.1 : 2.05,
-          ),
-          itemBuilder: (context, index) {
-            return _buildOverviewCard(cards[index]);
-          },
-        );
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: cards.length,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: columns,
+        crossAxisSpacing: AppSpacing.md,
+        mainAxisSpacing: AppSpacing.md,
+        childAspectRatio: aspectRatio,
+      ),
+      itemBuilder: (context, index) {
+        return _buildOverviewCard(cards[index]);
       },
     );
   }
 
-  Widget _buildOverviewCard(
-    _OverviewCardData data,
-  ) {
+  Widget _buildOverviewCard(_OverviewCardData data) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: AppColors.border,
-        ),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.border),
         boxShadow: const [
           BoxShadow(
             color: Color(0x08000000),
@@ -366,35 +322,32 @@ class _CategoryReportScreenState
             height: 46,
             decoration: BoxDecoration(
               color: data.backgroundColor,
-              borderRadius:
-                  BorderRadius.circular(11),
+              borderRadius: BorderRadius.circular(11),
             ),
-            child: Icon(
-              data.icon,
-              color: data.color,
-              size: 23,
-            ),
+            child: Icon(data.icon, color: data.color, size: 23),
           ),
-          const SizedBox(width: 12),
+
+          const SizedBox(width: AppSpacing.md),
+
           Expanded(
             child: Column(
-              mainAxisAlignment:
-                  MainAxisAlignment.center,
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   data.title,
-                  style:
-                      AppTextStyles.bodySecondary,
+                  style: AppTextStyles.bodySecondary,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
+
+                const SizedBox(height: AppSpacing.xs),
+
                 Text(
                   data.value,
                   style: AppTextStyles.price,
                   maxLines: 1,
-                  overflow:
-                      TextOverflow.ellipsis,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -408,20 +361,14 @@ class _CategoryReportScreenState
   // SECTION HEADER
   // ============================================================
 
-  Widget _buildSectionHeader({
-    required int categoryCount,
-  }) {
+  Widget _buildSectionHeader({required int categoryCount}) {
     return Row(
       children: [
         const Expanded(
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                "Performance by category",
-                style: AppTextStyles.title,
-              ),
+              Text("Performance by category", style: AppTextStyles.title),
               SizedBox(height: 3),
               Text(
                 "Compare sales, profit and inventory.",
@@ -430,18 +377,15 @@ class _CategoryReportScreenState
             ],
           ),
         ),
+
+        const SizedBox(width: AppSpacing.md),
+
         Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 10,
-            vertical: 6,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
             color: AppColors.surfaceSoft,
-            borderRadius:
-                BorderRadius.circular(8),
-            border: Border.all(
-              color: AppColors.border,
-            ),
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: AppColors.border),
           ),
           child: Text(
             "$categoryCount categories",
@@ -459,48 +403,34 @@ class _CategoryReportScreenState
   // CATEGORY LIST
   // ============================================================
 
-  Widget _buildCategoryList(
-    List<Map<String, dynamic>> categories,
-    bool isCompact,
-  ) {
+  Widget _buildCategoryList(List<Map<String, dynamic>> categories) {
     return Column(
       children: categories.map((category) {
         return Padding(
-          padding:
-              const EdgeInsets.only(bottom: 12),
-          child: _buildCategoryCard(
-            category,
-            isCompact,
-          ),
+          padding: const EdgeInsets.only(bottom: AppSpacing.md),
+          child: _buildCategoryCard(category),
         );
       }).toList(),
     );
   }
 
-  Widget _buildCategoryCard(
-    Map<String, dynamic> category,
-    bool isCompact,
-  ) {
+  Widget _buildCategoryCard(Map<String, dynamic> category) {
     final categoryName =
-        category["categoryName"]?.toString() ??
-            "Unknown Category";
+        category["categoryName"]?.toString() ?? "Unknown Category";
 
-    final sales =
-        _toDouble(category["totalSales"]);
-    final items =
-        _toInt(category["itemsSold"]);
-    final profit =
-        _toDouble(category["profit"]);
-    final stockValue =
-        _toDouble(category["stockValue"]);
+    final sales = _toDouble(category["totalSales"]);
+
+    final items = _toInt(category["itemsSold"]);
+
+    final profit = _toDouble(category["profit"]);
+
+    final stockValue = _toDouble(category["stockValue"]);
 
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: AppColors.border,
-        ),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.border),
         boxShadow: const [
           BoxShadow(
             color: Color(0x05000000),
@@ -510,39 +440,30 @@ class _CategoryReportScreenState
         ],
       ),
       child: Theme(
-        data: Theme.of(context).copyWith(
-          dividerColor: Colors.transparent,
-        ),
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
-          tilePadding:
-              const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 4,
+          tilePadding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.xs,
           ),
-          childrenPadding:
-              const EdgeInsets.fromLTRB(
-            16,
+          childrenPadding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
             0,
-            16,
-            16,
+            AppSpacing.lg,
+            AppSpacing.lg,
           ),
           shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
           ),
-          collapsedShape:
-              RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(14),
+          collapsedShape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
           ),
           leading: Container(
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: AppColors.inventory
-                  .withValues(alpha: 0.10),
-              borderRadius:
-                  BorderRadius.circular(11),
+              color: AppColors.inventory.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(11),
             ),
             child: const Icon(
               Icons.category_outlined,
@@ -552,20 +473,15 @@ class _CategoryReportScreenState
           ),
           title: Text(
             categoryName,
-            style: AppTextStyles.title.copyWith(
-              fontSize: 15,
-            ),
+            style: AppTextStyles.title.copyWith(fontSize: 15),
             maxLines: 1,
-            overflow:
-                TextOverflow.ellipsis,
+            overflow: TextOverflow.ellipsis,
           ),
           subtitle: Padding(
-            padding:
-                const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.only(top: AppSpacing.xs),
             child: Text(
               "${_formatCurrency(sales)} sales",
-              style:
-                  AppTextStyles.bodySecondary,
+              style: AppTextStyles.bodySecondary,
             ),
           ),
           children: [
@@ -574,7 +490,6 @@ class _CategoryReportScreenState
               items: items,
               profit: profit,
               stockValue: stockValue,
-              isCompact: isCompact,
             ),
           ],
         ),
@@ -582,129 +497,108 @@ class _CategoryReportScreenState
     );
   }
 
+  // ============================================================
+  // CATEGORY DETAILS
+  // ============================================================
+
   Widget _buildCategoryDetails({
     required double sales,
     required int items,
     required double profit,
     required double stockValue,
-    required bool isCompact,
   }) {
+    final responsive = context.responsive;
+
     final metrics = [
       _CategoryMetric(
         label: "Sales",
         value: _formatCurrency(sales),
         icon: Icons.payments_outlined,
         color: AppColors.primary,
-        backgroundColor:
-            AppColors.primaryLight,
+        backgroundColor: AppColors.primaryLight,
       ),
       _CategoryMetric(
         label: "Items Sold",
         value: _formatNumber(items),
-        icon:
-            Icons.shopping_cart_outlined,
+        icon: Icons.shopping_cart_outlined,
         color: AppColors.info,
-        backgroundColor:
-            AppColors.infoLight,
+        backgroundColor: AppColors.infoLight,
       ),
       _CategoryMetric(
         label: "Profit",
         value: _formatCurrency(profit),
         icon: Icons.trending_up,
         color: AppColors.success,
-        backgroundColor:
-            AppColors.successLight,
+        backgroundColor: AppColors.successLight,
       ),
       _CategoryMetric(
         label: "Stock Value",
         value: _formatCurrency(stockValue),
         icon: Icons.inventory_2_outlined,
         color: AppColors.inventory,
-        backgroundColor:
-            AppColors.inventory
-                .withValues(alpha: 0.10),
+        backgroundColor: AppColors.inventory.withValues(alpha: 0.10),
       ),
     ];
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns =
-            constraints.maxWidth >= 700
-                ? 4
-                : constraints.maxWidth >= 450
-                    ? 2
-                    : 1;
+    final columns = responsive.isCompact
+        ? 1
+        : responsive.isTablet
+        ? 2
+        : 4;
 
-        return GridView.builder(
-          shrinkWrap: true,
-          physics:
-              const NeverScrollableScrollPhysics(),
-          itemCount: metrics.length,
-          gridDelegate:
-              SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            childAspectRatio:
-                columns == 1 ? 4.0 : 2.4,
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: metrics.length,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: columns,
+        crossAxisSpacing: AppSpacing.sm,
+        mainAxisSpacing: AppSpacing.sm,
+        childAspectRatio: columns == 1 ? 4.0 : 2.4,
+      ),
+      itemBuilder: (context, index) {
+        final metric = metrics[index];
+
+        return Container(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: metric.backgroundColor,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: metric.color.withValues(alpha: 0.12)),
           ),
-          itemBuilder: (context, index) {
-            final metric = metrics[index];
+          child: Row(
+            children: [
+              Icon(metric.icon, color: metric.color, size: 19),
 
-            return Container(
-              padding:
-                  const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: metric.backgroundColor,
-                borderRadius:
-                    BorderRadius.circular(10),
-                border: Border.all(
-                  color: metric.color
-                      .withValues(alpha: 0.12),
+              const SizedBox(width: AppSpacing.sm + 1),
+
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      metric.label,
+                      style: AppTextStyles.small,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+
+                    const SizedBox(height: 2),
+
+                    Text(
+                      metric.value,
+                      style: AppTextStyles.body.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
-              child: Row(
-                children: [
-                  Icon(
-                    metric.icon,
-                    color: metric.color,
-                    size: 19,
-                  ),
-                  const SizedBox(width: 9),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment:
-                          MainAxisAlignment.center,
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          metric.label,
-                          style:
-                              AppTextStyles.small,
-                          maxLines: 1,
-                          overflow:
-                              TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          metric.value,
-                          style:
-                              AppTextStyles.body.copyWith(
-                            fontWeight:
-                                FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow:
-                              TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
+            ],
+          ),
         );
       },
     );
@@ -715,26 +609,21 @@ class _CategoryReportScreenState
   // ============================================================
 
   Widget _buildExportSection({
-    required List<Map<String, dynamic>>
-        categories,
+    required List<Map<String, dynamic>> categories,
     required double totalSales,
     required double totalProfit,
     required int itemsSold,
     required double stockValue,
   }) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [
-            AppColors.primary,
-            AppColors.primaryDark,
-          ],
+          colors: [AppColors.primary, AppColors.primaryDark],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius:
-            BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
         boxShadow: const [
           BoxShadow(
             color: Color(0x18000000),
@@ -745,32 +634,28 @@ class _CategoryReportScreenState
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final compact =
-              constraints.maxWidth < 650;
+          final compact = constraints.maxWidth < 650;
 
           if (compact) {
             return Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildExportContent(),
-                const SizedBox(height: 16),
-                _buildExportButton(
-                  categories: categories,
-                ),
+
+                const SizedBox(height: AppSpacing.lg),
+
+                _buildExportButton(categories: categories),
               ],
             );
           }
 
           return Row(
             children: [
-              Expanded(
-                child: _buildExportContent(),
-              ),
-              const SizedBox(width: 20),
-              _buildExportButton(
-                categories: categories,
-              ),
+              Expanded(child: _buildExportContent()),
+
+              const SizedBox(width: AppSpacing.xl),
+
+              _buildExportButton(categories: categories),
             ],
           );
         },
@@ -780,19 +665,15 @@ class _CategoryReportScreenState
 
   Widget _buildExportContent() {
     return const Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(
-          Icons.picture_as_pdf_outlined,
-          color: Colors.white,
-          size: 30,
-        ),
-        SizedBox(width: 14),
+        Icon(Icons.picture_as_pdf_outlined, color: Colors.white, size: 30),
+
+        SizedBox(width: AppSpacing.md),
+
         Expanded(
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 "Export category report",
@@ -803,7 +684,9 @@ class _CategoryReportScreenState
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              SizedBox(height: 5),
+
+              SizedBox(height: AppSpacing.xs + 1),
+
               Text(
                 "Generate a PDF containing category sales, items, profit and stock value.",
                 style: TextStyle(
@@ -819,47 +702,31 @@ class _CategoryReportScreenState
     );
   }
 
-  Widget _buildExportButton({
-    required List<Map<String, dynamic>>
-        categories,
-  }) {
+  Widget _buildExportButton({required List<Map<String, dynamic>> categories}) {
     return ElevatedButton.icon(
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.white,
         foregroundColor: AppColors.primary,
         elevation: 0,
-        padding:
-            const EdgeInsets.symmetric(
-          horizontal: 18,
-          vertical: 13,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
         shape: RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppRadius.md),
         ),
       ),
-      icon: const Icon(
-        Icons.download_outlined,
-        size: 19,
-      ),
+      icon: const Icon(Icons.download_outlined, size: 19),
       label: const Text(
         "Export PDF",
-        style: TextStyle(
-          fontFamily: 'Poppins',
-          fontWeight: FontWeight.w600,
-        ),
+        style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600),
       ),
       onPressed: () async {
         try {
           final range = _getRange();
 
-          final file =
-              await PdfReport.generateReport(
+          final file = await PdfReport.generateReport(
             title: "Category Report",
             sections: [
               {
-                "title":
-                    "Category Performance",
+                "title": "Category Performance",
                 "headers": [
                   "Category",
                   "Sales",
@@ -867,54 +734,62 @@ class _CategoryReportScreenState
                   "Profit",
                   "Stock Value",
                 ],
-                "rows": categories.map(
-                  (category) {
-                    return [
-                      category["categoryName"]
-                              ?.toString() ??
-                          "Unknown",
-                      _formatCurrency(
-                        _toDouble(
-                          category[
-                              "totalSales"],
-                        ),
-                      ),
-                      _formatNumber(
-                        _toInt(
-                          category[
-                              "itemsSold"],
-                        ),
-                      ),
-                      _formatCurrency(
-                        _toDouble(
-                          category["profit"],
-                        ),
-                      ),
-                      _formatCurrency(
-                        _toDouble(
-                          category[
-                              "stockValue"],
-                        ),
-                      ),
-                    ];
-                  },
-                ).toList(),
+                "rows": categories.map((category) {
+                  return [
+                    category["categoryName"]?.toString() ?? "Unknown",
+                    _formatCurrency(_toDouble(category["totalSales"])),
+                    _formatNumber(_toInt(category["itemsSold"])),
+                    _formatCurrency(_toDouble(category["profit"])),
+                    _formatCurrency(_toDouble(category["stockValue"])),
+                  ];
+                }).toList(),
               },
               {
                 "title": "Report Period",
-                "headers": [
-                  "Filter",
-                  "Start",
-                  "End",
-                ],
+                "headers": ["Filter", "Start", "End"],
                 "rows": [
                   [
                     _filterLabel(),
-                    _formatDate(
-                      range.start,
+                    _formatDate(range.start),
+                    _formatDate(range.end),
+                  ],
+                ],
+              },
+              {
+                "title": "Summary",
+                "headers": [
+                  "Total Sales",
+                  "Total Profit",
+                  "Items Sold",
+                  "Stock Value",
+                ],
+                "rows": [
+                  [
+                    _formatCurrency(
+                      categories.fold<double>(
+                        0,
+                        (sum, category) =>
+                            sum + _toDouble(category["totalSales"]),
+                      ),
                     ),
-                    _formatDate(
-                      range.end,
+                    _formatCurrency(
+                      categories.fold<double>(
+                        0,
+                        (sum, category) => sum + _toDouble(category["profit"]),
+                      ),
+                    ),
+                    _formatNumber(
+                      categories.fold<int>(
+                        0,
+                        (sum, category) => sum + _toInt(category["itemsSold"]),
+                      ),
+                    ),
+                    _formatCurrency(
+                      categories.fold<double>(
+                        0,
+                        (sum, category) =>
+                            sum + _toDouble(category["stockValue"]),
+                      ),
                     ),
                   ],
                 ],
@@ -924,17 +799,13 @@ class _CategoryReportScreenState
 
           if (!mounted) return;
 
-          ScaffoldMessenger.of(context)
-              .showSnackBar(
+          ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              behavior:
-                  SnackBarBehavior.floating,
-              backgroundColor:
-                  AppColors.success,
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: AppColors.success,
               content: Text(
                 "PDF saved at ${file.path}",
-                style:
-                    const TextStyle(
+                style: const TextStyle(
                   fontFamily: 'Poppins',
                   color: Colors.white,
                 ),
@@ -944,17 +815,13 @@ class _CategoryReportScreenState
         } catch (e) {
           if (!mounted) return;
 
-          ScaffoldMessenger.of(context)
-              .showSnackBar(
+          ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              behavior:
-                  SnackBarBehavior.floating,
-              backgroundColor:
-                  AppColors.danger,
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: AppColors.danger,
               content: Text(
                 "Unable to generate PDF: $e",
-                style:
-                    const TextStyle(
+                style: const TextStyle(
                   fontFamily: 'Poppins',
                   color: Colors.white,
                 ),
@@ -973,121 +840,76 @@ class _CategoryReportScreenState
   Widget _buildFilterDropdown() {
     return Container(
       height: 42,
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 4,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
       decoration: BoxDecoration(
         color: AppColors.surfaceSoft,
-        borderRadius:
-            BorderRadius.circular(10),
-        border: Border.all(
-          color: AppColors.border,
-        ),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.border),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedFilter,
-          borderRadius:
-              BorderRadius.circular(10),
-          dropdownColor:
-              AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          dropdownColor: AppColors.surface,
           icon: const Icon(
             Icons.keyboard_arrow_down_rounded,
             color: AppColors.textSecondary,
             size: 20,
           ),
-          style:
-              AppTextStyles.bodySecondary.copyWith(
+          style: AppTextStyles.bodySecondary.copyWith(
             color: AppColors.textPrimary,
             fontWeight: FontWeight.w600,
           ),
-          padding:
-              const EdgeInsets.symmetric(
-            horizontal: 10,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
           items: const [
-            DropdownMenuItem(
-              value: "Day",
-              child: Text("Today"),
-            ),
-            DropdownMenuItem(
-              value: "Week",
-              child: Text("This Week"),
-            ),
-            DropdownMenuItem(
-              value: "Month",
-              child: Text("This Month"),
-            ),
-            DropdownMenuItem(
-              value: "Year",
-              child: Text("This Year"),
-            ),
-            DropdownMenuItem(
-              value: "Custom",
-              child: Text("Custom"),
-            ),
+            DropdownMenuItem(value: "Day", child: Text("Today")),
+            DropdownMenuItem(value: "Week", child: Text("This Week")),
+            DropdownMenuItem(value: "Month", child: Text("This Month")),
+            DropdownMenuItem(value: "Year", child: Text("This Year")),
+            DropdownMenuItem(value: "Custom", child: Text("Custom")),
           ],
           onChanged: (value) async {
-            if (value == null) return;
+            if (value == null) {
+              return;
+            }
 
             if (value == "Custom") {
-              final now =
-                  DateTime.now();
+              final now = DateTime.now();
 
-              final picked =
-                  await showDateRangePicker(
+              final picked = await showDateRangePicker(
                 context: context,
-                firstDate:
-                    DateTime(2020),
+                firstDate: DateTime(2020),
                 lastDate: now,
                 initialDateRange:
                     _selectedDateRange ??
-                        DateTimeRange(
-                          start: DateTime(
-                            now.year,
-                            now.month,
-                            now.day,
-                          ).subtract(
-                            const Duration(
-                              days: 7,
-                            ),
-                          ),
-                          end: DateTime(
-                            now.year,
-                            now.month,
-                            now.day,
-                          ),
-                        ),
-                builder:
-                    (context, child) {
+                    DateTimeRange(
+                      start: DateTime(
+                        now.year,
+                        now.month,
+                        now.day,
+                      ).subtract(const Duration(days: 7)),
+                      end: DateTime(now.year, now.month, now.day),
+                    ),
+                builder: (context, child) {
                   return Theme(
-                    data: Theme.of(
-                      context,
-                    ).copyWith(
-                      colorScheme:
-                          Theme.of(
-                        context,
-                      )
-                              .colorScheme
-                              .copyWith(
-                            primary:
-                                AppColors.primary,
-                            surface:
-                                AppColors.surface,
-                          ),
+                    data: Theme.of(context).copyWith(
+                      colorScheme: Theme.of(context).colorScheme.copyWith(
+                        primary: AppColors.primary,
+                        surface: AppColors.surface,
+                      ),
                     ),
                     child: child!,
                   );
                 },
               );
 
-              if (!mounted) return;
+              if (!mounted) {
+                return;
+              }
 
               if (picked != null) {
                 setState(() {
-                  _selectedDateRange =
-                      DateTimeRange(
+                  _selectedDateRange = DateTimeRange(
                     start: DateTime(
                       picked.start.year,
                       picked.start.month,
@@ -1097,15 +919,10 @@ class _CategoryReportScreenState
                       picked.end.year,
                       picked.end.month,
                       picked.end.day,
-                    ).add(
-                      const Duration(
-                        days: 1,
-                      ),
-                    ),
+                    ).add(const Duration(days: 1)),
                   );
 
-                  _selectedFilter =
-                      "Custom";
+                  _selectedFilter = "Custom";
                 });
               }
 
@@ -1128,78 +945,46 @@ class _CategoryReportScreenState
   DateTimeRange _getRange() {
     final now = DateTime.now();
 
-    final today = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    );
+    final today = DateTime(now.year, now.month, now.day);
 
     switch (_selectedFilter) {
       case "Day":
         return DateTimeRange(
           start: today,
-          end: today.add(
-            const Duration(days: 1),
-          ),
+          end: today.add(const Duration(days: 1)),
         );
 
       case "Week":
-        final start = today.subtract(
-          Duration(days: now.weekday - 1),
-        );
+        final start = today.subtract(Duration(days: now.weekday - 1));
 
         return DateTimeRange(
           start: start,
-          end: today.add(
-            const Duration(days: 1),
-          ),
+          end: today.add(const Duration(days: 1)),
         );
 
       case "Month":
         return DateTimeRange(
-          start: DateTime(
-            now.year,
-            now.month,
-            1,
-          ),
-          end: DateTime(
-            now.year,
-            now.month + 1,
-            1,
-          ),
+          start: DateTime(now.year, now.month, 1),
+          end: DateTime(now.year, now.month + 1, 1),
         );
 
       case "Year":
         return DateTimeRange(
-          start: DateTime(
-            now.year,
-            1,
-            1,
-          ),
-          end: DateTime(
-            now.year + 1,
-            1,
-            1,
-          ),
+          start: DateTime(now.year, 1, 1),
+          end: DateTime(now.year + 1, 1, 1),
         );
 
       case "Custom":
         return _selectedDateRange ??
             DateTimeRange(
-              start: today.subtract(
-                const Duration(days: 7),
-              ),
-              end: today.add(
-                const Duration(days: 1),
-              ),
+              start: today.subtract(const Duration(days: 7)),
+              end: today.add(const Duration(days: 1)),
             );
 
       default:
         return DateTimeRange(
           start: today,
-          end: today.add(
-            const Duration(days: 1),
-          ),
+          end: today.add(const Duration(days: 1)),
         );
     }
   }
@@ -1208,14 +993,19 @@ class _CategoryReportScreenState
     switch (_selectedFilter) {
       case "Day":
         return "Today";
+
       case "Week":
         return "This Week";
+
       case "Month":
         return "This Month";
+
       case "Year":
         return "This Year";
+
       case "Custom":
         return "Custom";
+
       default:
         return _selectedFilter;
     }
@@ -1230,17 +1020,12 @@ class _CategoryReportScreenState
   }
 
   String _formatNumber(num value) {
-    final string = value
-        .toInt()
-        .toString();
+    final string = value.toInt().toString();
 
     final buffer = StringBuffer();
 
-    for (int i = 0;
-        i < string.length;
-        i++) {
-      if (i > 0 &&
-          (string.length - i) % 3 == 0) {
+    for (int i = 0; i < string.length; i++) {
+      if (i > 0 && (string.length - i) % 3 == 0) {
         buffer.write(",");
       }
 
@@ -1250,20 +1035,14 @@ class _CategoryReportScreenState
     return buffer.toString();
   }
 
-  String _formatDateRange(
-    DateTimeRange range,
-  ) {
-    final start =
-        _formatDate(range.start);
+  String _formatDateRange(DateTimeRange range) {
+    final start = _formatDate(range.start);
 
     if (_selectedFilter == "Day") {
       return start;
     }
 
-    final endDate =
-        range.end.subtract(
-      const Duration(days: 1),
-    );
+    final endDate = range.end.subtract(const Duration(days: 1));
 
     return "$start – ${_formatDate(endDate)}";
   }
@@ -1298,10 +1077,7 @@ class _CategoryReportScreenState
       return value.toDouble();
     }
 
-    return double.tryParse(
-          value?.toString() ?? "",
-        ) ??
-        0;
+    return double.tryParse(value?.toString() ?? "") ?? 0;
   }
 
   int _toInt(dynamic value) {
@@ -1313,16 +1089,13 @@ class _CategoryReportScreenState
       return value.toInt();
     }
 
-    return int.tryParse(
-          value?.toString() ?? "",
-        ) ??
-        0;
+    return int.tryParse(value?.toString() ?? "") ?? 0;
   }
 }
 
-// ============================================================
+// ================================================================
 // MODELS
-// ============================================================
+// ================================================================
 
 class _OverviewCardData {
   final String title;
@@ -1356,31 +1129,28 @@ class _CategoryMetric {
   });
 }
 
-// ============================================================
+// ================================================================
 // LOADING STATE
-// ============================================================
+// ================================================================
 
-class _CategoryLoadingState
-    extends StatelessWidget {
+class _CategoryLoadingState extends StatelessWidget {
   const _CategoryLoadingState();
 
   @override
   Widget build(BuildContext context) {
     return const Center(
       child: Padding(
-        padding: EdgeInsets.all(40),
+        padding: EdgeInsets.all(AppSpacing.huge),
         child: Column(
-          mainAxisSize:
-              MainAxisSize.min,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(
-              color: AppColors.primary,
-            ),
-            SizedBox(height: 16),
+            CircularProgressIndicator(color: AppColors.primary),
+
+            SizedBox(height: AppSpacing.lg),
+
             Text(
               "Loading category report...",
-              style:
-                  AppTextStyles.bodySecondary,
+              style: AppTextStyles.bodySecondary,
             ),
           ],
         ),
@@ -1389,12 +1159,11 @@ class _CategoryLoadingState
   }
 }
 
-// ============================================================
+// ================================================================
 // EMPTY STATE
-// ============================================================
+// ================================================================
 
-class _CategoryEmptyState
-    extends StatelessWidget {
+class _CategoryEmptyState extends StatelessWidget {
   const _CategoryEmptyState();
 
   @override
@@ -1404,29 +1173,22 @@ class _CategoryEmptyState
       padding: const EdgeInsets.all(36),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius:
-            BorderRadius.circular(14),
-        border: Border.all(
-          color: AppColors.border,
-        ),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.border),
       ),
       child: const Column(
         children: [
-          Icon(
-            Icons.category_outlined,
-            size: 52,
-            color: AppColors.textMuted,
-          ),
-          SizedBox(height: 14),
-          Text(
-            "No category data",
-            style: AppTextStyles.title,
-          ),
-          SizedBox(height: 6),
+          Icon(Icons.category_outlined, size: 52, color: AppColors.textMuted),
+
+          SizedBox(height: AppSpacing.md),
+
+          Text("No category data", style: AppTextStyles.title),
+
+          SizedBox(height: AppSpacing.xs + 2),
+
           Text(
             "There are no category sales for the selected period.",
-            style:
-                AppTextStyles.bodySecondary,
+            style: AppTextStyles.bodySecondary,
             textAlign: TextAlign.center,
           ),
         ],
@@ -1435,132 +1197,89 @@ class _CategoryEmptyState
   }
 }
 
-// ============================================================
+// ================================================================
 // ERROR STATE
-// ============================================================
+// ================================================================
 
-class _CategoryErrorState
-    extends StatelessWidget {
+class _CategoryErrorState extends StatelessWidget {
   final String error;
   final VoidCallback onRetry;
 
-  const _CategoryErrorState({
-    required this.error,
-    required this.onRetry,
-  });
+  const _CategoryErrorState({required this.error, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: SingleChildScrollView(
-        padding:
-            const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppSpacing.xxxl),
         child: Container(
-          constraints:
-              const BoxConstraints(
-            maxWidth: 600,
-          ),
-          padding:
-              const EdgeInsets.all(28),
+          constraints: const BoxConstraints(maxWidth: 600),
+          padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius:
-                BorderRadius.circular(16),
-            border: Border.all(
-              color: AppColors.border,
-            ),
+            borderRadius: BorderRadius.circular(AppRadius.xl),
+            border: Border.all(color: AppColors.border),
           ),
           child: Column(
-            mainAxisSize:
-                MainAxisSize.min,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 width: 56,
                 height: 56,
-                decoration:
-                    BoxDecoration(
-                  color:
-                      AppColors.dangerLight,
-                  borderRadius:
-                      BorderRadius.circular(
-                    14,
-                  ),
+                decoration: BoxDecoration(
+                  color: AppColors.dangerLight,
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(
                   Icons.error_outline,
-                  color:
-                      AppColors.danger,
+                  color: AppColors.danger,
                   size: 30,
                 ),
               ),
-              const SizedBox(height: 16),
+
+              const SizedBox(height: AppSpacing.lg),
+
               const Text(
                 "Unable to load category report",
-                style:
-                    AppTextStyles.title,
-                textAlign:
-                    TextAlign.center,
+                style: AppTextStyles.title,
+                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 10),
+
+              const SizedBox(height: AppSpacing.sm + 2),
+
               Container(
                 width: double.infinity,
-                padding:
-                    const EdgeInsets.all(14),
-                decoration:
-                    BoxDecoration(
-                  color:
-                      AppColors.surfaceSoft,
-                  borderRadius:
-                      BorderRadius.circular(
-                    10,
-                  ),
-                  border: Border.all(
-                    color:
-                        AppColors.border,
-                  ),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceSoft,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.border),
                 ),
-                child:
-                    SelectableText(
-                  error,
-                  style:
-                      AppTextStyles.small,
-                ),
+                child: SelectableText(error, style: AppTextStyles.small),
               ),
-              const SizedBox(height: 20),
+
+              const SizedBox(height: AppSpacing.xl),
+
               ElevatedButton.icon(
                 onPressed: onRetry,
-                style:
-                    ElevatedButton.styleFrom(
-                  backgroundColor:
-                      AppColors.primary,
-                  foregroundColor:
-                      Colors.white,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
                   elevation: 0,
-                  padding:
-                      const EdgeInsets
-                          .symmetric(
+                  padding: const EdgeInsets.symmetric(
                     horizontal: 20,
                     vertical: 13,
                   ),
-                  shape:
-                      RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(
-                      10,
-                    ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                icon: const Icon(
-                  Icons.refresh,
-                  size: 18,
-                ),
+                icon: const Icon(Icons.refresh, size: 18),
                 label: const Text(
                   "Try Again",
                   style: TextStyle(
-                    fontFamily:
-                        'Poppins',
-                    fontWeight:
-                        FontWeight.w600,
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),

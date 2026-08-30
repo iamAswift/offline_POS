@@ -13,73 +13,95 @@ class PaymentBreakdownChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Filter out zero values.
     final nonZeroEntries = paymentBreakdown.entries
         .where((entry) => entry.value > 0)
         .toList();
 
-    // Empty state.
+    // ============================================================
+    // EMPTY STATE
+    // ============================================================
+
     if (nonZeroEntries.isEmpty) {
       return const SizedBox(
-        height: 224,
+        height: 190,
         width: double.infinity,
         child: Center(
           child: Text(
             'No payment data available',
             style: TextStyle(
               color: Colors.grey,
-              fontSize: 13,
+              fontSize: 12,
             ),
           ),
         ),
       );
     }
 
-    // Build pie chart sections.
+    // ============================================================
+    // PIE SECTIONS
+    // ============================================================
+
     final sections = nonZeroEntries.map((entry) {
       return PieChartSectionData(
         value: entry.value,
+
         title: '₦${entry.value.toStringAsFixed(0)}',
+
         color: _paymentColor(entry.key),
-        radius: 50,
+
+        radius: 43,
+
         titleStyle: const TextStyle(
-          fontSize: 11,
+          fontSize: 9,
           fontWeight: FontWeight.bold,
           color: Colors.white,
         ),
       );
     }).toList();
 
+    // ============================================================
+    // MAIN WIDGET
+    // ============================================================
+
     return SizedBox(
       width: double.infinity,
-      height: 224,
+      height: 190,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Title.
+          // ========================================================
+          // TITLE
+          // ========================================================
+
           const SizedBox(
-            height: 26,
+            height: 22,
             child: Text(
               '💳 Payment Breakdown',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 15,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
 
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
 
-          // Pie chart.
+          // ========================================================
+          // PIE CHART
+          // ========================================================
+
           SizedBox(
-            height: 150,
+            height: 130,
             width: double.infinity,
             child: PieChart(
               PieChartData(
                 sections: sections,
-                sectionsSpace: 2,
-                centerSpaceRadius: 30,
+
+                sectionsSpace: 1,
+
+                centerSpaceRadius: 25,
+
                 pieTouchData: PieTouchData(
                   touchCallback: (event, response) {
                     if (response == null) {
@@ -110,7 +132,8 @@ class PaymentBreakdownChart extends StatelessWidget {
                           '${_displayPaymentMethod(entry.key)}: '
                           '₦${entry.value.toStringAsFixed(2)}',
                         ),
-                        duration: const Duration(seconds: 2),
+                        duration:
+                            const Duration(seconds: 2),
                       ),
                     );
                   },
@@ -119,26 +142,32 @@ class PaymentBreakdownChart extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
 
-          // Legend.
+          // ========================================================
+          // LEGEND
+          // ========================================================
+
           SizedBox(
-            height: 36,
+            height: 30,
             child: Wrap(
-              spacing: 14,
-              runSpacing: 6,
-              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 10,
+              runSpacing: 3,
+              crossAxisAlignment:
+                  WrapCrossAlignment.center,
               children: [
                 if (_hasPaymentMethod('cash'))
                   _legendItem(
                     'Cash',
                     Colors.green,
                   ),
+
                 if (_hasPaymentMethod('transfer'))
                   _legendItem(
                     'Transfer',
                     Colors.blue,
                   ),
+
                 if (_hasPaymentMethod('split'))
                   _legendItem(
                     'Split',
@@ -214,18 +243,21 @@ class PaymentBreakdownChart extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 10,
-          height: 10,
+          width: 8,
+          height: 8,
           decoration: BoxDecoration(
             color: color,
-            borderRadius: BorderRadius.circular(2),
+            borderRadius:
+                BorderRadius.circular(2),
           ),
         ),
-        const SizedBox(width: 4),
+
+        const SizedBox(width: 3),
+
         Text(
           label,
           style: const TextStyle(
-            fontSize: 11,
+            fontSize: 10,
             color: Colors.grey,
           ),
         ),

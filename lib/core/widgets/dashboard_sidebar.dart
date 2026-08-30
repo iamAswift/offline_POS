@@ -11,11 +11,18 @@ class DashboardSidebar extends StatefulWidget {
     required this.selectedIndex,
     required this.isPrivileged,
     required this.onDestinationSelected,
+    this.onLogout,
   });
 
   final int selectedIndex;
   final bool isPrivileged;
   final ValueChanged<int> onDestinationSelected;
+
+  // ============================================================
+  // LOGOUT CALLBACK
+  // ============================================================
+
+  final VoidCallback? onLogout;
 
   @override
   State<DashboardSidebar> createState() =>
@@ -146,6 +153,10 @@ class _DashboardSidebarState
           bottom: false,
           child: Column(
             children: [
+              // ==================================================
+              // NAVIGATION
+              // ==================================================
+
               Expanded(
                 child: SingleChildScrollView(
                   padding:
@@ -172,10 +183,284 @@ class _DashboardSidebarState
                 ),
               ),
 
+              // ==================================================
+              // LOGOUT
+              //
+              // This is intentionally outside the navigation
+              // list and does NOT have a navigation index.
+              // ==================================================
+
+              if (widget.onLogout != null)
+                _buildLogout(
+                  context,
+                  extended: extended,
+                ),
+
               const SizedBox(
                 height: AppSpacing.sm,
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // LOGOUT
+  // ============================================================
+  //
+  // Logout is intentionally NOT part of _destinations.
+  //
+  // It therefore does not affect:
+  //
+  // 0 = POS
+  // 1 = Dashboard
+  // 2 = Products
+  // 3 = Categories
+  // 4 = Suppliers
+  // 5 = Reports
+  // 6 = Settings
+  // 7 = Users
+  //
+  // The actual logout operation remains centralized in
+  // MainScaffold._logout().
+  // ============================================================
+
+  Widget _buildLogout(
+    BuildContext context, {
+    required bool extended,
+  }) {
+    // ==========================================================
+    // EXTENDED SIDEBAR
+    // ==========================================================
+
+    if (extended) {
+      return Padding(
+        padding:
+            const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.sm,
+        ),
+        child: Tooltip(
+          message: 'Logout',
+          waitDuration:
+              const Duration(
+            milliseconds: 180,
+          ),
+          showDuration:
+              const Duration(
+            seconds: 2,
+          ),
+          preferBelow: false,
+          verticalOffset: 8,
+          decoration: BoxDecoration(
+            color: AppColors.textPrimary,
+            borderRadius:
+                BorderRadius.circular(
+              AppRadius.sm,
+            ),
+            border: Border.all(
+              color:
+                  Colors.black.withValues(
+                alpha: 0.05,
+              ),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color:
+                    Colors.black.withValues(
+                  alpha: 0.14,
+                ),
+                blurRadius: 12,
+                offset:
+                    const Offset(2, 4),
+              ),
+            ],
+          ),
+          textStyle:
+              AppTextStyles.small.copyWith(
+            color: Colors.white,
+            fontSize: 11,
+            fontWeight:
+                FontWeight.w600,
+            letterSpacing: 0.1,
+          ),
+          padding:
+              const EdgeInsets.symmetric(
+            horizontal: 11,
+            vertical: 8,
+          ),
+          child: Material(
+            color: Colors.transparent,
+            borderRadius:
+                BorderRadius.circular(
+              AppRadius.lg,
+            ),
+            child: InkWell(
+              borderRadius:
+                  BorderRadius.circular(
+                AppRadius.lg,
+              ),
+              mouseCursor:
+                  SystemMouseCursors.click,
+              onTap: () {
+                widget.onLogout?.call();
+              },
+              child: Container(
+                width: double.infinity,
+                height: 48,
+                padding:
+                    const EdgeInsets.symmetric(
+                  horizontal:
+                      AppSpacing.md,
+                ),
+                decoration:
+                    BoxDecoration(
+                  color:
+                      AppColors.dangerLight,
+                  borderRadius:
+                      BorderRadius.circular(
+                    AppRadius.lg,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.logout_outlined,
+                      size: 22,
+                      color:
+                          AppColors.danger,
+                    ),
+
+                    const SizedBox(
+                      width: AppSpacing.md,
+                    ),
+
+                    Expanded(
+                      child: Text(
+                        'Logout',
+                        maxLines: 1,
+                        overflow:
+                            TextOverflow.ellipsis,
+                        style:
+                            AppTextStyles.small
+                                .copyWith(
+                          color:
+                              AppColors.danger,
+                          fontSize: 12,
+                          fontWeight:
+                              FontWeight.w700,
+                          letterSpacing:
+                              0.15,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // ==========================================================
+    // COLLAPSED SIDEBAR
+    // ==========================================================
+
+    return Padding(
+      padding:
+          const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.sm,
+      ),
+      child: Tooltip(
+        message: 'Logout',
+        waitDuration:
+            const Duration(
+          milliseconds: 180,
+        ),
+        showDuration:
+            const Duration(
+          seconds: 2,
+        ),
+        preferBelow: false,
+        verticalOffset: 8,
+        decoration: BoxDecoration(
+          color: AppColors.textPrimary,
+          borderRadius:
+              BorderRadius.circular(
+            AppRadius.sm,
+          ),
+          border: Border.all(
+            color:
+                Colors.black.withValues(
+              alpha: 0.05,
+            ),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color:
+                  Colors.black.withValues(
+                alpha: 0.14,
+              ),
+              blurRadius: 12,
+              offset:
+                  const Offset(2, 4),
+            ),
+          ],
+        ),
+        textStyle:
+            AppTextStyles.small.copyWith(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight:
+              FontWeight.w600,
+          letterSpacing: 0.1,
+        ),
+        padding:
+            const EdgeInsets.symmetric(
+          horizontal: 11,
+          vertical: 8,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius:
+              BorderRadius.circular(
+            AppRadius.lg,
+          ),
+          child: InkWell(
+            borderRadius:
+                BorderRadius.circular(
+              AppRadius.lg,
+            ),
+            mouseCursor:
+                SystemMouseCursors.click,
+            onTap: () {
+              widget.onLogout?.call();
+            },
+            child: Container(
+              width: double.infinity,
+              height: 48,
+              decoration:
+                  BoxDecoration(
+                color:
+                    AppColors.dangerLight,
+                borderRadius:
+                    BorderRadius.circular(
+                  AppRadius.lg,
+                ),
+              ),
+              child: const Center(
+                child: Icon(
+                  Icons.logout_outlined,
+                  size: 22,
+                  color:
+                      AppColors.danger,
+                ),
+              ),
+            ),
           ),
         ),
       ),

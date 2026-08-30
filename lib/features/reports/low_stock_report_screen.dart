@@ -5,45 +5,74 @@ import 'package:flutter/material.dart';
 import '../../core/theme/styles.dart';
 import '../../database/app_database.dart';
 import '../../database/daos/product_dao.dart';
-import '../../database/tables/product_table.dart';
 import '../../shared/pdf_report.dart';
 
-class LowStockReportScreen extends StatelessWidget {
+class LowStockReportScreen extends StatefulWidget {
   const LowStockReportScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final db = getDatabase();
-    final productDao = ProductDao(db);
+  State<LowStockReportScreen> createState() => _LowStockReportScreenState();
+}
 
+class _LowStockReportScreenState extends State<LowStockReportScreen> {
+  late final ProductDao productDao;
+
+  List<Product> _products = [];
+
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final db = getDatabase();
+    productDao = ProductDao(db);
+
+    _loadReport();
+  }
+
+  // ============================================================
+  // LOAD REPORT
+  // ============================================================
+
+  Future<void> _loadReport() async {
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+    }
+
+    try {
+      final products = await productDao.getLowStockProducts();
+
+      if (!mounted) return;
+
+      setState(() {
+        _products = products;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  // ============================================================
+  // BUILD
+  // ============================================================
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: _buildAppBar(),
-      body: FutureBuilder<List<Product>>(
-        future: productDao.getLowStockProducts(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const _LowStockLoadingState();
-          }
-
-          if (snapshot.hasError) {
-            return _LowStockErrorState(
-              error: snapshot.error.toString(),
-            );
-          }
-
-          if (!snapshot.hasData) {
-            return const _LowStockEmptyState();
-          }
-
-          final products = snapshot.data!;
-
-          return _buildContent(
-            context,
-            products,
-          );
-        },
-      ),
+      body: _buildBody(),
     );
   }
 
@@ -74,47 +103,50 @@ class LowStockReportScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          const Text(
-            "Low Stock Report",
-            style: AppTextStyles.title,
-          ),
+          const Text('Low Stock Report', style: AppTextStyles.title),
         ],
       ),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: IconButton(
+            tooltip: 'Refresh',
+            onPressed: _isLoading ? null : _loadReport,
+            icon: const Icon(
+              Icons.refresh_rounded,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+      ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
-        child: Container(
-          height: 1,
-          color: AppColors.divider,
-        ),
+        child: Container(height: 1, color: AppColors.divider),
       ),
     );
   }
 
   // ============================================================
-  // CONTENT
+  // BODY
   // ============================================================
 
-  Widget _buildContent(
-    BuildContext context,
-    List<Product> products,
-  ) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= 900;
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const _LowStockLoadingState();
+    }
 
-        return RefreshIndicator(
-          color: AppColors.primary,
-          onRefresh: () async {
-            // Stateless screen: force a rebuild by triggering the
-            // current route replacement.
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const LowStockReportScreen(),
-              ),
-            );
-          },
-          child: SingleChildScrollView(
+    if (_error != null) {
+      return _LowStockErrorState(error: _error!, onRetry: _loadReport);
+    }
+
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: _loadReport,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth >= 900;
+
+          return SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: EdgeInsets.symmetric(
               horizontal: isWide ? 32 : 16,
@@ -122,35 +154,33 @@ class LowStockReportScreen extends StatelessWidget {
             ),
             child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: 1200,
-                ),
+                constraints: const BoxConstraints(maxWidth: 1200),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildPageHeader(products),
+                    _buildPageHeader(_products),
+
                     const SizedBox(height: 24),
 
-                    _buildSummaryCard(products),
+                    _buildSummaryCard(_products),
+
                     const SizedBox(height: 28),
 
-                    _buildProductsSection(products),
-                    const SizedBox(height: 28),
+                    _buildProductsSection(_products),
 
-                    if (products.isNotEmpty)
-                      _buildExportSection(
-                        context,
-                        products,
-                      ),
+                    if (_products.isNotEmpty) ...[
+                      const SizedBox(height: 28),
+                      _buildExportSection(context, _products),
+                    ],
 
                     const SizedBox(height: 24),
                   ],
                 ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -159,42 +189,32 @@ class LowStockReportScreen extends StatelessWidget {
   // ============================================================
 
   Widget _buildPageHeader(List<Product> products) {
-    return Row(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Inventory alert",
-                style: AppTextStyles.heading,
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                "Review products that have fallen below their "
-                "recommended stock level.",
-                style: AppTextStyles.bodySecondary,
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.inventory_2_outlined,
-                    size: 14,
-                    color: AppColors.textMuted,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    "${products.length} "
-                    "${products.length == 1 ? "product" : "products"} "
-                    "require attention",
-                    style: AppTextStyles.small,
-                  ),
-                ],
-              ),
-            ],
-          ),
+        const Text('Inventory alert', style: AppTextStyles.heading),
+        const SizedBox(height: 6),
+        const Text(
+          'Review products that have fallen below their '
+          'recommended stock level.',
+          style: AppTextStyles.bodySecondary,
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            const Icon(
+              Icons.inventory_2_outlined,
+              size: 14,
+              color: AppColors.textMuted,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '${products.length} '
+              '${products.length == 1 ? 'product' : 'products'} '
+              'require attention',
+              style: AppTextStyles.small,
+            ),
+          ],
         ),
       ],
     );
@@ -208,13 +228,12 @@ class LowStockReportScreen extends StatelessWidget {
     final isEmpty = products.isEmpty;
 
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: AppColors.border,
-        ),
+        border: Border.all(color: AppColors.border),
         boxShadow: const [
           BoxShadow(
             color: Color(0x08000000),
@@ -223,73 +242,83 @@ class LowStockReportScreen extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        children: [
-          Container(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 600;
+
+          final icon = Container(
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              color: isEmpty
-                  ? AppColors.successLight
-                  : AppColors.warningLight,
+              color: isEmpty ? AppColors.successLight : AppColors.warningLight,
               borderRadius: BorderRadius.circular(13),
             ),
             child: Icon(
               isEmpty
                   ? Icons.check_circle_outline
                   : Icons.warning_amber_rounded,
-              color: isEmpty
-                  ? AppColors.success
-                  : AppColors.warning,
+              color: isEmpty ? AppColors.success : AppColors.warning,
               size: 27,
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isEmpty
-                      ? "Inventory looks good"
-                      : "Products requiring restock",
-                  style: AppTextStyles.title,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  isEmpty
-                      ? "All products are currently above their "
-                          "low-stock threshold."
-                      : "${products.length} "
-                          "${products.length == 1 ? "product is" : "products are"} "
-                          "currently running low.",
-                  style: AppTextStyles.bodySecondary,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 8,
-            ),
+          );
+
+          final content = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isEmpty ? 'Inventory looks good' : 'Products requiring restock',
+                style: AppTextStyles.title,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                isEmpty
+                    ? 'All products are currently above their '
+                          'low-stock threshold.'
+                    : '${products.length} '
+                          '${products.length == 1 ? 'product is' : 'products are'} '
+                          'currently running low.',
+                style: AppTextStyles.bodySecondary,
+              ),
+            ],
+          );
+
+          final countBadge = Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: isEmpty
-                  ? AppColors.successLight
-                  : AppColors.warningLight,
+              color: isEmpty ? AppColors.successLight : AppColors.warningLight,
               borderRadius: BorderRadius.circular(9),
             ),
             child: Text(
-              "${products.length}",
+              '${products.length}',
               style: AppTextStyles.title.copyWith(
-                color: isEmpty
-                    ? AppColors.success
-                    : AppColors.warning,
+                color: isEmpty ? AppColors.success : AppColors.warning,
               ),
             ),
-          ),
-        ],
+          );
+
+          if (compact) {
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                icon,
+                const SizedBox(width: 14),
+                Expanded(child: content),
+                const SizedBox(width: 10),
+                countBadge,
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              icon,
+              const SizedBox(width: 16),
+              Expanded(child: content),
+              const SizedBox(width: 16),
+              countBadge,
+            ],
+          );
+        },
       ),
     );
   }
@@ -305,15 +334,9 @@ class LowStockReportScreen extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              "Products running low",
-              style: AppTextStyles.title,
-            ),
+            const Text('Products running low', style: AppTextStyles.title),
             if (products.isNotEmpty)
-              Text(
-                "${products.length} items",
-                style: AppTextStyles.small,
-              ),
+              Text('${products.length} items', style: AppTextStyles.small),
           ],
         ),
         const SizedBox(height: 14),
@@ -330,22 +353,24 @@ class LowStockReportScreen extends StatelessWidget {
       children: [
         for (int index = 0; index < products.length; index++) ...[
           _buildProductCard(products[index]),
-          if (index < products.length - 1)
-            const SizedBox(height: 10),
+          if (index < products.length - 1) const SizedBox(height: 10),
         ],
       ],
     );
   }
 
+  // ============================================================
+  // PRODUCT CARD
+  // ============================================================
+
   Widget _buildProductCard(Product product) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: AppColors.border,
-        ),
+        border: Border.all(color: AppColors.border),
         boxShadow: const [
           BoxShadow(
             color: Color(0x05000000),
@@ -354,15 +379,15 @@ class LowStockReportScreen extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        children: [
-          Container(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 600;
+
+          final icon = Container(
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              color: AppColors.warning.withValues(
-                alpha: 0.10,
-              ),
+              color: AppColors.warning.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(11),
             ),
             child: const Icon(
@@ -370,39 +395,30 @@ class LowStockReportScreen extends StatelessWidget {
               color: AppColors.warning,
               size: 22,
             ),
-          ),
-          const SizedBox(width: 14),
+          );
 
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product.name,
-                  style: AppTextStyles.title.copyWith(
-                    fontSize: 14,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  "Inventory level is below the recommended threshold",
-                  style: AppTextStyles.small,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
+          final content = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                product.name,
+                style: AppTextStyles.title.copyWith(fontSize: 14),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Inventory level is below the '
+                'recommended threshold',
+                style: AppTextStyles.small,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          );
 
-          const SizedBox(width: 16),
-
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 8,
-            ),
+          final stockBadge = Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: AppColors.warningLight,
               borderRadius: BorderRadius.circular(9),
@@ -410,21 +426,44 @@ class LowStockReportScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                const Text(
-                  "Current stock",
-                  style: AppTextStyles.small,
-                ),
+                const Text('Current stock', style: AppTextStyles.small),
                 const SizedBox(height: 2),
                 Text(
-                  "${product.stock}",
-                  style: AppTextStyles.title.copyWith(
-                    color: AppColors.warning,
-                  ),
+                  '${product.stock}',
+                  style: AppTextStyles.title.copyWith(color: AppColors.warning),
                 ),
               ],
             ),
-          ),
-        ],
+          );
+
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    icon,
+                    const SizedBox(width: 14),
+                    Expanded(child: content),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Align(alignment: Alignment.centerRight, child: stockBadge),
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              icon,
+              const SizedBox(width: 14),
+              Expanded(child: content),
+              const SizedBox(width: 16),
+              stockBadge,
+            ],
+          );
+        },
       ),
     );
   }
@@ -436,34 +475,25 @@ class LowStockReportScreen extends StatelessWidget {
   Widget _buildEmptyProductsCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 24,
-        vertical: 36,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: AppColors.border,
-        ),
+        border: Border.all(color: AppColors.border),
       ),
       child: const Column(
         children: [
-          Icon(
-            Icons.check_circle_outline,
-            size: 46,
-            color: AppColors.success,
-          ),
+          Icon(Icons.check_circle_outline, size: 46, color: AppColors.success),
           SizedBox(height: 14),
           Text(
-            "All products are sufficiently stocked",
+            'All products are sufficiently stocked',
             style: AppTextStyles.title,
             textAlign: TextAlign.center,
           ),
           SizedBox(height: 6),
           Text(
-            "There are currently no products below the "
-            "low-stock threshold.",
+            'There are currently no products below the '
+            'low-stock threshold.',
             style: AppTextStyles.bodySecondary,
             textAlign: TextAlign.center,
           ),
@@ -473,21 +503,16 @@ class LowStockReportScreen extends StatelessWidget {
   }
 
   // ============================================================
-  // EXPORT
+  // EXPORT SECTION
   // ============================================================
 
-  Widget _buildExportSection(
-    BuildContext context,
-    List<Product> products,
-  ) {
+  Widget _buildExportSection(BuildContext context, List<Product> products) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [
-            AppColors.primary,
-            AppColors.primaryDark,
-          ],
+          colors: [AppColors.primary, AppColors.primaryDark],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -512,10 +537,7 @@ class LowStockReportScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
-                  child: _buildExportButton(
-                    context,
-                    products,
-                  ),
+                  child: _buildExportButton(context, products),
                 ),
               ],
             );
@@ -523,14 +545,9 @@ class LowStockReportScreen extends StatelessWidget {
 
           return Row(
             children: [
-              Expanded(
-                child: _buildExportContent(),
-              ),
+              Expanded(child: _buildExportContent()),
               const SizedBox(width: 20),
-              _buildExportButton(
-                context,
-                products,
-              ),
+              _buildExportButton(context, products),
             ],
           );
         },
@@ -542,18 +559,14 @@ class LowStockReportScreen extends StatelessWidget {
     return const Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(
-          Icons.picture_as_pdf_outlined,
-          color: Colors.white,
-          size: 30,
-        ),
+        Icon(Icons.picture_as_pdf_outlined, color: Colors.white, size: 30),
         SizedBox(width: 14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Export low stock report",
+                'Export low stock report',
                 style: TextStyle(
                   fontFamily: 'Poppins',
                   color: Colors.white,
@@ -563,8 +576,8 @@ class LowStockReportScreen extends StatelessWidget {
               ),
               SizedBox(height: 5),
               Text(
-                "Generate a PDF containing all products "
-                "currently requiring restock.",
+                'Generate a PDF containing all products '
+                'currently requiring restock.',
                 style: TextStyle(
                   fontFamily: 'Poppins',
                   color: Colors.white70,
@@ -578,91 +591,73 @@ class LowStockReportScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildExportButton(
-    BuildContext context,
-    List<Product> products,
-  ) {
+  // ============================================================
+  // EXPORT BUTTON
+  // ============================================================
+
+  Widget _buildExportButton(BuildContext context, List<Product> products) {
     return ElevatedButton.icon(
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.white,
         foregroundColor: AppColors.primary,
         elevation: 0,
-        padding: const EdgeInsets.symmetric(
-          horizontal: 18,
-          vertical: 13,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
-      icon: const Icon(
-        Icons.download_outlined,
-        size: 19,
-      ),
+      icon: const Icon(Icons.download_outlined, size: 19),
       label: const Text(
-        "Export PDF",
-        style: TextStyle(
-          fontFamily: 'Poppins',
-          fontWeight: FontWeight.w600,
-        ),
+        'Export PDF',
+        style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600),
       ),
-      onPressed: () async {
-        try {
-          final file = await PdfReport.generateReport(
-            title: "Low Stock Report",
-            sections: [
-              {
-                "title": "Low Stock Products",
-                "headers": [
-                  "Product",
-                  "Stock",
-                ],
-                "rows": products
-                    .map(
-                      (product) => [
-                        product.name,
-                        "${product.stock}",
-                      ],
-                    )
-                    .toList(),
-              },
-            ],
-          );
-
-          if (!context.mounted) return;
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: AppColors.success,
-              content: Text(
-                "PDF saved at ${file.path}",
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          );
-        } catch (e) {
-          if (!context.mounted) return;
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: AppColors.danger,
-              content: Text(
-                "Unable to generate PDF: $e",
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          );
-        }
-      },
+      onPressed: () => _exportPdf(context, products),
     );
+  }
+
+  // ============================================================
+  // PDF EXPORT
+  // ============================================================
+
+  Future<void> _exportPdf(BuildContext context, List<Product> products) async {
+    try {
+      final file = await PdfReport.generateReport(
+        title: 'Low Stock Report',
+        sections: [
+          {
+            'title': 'Low Stock Products',
+            'headers': ['Product', 'Stock'],
+            'rows': products
+                .map((product) => [product.name, '${product.stock}'])
+                .toList(),
+          },
+        ],
+      );
+
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.success,
+          content: Text(
+            'PDF saved at ${file.path}',
+            style: const TextStyle(fontFamily: 'Poppins', color: Colors.white),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.danger,
+          content: Text(
+            'Unable to generate PDF: $e',
+            style: const TextStyle(fontFamily: 'Poppins', color: Colors.white),
+          ),
+        ),
+      );
+    }
   }
 }
 
@@ -681,53 +676,11 @@ class _LowStockLoadingState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(
-              color: AppColors.primary,
-            ),
+            CircularProgressIndicator(color: AppColors.primary),
             SizedBox(height: 16),
             Text(
-              "Loading inventory report...",
+              'Loading inventory report...',
               style: AppTextStyles.bodySecondary,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ============================================================
-// EMPTY STATE
-// ============================================================
-
-class _LowStockEmptyState extends StatelessWidget {
-  const _LowStockEmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.all(40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.inventory_2_outlined,
-              size: 56,
-              color: AppColors.textMuted,
-            ),
-            SizedBox(height: 16),
-            Text(
-              "No inventory data available",
-              style: AppTextStyles.title,
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 6),
-            Text(
-              "There is currently no inventory information "
-              "to display.",
-              style: AppTextStyles.bodySecondary,
-              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -742,10 +695,9 @@ class _LowStockEmptyState extends StatelessWidget {
 
 class _LowStockErrorState extends StatelessWidget {
   final String error;
+  final VoidCallback onRetry;
 
-  const _LowStockErrorState({
-    required this.error,
-  });
+  const _LowStockErrorState({required this.error, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -753,16 +705,12 @@ class _LowStockErrorState extends StatelessWidget {
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Container(
-          constraints: const BoxConstraints(
-            maxWidth: 600,
-          ),
+          constraints: const BoxConstraints(maxWidth: 600),
           padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: AppColors.border,
-            ),
+            border: Border.all(color: AppColors.border),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -782,7 +730,7 @@ class _LowStockErrorState extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               const Text(
-                "Unable to load low stock report",
+                'Unable to load low stock report',
                 style: AppTextStyles.title,
                 textAlign: TextAlign.center,
               ),
@@ -793,9 +741,7 @@ class _LowStockErrorState extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppColors.surfaceSoft,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: AppColors.border,
-                  ),
+                  border: Border.all(color: AppColors.border),
                 ),
                 child: SelectableText(
                   error,
@@ -805,15 +751,7 @@ class _LowStockErrorState extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          const LowStockReportScreen(),
-                    ),
-                  );
-                },
+                onPressed: onRetry,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
@@ -826,12 +764,9 @@ class _LowStockErrorState extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                icon: const Icon(
-                  Icons.refresh,
-                  size: 18,
-                ),
+                icon: const Icon(Icons.refresh, size: 18),
                 label: const Text(
-                  "Try Again",
+                  'Try Again',
                   style: TextStyle(
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w600,

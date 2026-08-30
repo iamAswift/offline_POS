@@ -2,9 +2,10 @@
 
 import 'package:flutter/material.dart';
 
+import '../../core/theme/styles.dart';
 import '../../database/daos/product_dao.dart';
-import '../../shared/pdf_report.dart';
 import '../../models/reconciliation_row.dart';
+import '../../shared/pdf_report.dart';
 
 class ReconciliationScreen extends StatefulWidget {
   final ProductDao productDao;
@@ -73,7 +74,7 @@ class _ReconciliationScreenState
       lastDate: DateTime.now(),
     );
 
-    if (selected == null) {
+    if (selected == null || !mounted) {
       return;
     }
 
@@ -92,62 +93,18 @@ class _ReconciliationScreenState
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Daily Reconciliation',
-        ),
-        elevation: 0,
-        actions: [
-          IconButton(
-            tooltip: 'Select date',
-            onPressed: _selectDate,
-            icon: const Icon(
-              Icons.calendar_today_outlined,
-            ),
-          ),
-          IconButton(
-            tooltip: 'Refresh',
-            onPressed: () {
-              setState(() {});
-            },
-            icon: const Icon(
-              Icons.refresh,
-            ),
-          ),
-        ],
-      ),
-      body: FutureBuilder(
+      backgroundColor: AppColors.background,
+      appBar: _buildAppBar(context),
+      body: FutureBuilder<List<ReconciliationRow>>(
         future: widget.productDao.getDailyReconciliation(
           _selectedDate,
         ),
         builder: (context, snapshot) {
-          // --------------------------------------------------------
-          // LOADING
-          // --------------------------------------------------------
-
           if (snapshot.connectionState ==
               ConnectionState.waiting) {
-            return const Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text(
-                    'Loading reconciliation...',
-                  ),
-                ],
-              ),
-            );
+            return const _LoadingState();
           }
-
-          // --------------------------------------------------------
-          // ERROR
-          // --------------------------------------------------------
 
           if (snapshot.hasError) {
             return _ErrorState(
@@ -158,23 +115,11 @@ class _ReconciliationScreenState
             );
           }
 
-          // --------------------------------------------------------
-          // NO DATA
-          // --------------------------------------------------------
-
           if (!snapshot.hasData) {
-            return const Center(
-              child: Text(
-                'No reconciliation data available.',
-              ),
-            );
+            return const _EmptyDataState();
           }
 
           final rows = snapshot.data!;
-
-          // --------------------------------------------------------
-          // EMPTY
-          // --------------------------------------------------------
 
           if (rows.isEmpty) {
             return _EmptyState(
@@ -182,501 +127,186 @@ class _ReconciliationScreenState
             );
           }
 
-          // --------------------------------------------------------
-          // SUMMARY
-          // --------------------------------------------------------
-
-          final totalProducts = rows.length;
-
-          final totalReceived = rows.fold<num>(
-            0,
-            (sum, row) => sum + row.received,
+          return _buildReport(
+            context,
+            rows,
           );
+        },
+      ),
+    );
+  }
 
-          final totalSold = rows.fold<num>(
-            0,
-            (sum, row) => sum + row.sold,
-          );
+  // ============================================================
+  // APP BAR
+  // ============================================================
 
-          final discrepancyCount = rows.where(
-            (row) => row.difference != 0,
-          ).length;
+  PreferredSizeWidget _buildAppBar(
+    BuildContext context,
+  ) {
+    return AppBar(
+      backgroundColor: AppColors.surface,
+      elevation: 0,
+      surfaceTintColor: Colors.transparent,
+      titleSpacing: 20,
+      title: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(9),
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.fact_check_outlined,
+              color: AppColors.primary,
+              size: 21,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Text(
+            'Daily Reconciliation',
+            style: AppTextStyles.title,
+          ),
+        ],
+      ),
+      actions: [
+        IconButton(
+          tooltip: 'Select date',
+          onPressed: _selectDate,
+          icon: const Icon(
+            Icons.calendar_today_outlined,
+          ),
+        ),
+        IconButton(
+          tooltip: 'Refresh',
+          onPressed: () {
+            setState(() {});
+          },
+          icon: const Icon(
+            Icons.refresh_outlined,
+          ),
+        ),
+        const SizedBox(width: 8),
+      ],
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(1),
+        child: Container(
+          height: 1,
+          color: AppColors.divider,
+        ),
+      ),
+    );
+  }
 
-          final totalDifference = rows.fold<num>(
-            0,
-            (sum, row) => sum + row.difference,
-          );
+  // ============================================================
+  // REPORT
+  // ============================================================
 
-          final totalShortage = rows
-              .where(
-                (row) => row.difference < 0,
-              )
-              .fold<num>(
-                0,
-                (sum, row) =>
-                    sum + row.difference.abs(),
-              );
+  Widget _buildReport(
+    BuildContext context,
+    List<ReconciliationRow> rows,
+  ) {
+    final totalProducts = rows.length;
 
-          final totalExcess = rows
-              .where(
-                (row) => row.difference > 0,
-              )
-              .fold<num>(
-                0,
-                (sum, row) =>
-                    sum + row.difference,
-              );
+    final totalReceived = rows.fold<num>(
+      0,
+      (sum, row) => sum + row.received,
+    );
 
-          // --------------------------------------------------------
-          // PAGE
-          // --------------------------------------------------------
+    final totalSold = rows.fold<num>(
+      0,
+      (sum, row) => sum + row.sold,
+    );
 
-          return RefreshIndicator(
-            onRefresh: () async {
-              setState(() {});
-            },
-            child: LayoutBuilder(
-              builder: (
-                context,
-                constraints,
-              ) {
-                final isWide =
-                    constraints.maxWidth >= 1000;
+    final discrepancyCount = rows.where(
+      (row) => row.difference != 0,
+    ).length;
 
-                return SingleChildScrollView(
-                  physics:
-                      const AlwaysScrollableScrollPhysics(),
-                  padding: EdgeInsets.symmetric(
-                    horizontal:
-                        isWide ? 32 : 16,
-                    vertical: 24,
-                  ),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints:
-                          const BoxConstraints(
-                        maxWidth: 1500,
-                      ),
-                      child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
-                        children: [
-                          // ==================================================
-                          // HEADER
-                          // ==================================================
+    final totalDifference = rows.fold<num>(
+      0,
+      (sum, row) => sum + row.difference,
+    );
 
-                          _PageHeader(
-                            date:
-                                _formatDate(
-                              _selectedDate,
-                            ),
-                            onSelectDate:
-                                _selectDate,
-                            colorScheme:
-                                colorScheme,
-                            theme: theme,
-                          ),
+    final totalShortage = rows
+        .where(
+          (row) => row.difference < 0,
+        )
+        .fold<num>(
+          0,
+          (sum, row) => sum + row.difference.abs(),
+        );
 
-                          const SizedBox(height: 24),
+    final totalExcess = rows
+        .where(
+          (row) => row.difference > 0,
+        )
+        .fold<num>(
+          0,
+          (sum, row) => sum + row.difference,
+        );
 
-                          // ==================================================
-                          // SUMMARY
-                          // ==================================================
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: () async {
+        setState(() {});
+      },
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 600;
+          final isTablet = constraints.maxWidth >= 600 &&
+              constraints.maxWidth < 1000;
 
-                          _SummaryGrid(
-                            totalProducts:
-                                totalProducts,
-                            totalReceived:
-                                totalReceived,
-                            totalSold:
-                                totalSold,
-                            discrepancyCount:
-                                discrepancyCount,
-                            totalDifference:
-                                totalDifference,
-                            totalShortage:
-                                totalShortage,
-                            totalExcess:
-                                totalExcess,
-                            isWide:
-                                isWide,
-                          ),
+          final horizontalPadding = isMobile
+              ? 16.0
+              : isTablet
+                  ? 24.0
+                  : 32.0;
 
-                          const SizedBox(height: 28),
-
-                          // ==================================================
-                          // REPORT CARD
-                          // ==================================================
-
-                          Card(
-                            clipBehavior:
-                                Clip.antiAlias,
-                            child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment
-                                      .start,
-                              children: [
-                                Padding(
-                                  padding:
-                                      const EdgeInsets
-                                          .fromLTRB(
-                                    20,
-                                    20,
-                                    20,
-                                    16,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child:
-                                            Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment
-                                                  .start,
-                                          children: [
-                                            Text(
-                                              'Stock Reconciliation',
-                                              style: theme
-                                                  .textTheme
-                                                  .titleMedium
-                                                  ?.copyWith(
-                                                fontWeight:
-                                                    FontWeight
-                                                        .bold,
-                                              ),
-                                            ),
-                                            const SizedBox(
-                                              height: 4,
-                                            ),
-                                            Text(
-                                              'Opening stock, receipts, sales and closing variance',
-                                              style: theme
-                                                  .textTheme
-                                                  .bodySmall,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      _StatusBadge(
-                                        hasDiscrepancy:
-                                            discrepancyCount >
-                                                0,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-
-                                const Divider(
-                                  height: 1,
-                                ),
-
-                                // ==================================================
-                                // TABLE
-                                // ==================================================
-
-                                SingleChildScrollView(
-                                  scrollDirection:
-                                      Axis.horizontal,
-                                  child:
-                                      ConstrainedBox(
-                                    constraints:
-                                        BoxConstraints(
-                                      minWidth:
-                                          isWide
-                                              ? constraints
-                                                      .maxWidth -
-                                                  64
-                                              : 1150,
-                                    ),
-                                    child:
-                                        DataTable(
-                                      headingRowHeight:
-                                          54,
-                                      dataRowMinHeight:
-                                          62,
-                                      dataRowMaxHeight:
-                                          76,
-                                      horizontalMargin:
-                                          20,
-                                      columnSpacing:
-                                          30,
-                                      headingTextStyle:
-                                          theme
-                                              .textTheme
-                                              .labelMedium
-                                              ?.copyWith(
-                                            fontWeight:
-                                                FontWeight
-                                                    .bold,
-                                            color:
-                                                colorScheme
-                                                    .onSurface,
-                                          ),
-                                      columns:
-                                          const [
-                                        DataColumn(
-                                          label:
-                                              Text(
-                                            'Product',
-                                          ),
-                                        ),
-                                        DataColumn(
-                                          label:
-                                              Text(
-                                            'Opening',
-                                          ),
-                                          numeric:
-                                              true,
-                                        ),
-                                        DataColumn(
-                                          label:
-                                              Text(
-                                            'Received',
-                                          ),
-                                          numeric:
-                                              true,
-                                        ),
-                                        DataColumn(
-                                          label:
-                                              Text(
-                                            'Sold',
-                                          ),
-                                          numeric:
-                                              true,
-                                        ),
-                                        DataColumn(
-                                          label:
-                                              Text(
-                                            'Expected',
-                                          ),
-                                          numeric:
-                                              true,
-                                        ),
-                                        DataColumn(
-                                          label:
-                                              Text(
-                                            'Physical',
-                                          ),
-                                          numeric:
-                                              true,
-                                        ),
-                                        DataColumn(
-                                          label:
-                                              Text(
-                                            'Variance',
-                                          ),
-                                          numeric:
-                                              true,
-                                        ),
-                                      ],
-                                      rows: rows
-                                          .map(
-                                        (row) {
-                                          return DataRow(
-                                            cells: [
-                                              DataCell(
-                                                SizedBox(
-                                                  width:
-                                                      240,
-                                                  child:
-                                                      Text(
-                                                    row.productName,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style:
-                                                        const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-
-                                              DataCell(
-                                                _NumberCell(
-                                                  row.openingStock,
-                                                ),
-                                              ),
-
-                                              DataCell(
-                                                _MovementCell(
-                                                  value:
-                                                      row.received,
-                                                  color:
-                                                      Colors.blue,
-                                                ),
-                                              ),
-
-                                              DataCell(
-                                                _MovementCell(
-                                                  value:
-                                                      row.sold,
-                                                  color:
-                                                      Colors.orange,
-                                                ),
-                                              ),
-
-                                              DataCell(
-                                                _NumberCell(
-                                                  row.expectedClosing,
-                                                ),
-                                              ),
-
-                                              DataCell(
-                                                _NumberCell(
-                                                  row.physicalCount,
-                                                ),
-                                              ),
-
-                                              DataCell(
-                                                _VarianceBadge(
-                                                  difference:
-                                                      row.difference,
-                                                ),
-                                              ),
-                                            ],
-                                          );
-                                        },
-                                      ).toList(),
-                                    ),
-                                  ),
-                                ),
-
-                                const Divider(
-                                  height: 1,
-                                ),
-
-                                // ==================================================
-                                // EXPORT
-                                // ==================================================
-
-                                Padding(
-                                  padding:
-                                      const EdgeInsets
-                                          .all(20),
-                                  child: LayoutBuilder(
-                                    builder: (
-                                      context,
-                                      footerConstraints,
-                                    ) {
-                                      final compact =
-                                          footerConstraints
-                                                  .maxWidth <
-                                              650;
-
-                                      final button =
-                                          FilledButton.icon(
-                                        onPressed:
-                                            () async {
-                                          try {
-                                            final file =
-                                                await PdfReport
-                                                    .generateReconciliationReport(
-                                              rows,
-                                              _selectedDate,
-                                            );
-
-                                            if (!context
-                                                .mounted) {
-                                              return;
-                                            }
-
-                                            ScaffoldMessenger
-                                                .of(
-                                                    context)
-                                                .showSnackBar(
-                                              SnackBar(
-                                                behavior:
-                                                    SnackBarBehavior
-                                                        .floating,
-                                                content:
-                                                    Text(
-                                                  'Report saved to ${file.path}',
-                                                ),
-                                              ),
-                                            );
-                                          } catch (e) {
-                                            if (!context
-                                                .mounted) {
-                                              return;
-                                            }
-
-                                            ScaffoldMessenger
-                                                .of(
-                                                    context)
-                                                .showSnackBar(
-                                              SnackBar(
-                                                behavior:
-                                                    SnackBarBehavior
-                                                        .floating,
-                                                backgroundColor:
-                                                    colorScheme
-                                                        .error,
-                                                content:
-                                                    Text(
-                                                  'Failed to export report: $e',
-                                                ),
-                                              ),
-                                            );
-                                          }
-                                        },
-                                        icon:
-                                            const Icon(
-                                          Icons
-                                              .picture_as_pdf_outlined,
-                                        ),
-                                        label:
-                                            const Text(
-                                          'Export PDF',
-                                        ),
-                                      );
-
-                                      if (compact) {
-                                        return Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment
-                                                  .start,
-                                          children: [
-                                            Text(
-                                              'Report date: ${_formatDate(_selectedDate)}',
-                                              style: theme
-                                                  .textTheme
-                                                  .bodySmall,
-                                            ),
-                                            const SizedBox(
-                                              height: 12,
-                                            ),
-                                            button,
-                                          ],
-                                        );
-                                      }
-
-                                      return Row(
-                                        children: [
-                                          Expanded(
-                                            child:
-                                                Text(
-                                              'Report date: ${_formatDate(_selectedDate)}',
-                                              style: theme
-                                                  .textTheme
-                                                  .bodySmall,
-                                            ),
-                                          ),
-                                          button,
-                                        ],
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+          return SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.symmetric(
+              horizontal: horizontalPadding,
+              vertical: 24,
+            ),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: 1500,
+                ),
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    _PageHeader(
+                      date: _formatDate(_selectedDate),
+                      onSelectDate: _selectDate,
+                      isMobile: isMobile,
                     ),
-                  ),
-                );
-              },
+
+                    const SizedBox(height: 24),
+
+                    _SummaryGrid(
+                      totalProducts: totalProducts,
+                      totalReceived: totalReceived,
+                      totalSold: totalSold,
+                      discrepancyCount: discrepancyCount,
+                      totalDifference: totalDifference,
+                      totalShortage: totalShortage,
+                      totalExcess: totalExcess,
+                    ),
+
+                    const SizedBox(height: 28),
+
+                    _ReportCard(
+                      rows: rows,
+                      selectedDate: _selectedDate,
+                      discrepancyCount: discrepancyCount,
+                    ),
+
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
             ),
           );
         },
@@ -691,66 +321,80 @@ class _ReconciliationScreenState
 
 class _PageHeader extends StatelessWidget {
   final String date;
-  final ColorScheme colorScheme;
-  final ThemeData theme;
   final VoidCallback onSelectDate;
+  final bool isMobile;
 
   const _PageHeader({
     required this.date,
-    required this.colorScheme,
-    required this.theme,
     required this.onSelectDate,
+    required this.isMobile,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final header = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 48,
-          height: 48,
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: colorScheme.primaryContainer,
-            borderRadius:
-                BorderRadius.circular(12),
+            color: AppColors.primaryLight,
+            borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(
+          child: const Icon(
             Icons.fact_check_outlined,
-            color:
-                colorScheme.onPrimaryContainer,
+            color: AppColors.primary,
+            size: 24,
           ),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 14),
         Expanded(
           child: Column(
             crossAxisAlignment:
                 CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Daily Reconciliation',
-                style: theme
-                    .textTheme
-                    .headlineSmall
-                    ?.copyWith(
-                  fontWeight:
-                      FontWeight.bold,
-                ),
+                style: AppTextStyles.heading,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 5),
               Text(
                 date,
-                style: theme
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(
-                  color: theme
-                      .colorScheme
-                      .onSurfaceVariant,
-                ),
+                style: AppTextStyles.bodySecondary,
               ),
             ],
           ),
         ),
+      ],
+    );
+
+    if (isMobile) {
+      return Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+        children: [
+          header,
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: onSelectDate,
+            icon: const Icon(
+              Icons.calendar_today_outlined,
+              size: 18,
+            ),
+            label: const Text(
+              'Change date',
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          child: header,
+        ),
+        const SizedBox(width: 16),
         OutlinedButton.icon(
           onPressed: onSelectDate,
           icon: const Icon(
@@ -778,7 +422,6 @@ class _SummaryGrid extends StatelessWidget {
   final num totalDifference;
   final num totalShortage;
   final num totalExcess;
-  final bool isWide;
 
   const _SummaryGrid({
     required this.totalProducts,
@@ -788,90 +431,88 @@ class _SummaryGrid extends StatelessWidget {
     required this.totalDifference,
     required this.totalShortage,
     required this.totalExcess,
-    required this.isWide,
   });
 
   @override
   Widget build(BuildContext context) {
-    final cards = [
-      _SummaryCard(
-        icon: Icons.inventory_2_outlined,
-        title: 'Products',
-        value: '$totalProducts',
-        subtitle: 'Tracked',
-      ),
-      _SummaryCard(
-        icon: Icons.move_to_inbox_outlined,
-        title: 'Received',
-        value: '$totalReceived',
-        subtitle: 'Units received',
-        color: Colors.blue,
-      ),
-      _SummaryCard(
-        icon: Icons.shopping_cart_outlined,
-        title: 'Sold',
-        value: '$totalSold',
-        subtitle: 'Units sold',
-        color: Colors.orange,
-      ),
-      _SummaryCard(
-        icon: Icons.warning_amber_rounded,
-        title: 'Discrepancies',
-        value: '$discrepancyCount',
-        subtitle: discrepancyCount == 0
-            ? 'No variance'
-            : 'Requires attention',
-        warning: discrepancyCount > 0,
-      ),
-    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
 
-    final varianceCard = _SummaryCard(
-      icon: totalDifference < 0
-          ? Icons.trending_down
-          : totalDifference > 0
-              ? Icons.trending_up
-              : Icons.check_circle_outline,
-      title: 'Net Variance',
-      value: '$totalDifference',
-      subtitle: totalDifference == 0
-          ? 'Balanced'
-          : 'Shortage $totalShortage / Excess $totalExcess',
-      warning: totalDifference < 0,
-    );
+        final columns = width >= 1200
+            ? 5
+            : width >= 850
+                ? 3
+                : width >= 550
+                    ? 2
+                    : 1;
 
-    if (isWide) {
-      return Row(
-        children: [
-          ...cards.map(
-            (card) => Expanded(
-              child: Padding(
-                padding:
-                    const EdgeInsets.only(
-                  right: 12,
-                ),
-                child: card,
-              ),
-            ),
+        final cards = [
+          _SummaryCard(
+            icon: Icons.inventory_2_outlined,
+            title: 'Products',
+            value: '$totalProducts',
+            subtitle: 'Products tracked',
           ),
-          Expanded(
-            child: varianceCard,
+          _SummaryCard(
+            icon: Icons.move_to_inbox_outlined,
+            title: 'Received',
+            value: '$totalReceived',
+            subtitle: 'Units received',
+            color: AppColors.primary,
           ),
-        ],
-      );
-    }
+          _SummaryCard(
+            icon: Icons.shopping_cart_outlined,
+            title: 'Sold',
+            value: '$totalSold',
+            subtitle: 'Units sold',
+            color: AppColors.accent,
+          ),
+          _SummaryCard(
+            icon: Icons.warning_amber_rounded,
+            title: 'Discrepancies',
+            value: '$discrepancyCount',
+            subtitle: discrepancyCount == 0
+                ? 'No variance found'
+                : 'Requires attention',
+            warning: discrepancyCount > 0,
+          ),
+          _SummaryCard(
+            icon: totalDifference < 0
+                ? Icons.trending_down_outlined
+                : totalDifference > 0
+                    ? Icons.trending_up_outlined
+                    : Icons.check_circle_outline,
+            title: 'Net Variance',
+            value: '$totalDifference',
+            subtitle: totalDifference == 0
+                ? 'Balanced'
+                : 'Shortage $totalShortage / Excess $totalExcess',
+            warning: totalDifference < 0,
+          ),
+        ];
 
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics:
-          const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: 2.2,
-      children: [
-        ...cards,
-        varianceCard,
-      ],
+        return GridView.builder(
+          shrinkWrap: true,
+          physics:
+              const NeverScrollableScrollPhysics(),
+          itemCount: cards.length,
+          gridDelegate:
+              SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: width < 550
+                ? 3.2
+                : width < 850
+                    ? 2.1
+                    : 1.8,
+          ),
+          itemBuilder: (context, index) {
+            return cards[index];
+          },
+        );
+      },
     );
   }
 }
@@ -899,85 +540,457 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme =
-        theme.colorScheme;
-
     final effectiveColor = warning
-        ? colorScheme.error
-        : color ?? colorScheme.primary;
+        ? AppColors.danger
+        : color ?? AppColors.primary;
 
-    return Card(
-      child: Padding(
-        padding:
-            const EdgeInsets.all(18),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration:
-                  BoxDecoration(
-                color: effectiveColor
-                    .withValues(
-                  alpha: 0.10,
-                ),
-                borderRadius:
-                    BorderRadius.circular(
-                  10,
-                ),
-              ),
-              child: Icon(
-                icon,
-                color: effectiveColor,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                mainAxisAlignment:
-                    MainAxisAlignment.center,
-                children: [
-                  Text(
-                    title,
-                    style: theme
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(
-                      color: colorScheme
-                          .onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    value,
-                    style: theme
-                        .textTheme
-                        .titleLarge
-                        ?.copyWith(
-                      fontWeight:
-                          FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    maxLines: 1,
-                    overflow:
-                        TextOverflow.ellipsis,
-                    style: theme
-                        .textTheme
-                        .bodySmall,
-                  ),
-                ],
-              ),
-            ),
-          ],
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppColors.border,
         ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x05000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: effectiveColor.withValues(
+                alpha: 0.10,
+              ),
+              borderRadius:
+                  BorderRadius.circular(10),
+            ),
+            child: Icon(
+              icon,
+              color: effectiveColor,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              mainAxisAlignment:
+                  MainAxisAlignment.center,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppTextStyles.small,
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.price.copyWith(
+                    fontSize: 21,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.small,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
+  }
+}
+
+// ============================================================================
+// REPORT CARD
+// ============================================================================
+
+class _ReportCard extends StatelessWidget {
+  final List<ReconciliationRow> rows;
+  final DateTime selectedDate;
+  final int discrepancyCount;
+
+  const _ReportCard({
+    required this.rows,
+    required this.selectedDate,
+    required this.discrepancyCount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.border,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x05000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+        children: [
+          _buildHeader(context),
+
+          const Divider(
+            height: 1,
+          ),
+
+          _buildTable(context),
+
+          const Divider(
+            height: 1,
+          ),
+
+          _buildExportFooter(context),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // REPORT HEADER
+  // ============================================================
+
+  Widget _buildHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact =
+              constraints.maxWidth < 600;
+
+          final title = const Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Stock Reconciliation',
+                style: AppTextStyles.title,
+              ),
+              SizedBox(height: 5),
+              Text(
+                'Opening stock, receipts, sales and closing variance.',
+                style: AppTextStyles.bodySecondary,
+              ),
+            ],
+          );
+
+          final badge = _StatusBadge(
+            hasDiscrepancy:
+                discrepancyCount > 0,
+          );
+
+          if (compact) {
+            return Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                title,
+                const SizedBox(height: 12),
+                badge,
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(
+                child: title,
+              ),
+              const SizedBox(width: 16),
+              badge,
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  // ============================================================
+  // TABLE
+  // ============================================================
+
+  Widget _buildTable(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final tableWidth =
+            constraints.maxWidth < 900
+                ? 900.0
+                : constraints.maxWidth;
+
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: tableWidth,
+            child: DataTable(
+              headingRowHeight: 52,
+              dataRowMinHeight: 58,
+              dataRowMaxHeight: 72,
+              horizontalMargin: 20,
+              columnSpacing: 28,
+              dividerThickness: 0.5,
+              headingTextStyle:
+                  AppTextStyles.small.copyWith(
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+              dataTextStyle:
+                  AppTextStyles.small.copyWith(
+                color: AppColors.textPrimary,
+              ),
+              columns: const [
+                DataColumn(
+                  label: Text('Product'),
+                ),
+                DataColumn(
+                  label: Text('Opening'),
+                  numeric: true,
+                ),
+                DataColumn(
+                  label: Text('Received'),
+                  numeric: true,
+                ),
+                DataColumn(
+                  label: Text('Sold'),
+                  numeric: true,
+                ),
+                DataColumn(
+                  label: Text('Expected'),
+                  numeric: true,
+                ),
+                DataColumn(
+                  label: Text('Physical'),
+                  numeric: true,
+                ),
+                DataColumn(
+                  label: Text('Variance'),
+                  numeric: true,
+                ),
+              ],
+              rows: rows.map((row) {
+                return DataRow(
+                  cells: [
+                    DataCell(
+                      Text(
+                        row.productName,
+                        maxLines: 1,
+                        overflow:
+                            TextOverflow.ellipsis,
+                        style: AppTextStyles.small
+                            .copyWith(
+                          fontWeight:
+                              FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    DataCell(
+                      _NumberCell(
+                        row.openingStock,
+                      ),
+                    ),
+                    DataCell(
+                      _MovementCell(
+                        value: row.received,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    DataCell(
+                      _MovementCell(
+                        value: row.sold,
+                        color: AppColors.accent,
+                      ),
+                    ),
+                    DataCell(
+                      _NumberCell(
+                        row.expectedClosing,
+                      ),
+                    ),
+                    DataCell(
+                      _NumberCell(
+                        row.physicalCount,
+                      ),
+                    ),
+                    DataCell(
+                      _VarianceBadge(
+                        difference:
+                            row.difference,
+                      ),
+                    ),
+                  ],
+                );
+              }).toList(),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ============================================================
+  // EXPORT FOOTER
+  // ============================================================
+
+  Widget _buildExportFooter(
+    BuildContext context,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact =
+              constraints.maxWidth < 600;
+
+          final dateText = Text(
+            'Report date: ${_formatDate(selectedDate)}',
+            style: AppTextStyles.small,
+          );
+
+          final button = ElevatedButton.icon(
+            onPressed: () => _exportPdf(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 13,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius:
+                    BorderRadius.circular(10),
+              ),
+            ),
+            icon: const Icon(
+              Icons.picture_as_pdf_outlined,
+              size: 19,
+            ),
+            label: const Text(
+              'Export PDF',
+            ),
+          );
+
+          if (compact) {
+            return Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                dateText,
+                const SizedBox(height: 12),
+                button,
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(
+                child: dateText,
+              ),
+              button,
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  // ============================================================
+  // DATE FORMAT
+  // ============================================================
+
+  String _formatDate(DateTime date) {
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+
+    return '${months[date.month - 1]} '
+        '${date.day}, '
+        '${date.year}';
+  }
+
+  // ============================================================
+  // PDF EXPORT
+  // ============================================================
+
+  Future<void> _exportPdf(
+    BuildContext context,
+  ) async {
+    try {
+      final file =
+          await PdfReport.generateReconciliationReport(
+        rows,
+        selectedDate,
+      );
+
+      if (!context.mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.success,
+          content: Text(
+            'Report saved to ${file.path}',
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              color: Colors.white,
+            ),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.danger,
+          content: Text(
+            'Failed to export report: $e',
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              color: Colors.white,
+            ),
+          ),
+        ),
+      );
+    }
   }
 }
 
@@ -994,7 +1007,7 @@ class _NumberCell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       '$value',
-      style: const TextStyle(
+      style: AppTextStyles.small.copyWith(
         fontWeight: FontWeight.w600,
       ),
     );
@@ -1017,24 +1030,21 @@ class _MovementCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 10,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 9,
         vertical: 6,
       ),
       decoration: BoxDecoration(
         color: color.withValues(
           alpha: 0.08,
         ),
-        borderRadius:
-            BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         '$value',
-        style: TextStyle(
+        style: AppTextStyles.small.copyWith(
           color: color,
-          fontWeight:
-              FontWeight.w700,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -1054,34 +1064,25 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme =
-        Theme.of(context).colorScheme;
+    final backgroundColor = hasDiscrepancy
+        ? AppColors.dangerLight
+        : AppColors.successLight;
 
-    final backgroundColor =
-        hasDiscrepancy
-            ? colorScheme.errorContainer
-            : colorScheme.primaryContainer;
-
-    final foregroundColor =
-        hasDiscrepancy
-            ? colorScheme.onErrorContainer
-            : colorScheme.onPrimaryContainer;
+    final foregroundColor = hasDiscrepancy
+        ? AppColors.danger
+        : AppColors.success;
 
     return Container(
-      padding:
-          const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: 12,
         vertical: 7,
       ),
-      decoration:
-          BoxDecoration(
+      decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius:
-            BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
-        mainAxisSize:
-            MainAxisSize.min,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             hasDiscrepancy
@@ -1095,11 +1096,9 @@ class _StatusBadge extends StatelessWidget {
             hasDiscrepancy
                 ? 'Review required'
                 : 'Reconciled',
-            style: TextStyle(
+            style: AppTextStyles.small.copyWith(
               color: foregroundColor,
-              fontWeight:
-                  FontWeight.w600,
-              fontSize: 12,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -1121,68 +1120,74 @@ class _VarianceBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme =
-        Theme.of(context).colorScheme;
-
     if (difference == 0) {
       return Container(
-        padding:
-            const EdgeInsets.symmetric(
+        padding: const EdgeInsets.symmetric(
           horizontal: 10,
           vertical: 6,
         ),
-        decoration:
-            BoxDecoration(
-          color:
-              colorScheme.primaryContainer,
-          borderRadius:
-              BorderRadius.circular(8),
+        decoration: BoxDecoration(
+          color: AppColors.successLight,
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
           '0',
-          style: TextStyle(
-            color: colorScheme
-                .onPrimaryContainer,
-            fontWeight:
-                FontWeight.bold,
+          style: AppTextStyles.small.copyWith(
+            color: AppColors.success,
+            fontWeight: FontWeight.w700,
           ),
         ),
       );
     }
 
-    final isShortage =
-        difference < 0;
+    final isShortage = difference < 0;
 
-    final backgroundColor =
-        isShortage
-            ? colorScheme.errorContainer
-            : colorScheme.tertiaryContainer;
+    final backgroundColor = isShortage
+        ? AppColors.dangerLight
+        : AppColors.successLight;
 
-    final foregroundColor =
-        isShortage
-            ? colorScheme.onErrorContainer
-            : colorScheme.onTertiaryContainer;
+    final foregroundColor = isShortage
+        ? AppColors.danger
+        : AppColors.success;
 
     return Container(
-      padding:
-          const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: 10,
         vertical: 6,
       ),
-      decoration:
-          BoxDecoration(
+      decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius:
-            BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         difference > 0
             ? '+$difference'
             : '$difference',
-        style: TextStyle(
+        style: AppTextStyles.small.copyWith(
           color: foregroundColor,
-          fontWeight:
-              FontWeight.bold,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// EMPTY DATA STATE
+// ============================================================================
+
+class _EmptyDataState extends StatelessWidget {
+  const _EmptyDataState();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(32),
+        child: Text(
+          'No reconciliation data available.',
+          style: AppTextStyles.bodySecondary,
+          textAlign: TextAlign.center,
         ),
       ),
     );
@@ -1202,73 +1207,81 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme =
-        Theme.of(context);
-    final colorScheme =
-        theme.colorScheme;
-
     return Center(
-      child: ConstrainedBox(
-        constraints:
-            const BoxConstraints(
-          maxWidth: 450,
-        ),
-        child: Card(
-          child: Padding(
-            padding:
-                const EdgeInsets.all(40),
-            child: Column(
-              mainAxisSize:
-                  MainAxisSize.min,
-              children: [
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration:
-                      BoxDecoration(
-                    color: colorScheme
-                        .surfaceContainerHighest,
-                    shape:
-                        BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.fact_check_outlined,
-                    size: 36,
-                    color: colorScheme
-                        .onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(
-                  height: 20,
-                ),
-                Text(
-                  'No reconciliation data',
-                  style: theme
-                      .textTheme
-                      .titleLarge
-                      ?.copyWith(
-                    fontWeight:
-                        FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(
-                  height: 8,
-                ),
-                Text(
-                  'There is no reconciliation data available for $date.',
-                  textAlign:
-                      TextAlign.center,
-                  style: theme
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(
-                    color: colorScheme
-                        .onSurfaceVariant,
-                  ),
-                ),
-              ],
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Container(
+          width: double.infinity,
+          constraints: const BoxConstraints(
+            maxWidth: 500,
+          ),
+          padding: const EdgeInsets.all(36),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.border,
             ),
           ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceSoft,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.fact_check_outlined,
+                  size: 32,
+                  color: AppColors.textMuted,
+                ),
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                'No reconciliation data',
+                style: AppTextStyles.title,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'There is no reconciliation data available for $date.',
+                style: AppTextStyles.bodySecondary,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// LOADING STATE
+// ============================================================================
+
+class _LoadingState extends StatelessWidget {
+  const _LoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(
+              color: AppColors.primary,
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Loading reconciliation...',
+              style: AppTextStyles.bodySecondary,
+            ),
+          ],
         ),
       ),
     );
@@ -1290,73 +1303,79 @@ class _ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme =
-        Theme.of(context).colorScheme;
-
     return Center(
-      child:
-          SingleChildScrollView(
-        padding:
-            const EdgeInsets.all(32),
-        child: ConstrainedBox(
-          constraints:
-              const BoxConstraints(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Container(
+          width: double.infinity,
+          constraints: const BoxConstraints(
             maxWidth: 600,
           ),
-          child: Card(
-            child: Padding(
-              padding:
-                  const EdgeInsets.all(28),
-              child: Column(
-                mainAxisSize:
-                    MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 52,
-                    color:
-                        colorScheme.error,
-                  ),
-                  const SizedBox(
-                    height: 16,
-                  ),
-                  const Text(
-                    'Unable to load reconciliation',
-                    textAlign:
-                        TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight:
-                          FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 12,
-                  ),
-                  SelectableText(
-                    error,
-                    textAlign:
-                        TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 13,
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 24,
-                  ),
-                  FilledButton.icon(
-                    onPressed: onRetry,
-                    icon: const Icon(
-                      Icons.refresh,
-                    ),
-                    label:
-                        const Text(
-                      'Retry',
-                    ),
-                  ),
-                ],
-              ),
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.border,
             ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.dangerLight,
+                  borderRadius:
+                      BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.error_outline,
+                  size: 30,
+                  color: AppColors.danger,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Unable to load reconciliation',
+                style: AppTextStyles.title,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceSoft,
+                  borderRadius:
+                      BorderRadius.circular(10),
+                  border: Border.all(
+                    color: AppColors.border,
+                  ),
+                ),
+                child: SelectableText(
+                  error,
+                  style: AppTextStyles.small,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(
+                  Icons.refresh_outlined,
+                ),
+                label: const Text(
+                  'Retry',
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      AppColors.primary,
+                  foregroundColor:
+                      Colors.white,
+                  elevation: 0,
+                ),
+              ),
+            ],
           ),
         ),
       ),

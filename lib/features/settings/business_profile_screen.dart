@@ -2,9 +2,11 @@
 
 import 'package:flutter/material.dart';
 
-import '../../database/daos/settings_dao.dart';
-import '../../database/business_settings.dart';
+import '../../core/responsive/responsive.dart';
+import '../../core/theme/styles.dart';
 import '../../core/widgets/business_logo_picker.dart';
+import '../../database/business_settings.dart';
+import '../../database/daos/settings_dao.dart';
 
 class BusinessProfileScreen extends StatefulWidget {
   final SettingsDao settingsDao;
@@ -21,7 +23,15 @@ class BusinessProfileScreen extends StatefulWidget {
 
 class _BusinessProfileScreenState
     extends State<BusinessProfileScreen> {
+  // ============================================================
+  // FORM
+  // ============================================================
+
   final _formKey = GlobalKey<FormState>();
+
+  // ============================================================
+  // CONTROLLERS
+  // ============================================================
 
   final _businessNameController = TextEditingController();
   final _taglineController = TextEditingController();
@@ -30,14 +40,26 @@ class _BusinessProfileScreenState
   final _addressController = TextEditingController();
   final _receiptFooterController = TextEditingController();
 
+  // ============================================================
+  // BUSINESS
+  // ============================================================
+
   String _businessType = 'General Retail';
 
   String? _businessLogoPath;
 
+  // ============================================================
+  // STATE
+  // ============================================================
+
   bool _isLoading = true;
   bool _isSaving = false;
 
-  final List<String> _businessTypes = const [
+  // ============================================================
+  // BUSINESS TYPES
+  // ============================================================
+
+  static const List<String> _businessTypes = [
     'General Retail',
     'Supermarket',
     'Electronics',
@@ -57,6 +79,7 @@ class _BusinessProfileScreenState
   @override
   void initState() {
     super.initState();
+
     _loadBusinessProfile();
   }
 
@@ -133,7 +156,9 @@ class _BusinessProfileScreenState
                 'Thank you for your patronage.';
 
         if (businessType != null &&
-            _businessTypes.contains(businessType)) {
+            _businessTypes.contains(
+              businessType,
+            )) {
           _businessType = businessType;
         }
 
@@ -167,6 +192,8 @@ class _BusinessProfileScreenState
     if (!_formKey.currentState!.validate()) {
       return;
     }
+
+    if (_isSaving) return;
 
     setState(() {
       _isSaving = true;
@@ -278,9 +305,12 @@ class _BusinessProfileScreenState
   }) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(
+          message,
+          style: AppTextStyles.body,
+        ),
         backgroundColor:
-            isError ? Colors.red : null,
+            isError ? AppColors.danger : null,
       ),
     );
   }
@@ -299,17 +329,19 @@ class _BusinessProfileScreenState
     bool requiredField = false,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(
+        bottom: AppSpacing.lg,
+      ),
       child: TextFormField(
         controller: controller,
         maxLines: maxLines,
         keyboardType: keyboardType,
+        style: AppTextStyles.body,
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
           prefixIcon:
               icon != null ? Icon(icon) : null,
-          border: const OutlineInputBorder(),
         ),
         validator: requiredField
             ? (value) {
@@ -335,22 +367,62 @@ class _BusinessProfileScreenState
     required IconData icon,
     required Widget child,
   }) {
+    final responsive = context.responsive;
+
     return Card(
-      margin: const EdgeInsets.only(bottom: 20),
+      margin: const EdgeInsets.only(
+        bottom: AppSpacing.xl,
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(
+          responsive.value(
+            compact: AppSpacing.lg,
+            tablet: AppSpacing.xl,
+            desktop: AppSpacing.xxl,
+          ),
+        ),
         child: Column(
           crossAxisAlignment:
               CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
               children: [
-                Icon(
-                  icon,
-                  size: 28,
+                Container(
+                  width: responsive.value(
+                    compact: AppSpacing.xxxl,
+                    tablet: AppSpacing.huge,
+                    desktop: AppSpacing.huge,
+                  ),
+                  height: responsive.value(
+                    compact: AppSpacing.xxxl,
+                    tablet: AppSpacing.huge,
+                    desktop: AppSpacing.huge,
+                  ),
+                  decoration: BoxDecoration(
+                    color:
+                        AppColors.primaryLight,
+                    borderRadius:
+                        BorderRadius.circular(
+                      AppRadius.md,
+                    ),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: responsive.value(
+                      compact: AppSpacing.lg,
+                      tablet: AppSpacing.xl,
+                      desktop: AppSpacing.xl,
+                    ),
+                    color:
+                        AppColors.primary,
+                  ),
                 ),
 
-                const SizedBox(width: 12),
+                const SizedBox(
+                  width: AppSpacing.md,
+                ),
 
                 Expanded(
                   child: Column(
@@ -359,22 +431,19 @@ class _BusinessProfileScreenState
                     children: [
                       Text(
                         title,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleLarge
-                            ?.copyWith(
-                              fontWeight:
-                                  FontWeight.bold,
-                            ),
+                        style:
+                            AppTextStyles.title,
                       ),
 
-                      const SizedBox(height: 3),
+                      const SizedBox(
+                        height: AppSpacing.xs,
+                      ),
 
                       Text(
                         subtitle,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall,
+                        style:
+                            AppTextStyles
+                                .bodySecondary,
                       ),
                     ],
                   ),
@@ -382,10 +451,268 @@ class _BusinessProfileScreenState
               ],
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(
+              height: AppSpacing.xl,
+            ),
 
             child,
           ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // LOGO SECTION
+  // ============================================================
+
+  Widget _buildLogoSection() {
+    return _buildSectionCard(
+      title: 'Business Logo',
+      subtitle:
+          'Upload the logo that will be displayed throughout the system.',
+      icon: Icons.image_outlined,
+      child: Center(
+        child: BusinessLogoPicker(
+          initialPath: _businessLogoPath,
+          onImageSelected: (path) {
+            setState(() {
+              _businessLogoPath = path;
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // BUSINESS IDENTITY SECTION
+  // ============================================================
+
+  Widget _buildBusinessIdentitySection() {
+    return _buildSectionCard(
+      title: 'Business Identity',
+      subtitle:
+          'Information displayed throughout the system.',
+      icon: Icons.business,
+      child: Column(
+        children: [
+          _buildTextField(
+            controller:
+                _businessNameController,
+            label: 'Business Name',
+            hint: 'e.g. DKing Wine Shop',
+            icon: Icons.store,
+            requiredField: true,
+          ),
+
+          _buildTextField(
+            controller: _taglineController,
+            label: 'Tagline',
+            hint:
+                'e.g. Quality drinks at great prices',
+            icon: Icons.short_text,
+          ),
+
+          DropdownButtonFormField<String>(
+            initialValue: _businessType,
+            decoration:
+                const InputDecoration(
+              labelText: 'Business Type',
+              prefixIcon:
+                  Icon(Icons.category),
+            ),
+            items: _businessTypes
+                .map(
+                  (type) =>
+                      DropdownMenuItem<String>(
+                    value: type,
+                    child: Text(
+                      type,
+                      style:
+                          AppTextStyles.body,
+                    ),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              if (value == null) {
+                return;
+              }
+
+              setState(() {
+                _businessType = value;
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // CONTACT SECTION
+  // ============================================================
+
+  Widget _buildContactSection() {
+    return _buildSectionCard(
+      title: 'Contact Information',
+      subtitle:
+          'Contact details for your business.',
+      icon: Icons.contact_phone,
+      child: Column(
+        children: [
+          _buildTextField(
+            controller: _phoneController,
+            label: 'Phone Number',
+            hint: 'e.g. 08132715857',
+            icon: Icons.phone,
+            keyboardType:
+                TextInputType.phone,
+          ),
+
+          _buildTextField(
+            controller: _emailController,
+            label: 'Email Address',
+            hint:
+                'e.g. business@example.com',
+            icon: Icons.email,
+            keyboardType:
+                TextInputType.emailAddress,
+          ),
+
+          _buildTextField(
+            controller: _addressController,
+            label: 'Business Address',
+            hint:
+                'e.g. Lugbe, Abuja, Nigeria',
+            icon: Icons.location_on,
+            maxLines: 2,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // RECEIPT SECTION
+  // ============================================================
+
+  Widget _buildReceiptSection() {
+    return _buildSectionCard(
+      title: 'Receipt Information',
+      subtitle:
+          'Text displayed at the bottom of receipts.',
+      icon: Icons.receipt_long,
+      child: _buildTextField(
+        controller:
+            _receiptFooterController,
+        label: 'Receipt Footer',
+        hint:
+            'Thank you for your patronage.',
+        icon: Icons.notes,
+        maxLines: 3,
+      ),
+    );
+  }
+
+  // ============================================================
+  // SAVE BUTTON
+  // ============================================================
+
+  Widget _buildSaveButton() {
+    final responsive = context.responsive;
+
+    return SizedBox(
+      height: responsive.buttonHeight,
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: _isSaving
+            ? null
+            : _saveBusinessProfile,
+        icon: _isSaving
+            ? const SizedBox(
+                width: AppSpacing.lg,
+                height: AppSpacing.lg,
+                child:
+                     CircularProgressIndicator(
+                  strokeWidth: 2,
+                ),
+              )
+            : const Icon(Icons.save),
+        label: Text(
+          _isSaving
+              ? 'Saving...'
+              : 'Save Business Profile',
+          style: AppTextStyles.body.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // PAGE CONTENT
+  // ============================================================
+
+  Widget _buildContent() {
+    final responsive = context.responsive;
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: responsive.contentMaxWidth,
+        ),
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: EdgeInsets.symmetric(
+              horizontal:
+                  responsive.horizontalPadding,
+              vertical:
+                  responsive.verticalPadding,
+            ),
+            children: [
+              // --------------------------------------------------
+              // LOGO
+              // --------------------------------------------------
+
+              _buildLogoSection(),
+
+              // --------------------------------------------------
+              // BUSINESS IDENTITY
+              // --------------------------------------------------
+
+              _buildBusinessIdentitySection(),
+
+              // --------------------------------------------------
+              // CONTACT
+              // --------------------------------------------------
+
+              _buildContactSection(),
+
+              // --------------------------------------------------
+              // RECEIPT
+              // --------------------------------------------------
+
+              _buildReceiptSection(),
+
+              // --------------------------------------------------
+              // SAVE
+              // --------------------------------------------------
+
+              const SizedBox(
+                height: AppSpacing.sm,
+              ),
+
+              _buildSaveButton(),
+
+              const SizedBox(
+                height: AppSpacing.section,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -403,209 +730,12 @@ class _BusinessProfileScreenState
           'Business Profile',
         ),
       ),
-
       body: _isLoading
           ? const Center(
-              child: CircularProgressIndicator(),
+              child:
+                  CircularProgressIndicator(),
             )
-          : Form(
-              key: _formKey,
-              child: ListView(
-                padding: const EdgeInsets.all(20),
-                children: [
-                  // ==================================================
-                  // BUSINESS LOGO
-                  // ==================================================
-
-                  _buildSectionCard(
-                    title: 'Business Logo',
-                    subtitle:
-                        'Upload the logo that will be displayed throughout the system.',
-                    icon: Icons.image_outlined,
-                    child: Center(
-                      child: BusinessLogoPicker(
-                        initialPath:
-                            _businessLogoPath,
-                        onImageSelected: (path) {
-                          setState(() {
-                            _businessLogoPath = path;
-                          });
-                        },
-                      ),
-                    ),
-                  ),
-
-                  // ==================================================
-                  // BUSINESS IDENTITY
-                  // ==================================================
-
-                  _buildSectionCard(
-                    title: 'Business Identity',
-                    subtitle:
-                        'Information displayed throughout the system.',
-                    icon: Icons.business,
-                    child: Column(
-                      children: [
-                        _buildTextField(
-                          controller:
-                              _businessNameController,
-                          label: 'Business Name',
-                          hint:
-                              'e.g. DKing Wine Shop',
-                          icon: Icons.store,
-                          requiredField: true,
-                        ),
-
-                        _buildTextField(
-                          controller:
-                              _taglineController,
-                          label: 'Tagline',
-                          hint:
-                              'e.g. Quality drinks at great prices',
-                          icon: Icons.short_text,
-                        ),
-
-                        DropdownButtonFormField<String>(
-                          initialValue:
-                              _businessType,
-                          decoration:
-                              const InputDecoration(
-                            labelText:
-                                'Business Type',
-                            prefixIcon:
-                                Icon(Icons.category),
-                            border:
-                                OutlineInputBorder(),
-                          ),
-                          items:
-                              _businessTypes
-                                  .map(
-                                    (type) =>
-                                        DropdownMenuItem<
-                                            String>(
-                                      value: type,
-                                      child:
-                                          Text(type),
-                                    ),
-                                  )
-                                  .toList(),
-                          onChanged: (value) {
-                            if (value == null) {
-                              return;
-                            }
-
-                            setState(() {
-                              _businessType =
-                                  value;
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // ==================================================
-                  // CONTACT INFORMATION
-                  // ==================================================
-
-                  _buildSectionCard(
-                    title: 'Contact Information',
-                    subtitle:
-                        'Contact details for your business.',
-                    icon: Icons.contact_phone,
-                    child: Column(
-                      children: [
-                        _buildTextField(
-                          controller:
-                              _phoneController,
-                          label: 'Phone Number',
-                          hint:
-                              'e.g. 08132715857',
-                          icon: Icons.phone,
-                          keyboardType:
-                              TextInputType.phone,
-                        ),
-
-                        _buildTextField(
-                          controller:
-                              _emailController,
-                          label: 'Email Address',
-                          hint:
-                              'e.g. business@example.com',
-                          icon: Icons.email,
-                          keyboardType:
-                              TextInputType.emailAddress,
-                        ),
-
-                        _buildTextField(
-                          controller:
-                              _addressController,
-                          label: 'Business Address',
-                          hint:
-                              'e.g. Lugbe, Abuja, Nigeria',
-                          icon: Icons.location_on,
-                          maxLines: 2,
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // ==================================================
-                  // RECEIPT
-                  // ==================================================
-
-                  _buildSectionCard(
-                    title: 'Receipt Information',
-                    subtitle:
-                        'Text displayed at the bottom of receipts.',
-                    icon: Icons.receipt_long,
-                    child: _buildTextField(
-                      controller:
-                          _receiptFooterController,
-                      label: 'Receipt Footer',
-                      hint:
-                          'Thank you for your patronage.',
-                      icon: Icons.notes,
-                      maxLines: 3,
-                    ),
-                  ),
-
-                  // ==================================================
-                  // SAVE
-                  // ==================================================
-
-                  const SizedBox(height: 5),
-
-                  SizedBox(
-                    height: 52,
-                    child: ElevatedButton.icon(
-                      onPressed: _isSaving
-                          ? null
-                          : _saveBusinessProfile,
-                      icon: _isSaving
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child:
-                                  CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : const Icon(
-                              Icons.save,
-                            ),
-                      label: Text(
-                        _isSaving
-                            ? 'Saving...'
-                            : 'Save Business Profile',
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 30),
-                ],
-              ),
-            ),
+          : _buildContent(),
     );
   }
 

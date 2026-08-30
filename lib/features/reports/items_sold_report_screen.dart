@@ -11,12 +11,10 @@ class ItemsSoldReportScreen extends StatefulWidget {
   const ItemsSoldReportScreen({super.key});
 
   @override
-  State<ItemsSoldReportScreen> createState() =>
-      _ItemsSoldReportScreenState();
+  State<ItemsSoldReportScreen> createState() => _ItemsSoldReportScreenState();
 }
 
-class _ItemsSoldReportScreenState
-    extends State<ItemsSoldReportScreen> {
+class _ItemsSoldReportScreenState extends State<ItemsSoldReportScreen> {
   late final SalesDao salesDao;
 
   int _itemsSold = 0;
@@ -29,8 +27,7 @@ class _ItemsSoldReportScreenState
   // DATE FILTER
   // ============================================================
 
-  _ItemsSoldPeriod _selectedPeriod =
-      _ItemsSoldPeriod.allTime;
+  _ItemsSoldPeriod _selectedPeriod = _ItemsSoldPeriod.allTime;
 
   DateTime? _customStartDate;
 
@@ -66,10 +63,7 @@ class _ItemsSoldReportScreenState
     try {
       final range = _getDateRange();
 
-      final value = await salesDao.getItemsSold(
-        range.start,
-        range.end,
-      );
+      final value = await salesDao.getItemsSold(range.start, range.end);
 
       if (!mounted) return;
 
@@ -96,117 +90,56 @@ class _ItemsSoldReportScreenState
 
     switch (_selectedPeriod) {
       case _ItemsSoldPeriod.today:
-        final start = DateTime(
-          now.year,
-          now.month,
-          now.day,
-        );
+        final start = DateTime(now.year, now.month, now.day);
 
-        final end = start.add(
-          const Duration(days: 1),
-        );
+        final end = start.add(const Duration(days: 1));
 
-        return _DateRange(
-          start: start,
-          end: end,
-        );
+        return _DateRange(start: start, end: end);
 
       case _ItemsSoldPeriod.yesterday:
-        final today = DateTime(
-          now.year,
-          now.month,
-          now.day,
-        );
+        final today = DateTime(now.year, now.month, now.day);
 
-        final start = today.subtract(
-          const Duration(days: 1),
-        );
+        final start = today.subtract(const Duration(days: 1));
 
         final end = today;
 
-        return _DateRange(
-          start: start,
-          end: end,
-        );
+        return _DateRange(start: start, end: end);
 
       case _ItemsSoldPeriod.thisWeek:
-        final today = DateTime(
-          now.year,
-          now.month,
-          now.day,
-        );
+        final today = DateTime(now.year, now.month, now.day);
 
-        final daysFromMonday =
-            today.weekday - DateTime.monday;
+        final daysFromMonday = today.weekday - DateTime.monday;
 
-        final start = today.subtract(
-          Duration(days: daysFromMonday),
-        );
+        final start = today.subtract(Duration(days: daysFromMonday));
 
-        final end = today.add(
-          const Duration(days: 1),
-        );
+        final end = today.add(const Duration(days: 1));
 
-        return _DateRange(
-          start: start,
-          end: end,
-        );
+        return _DateRange(start: start, end: end);
 
       case _ItemsSoldPeriod.thisMonth:
-        final start = DateTime(
-          now.year,
-          now.month,
-          1,
-        );
+        final start = DateTime(now.year, now.month, 1);
 
-        final end = DateTime(
-          now.year,
-          now.month + 1,
-          1,
-        );
+        final end = DateTime(now.year, now.month + 1, 1);
 
-        return _DateRange(
-          start: start,
-          end: end,
-        );
+        return _DateRange(start: start, end: end);
 
       case _ItemsSoldPeriod.thisYear:
-        final start = DateTime(
-          now.year,
-          1,
-          1,
-        );
+        final start = DateTime(now.year, 1, 1);
 
-        final end = DateTime(
-          now.year + 1,
-          1,
-          1,
-        );
+        final end = DateTime(now.year + 1, 1, 1);
 
-        return _DateRange(
-          start: start,
-          end: end,
-        );
+        return _DateRange(start: start, end: end);
 
       case _ItemsSoldPeriod.allTime:
-        final start = DateTime(
-          2000,
-          1,
-          1,
-        );
+        final start = DateTime(2000, 1, 1);
 
         final end = DateTime(
           now.year,
           now.month,
           now.day,
-        ).add(
-          const Duration(days: 1),
-        );
+        ).add(const Duration(days: 1));
 
-        return _DateRange(
-          start: start,
-          end: end,
-        );
+        return _DateRange(start: start, end: end);
 
       case _ItemsSoldPeriod.custom:
         final start = _customStartDate;
@@ -214,38 +147,23 @@ class _ItemsSoldReportScreenState
         final end = _customEndDate;
 
         if (start == null || end == null) {
-          final fallbackStart = DateTime(
-            now.year,
-            now.month,
-            now.day,
-          );
+          final fallbackStart = DateTime(now.year, now.month, now.day);
 
           return _DateRange(
             start: fallbackStart,
-            end: fallbackStart.add(
-              const Duration(days: 1),
-            ),
+            end: fallbackStart.add(const Duration(days: 1)),
           );
         }
 
-        final normalizedStart = DateTime(
-          start.year,
-          start.month,
-          start.day,
-        );
+        final normalizedStart = DateTime(start.year, start.month, start.day);
 
         final normalizedEnd = DateTime(
           end.year,
           end.month,
           end.day,
-        ).add(
-          const Duration(days: 1),
-        );
+        ).add(const Duration(days: 1));
 
-        return _DateRange(
-          start: normalizedStart,
-          end: normalizedEnd,
-        );
+        return _DateRange(start: normalizedStart, end: normalizedEnd);
     }
   }
 
@@ -279,9 +197,7 @@ class _ItemsSoldReportScreenState
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: AppColors.products.withValues(
-                alpha: 0.10,
-              ),
+              color: AppColors.products.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(
@@ -293,10 +209,7 @@ class _ItemsSoldReportScreenState
 
           const SizedBox(width: 12),
 
-          const Text(
-            "Items Sold Report",
-            style: AppTextStyles.title,
-          ),
+          const Text("Items Sold Report", style: AppTextStyles.title),
         ],
       ),
       actions: [
@@ -304,9 +217,7 @@ class _ItemsSoldReportScreenState
           padding: const EdgeInsets.only(right: 16),
           child: IconButton(
             tooltip: "Refresh",
-            onPressed: _isLoading
-                ? null
-                : _loadReport,
+            onPressed: _isLoading ? null : _loadReport,
             icon: const Icon(
               Icons.refresh_rounded,
               color: AppColors.textSecondary,
@@ -316,10 +227,7 @@ class _ItemsSoldReportScreenState
       ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
-        child: Container(
-          height: 1,
-          color: AppColors.divider,
-        ),
+        child: Container(height: 1, color: AppColors.divider),
       ),
     );
   }
@@ -334,40 +242,27 @@ class _ItemsSoldReportScreenState
     }
 
     if (_error != null) {
-      return _ItemsSoldErrorState(
-        error: _error!,
-        onRetry: _loadReport,
-      );
+      return _ItemsSoldErrorState(error: _error!, onRetry: _loadReport);
     }
 
     return RefreshIndicator(
       color: AppColors.primary,
       onRefresh: _loadReport,
       child: LayoutBuilder(
-        builder: (
-          context,
-          constraints,
-        ) {
-          final isDesktop =
-              constraints.maxWidth >= 1000;
+        builder: (context, constraints) {
+          final isDesktop = constraints.maxWidth >= 1000;
 
           return SingleChildScrollView(
-            physics:
-                const AlwaysScrollableScrollPhysics(),
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: EdgeInsets.symmetric(
-              horizontal:
-                  isDesktop ? 32 : 16,
+              horizontal: isDesktop ? 32 : 16,
               vertical: 24,
             ),
             child: Center(
               child: ConstrainedBox(
-                constraints:
-                    const BoxConstraints(
-                  maxWidth: 1400,
-                ),
+                constraints: const BoxConstraints(maxWidth: 1400),
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildPageHeader(),
 
@@ -404,20 +299,15 @@ class _ItemsSoldReportScreenState
 
   Widget _buildPageHeader() {
     return const Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          "Sales volume performance",
-          style: AppTextStyles.heading,
-        ),
+        Text("Sales volume performance", style: AppTextStyles.heading),
 
         SizedBox(height: 6),
 
         Text(
           "View the total number of items sold during the selected period.",
-          style:
-              AppTextStyles.bodySecondary,
+          style: AppTextStyles.bodySecondary,
         ),
 
         SizedBox(height: 10),
@@ -432,10 +322,7 @@ class _ItemsSoldReportScreenState
 
             SizedBox(width: 6),
 
-            Text(
-              "Units sold",
-              style: AppTextStyles.small,
-            ),
+            Text("Units sold", style: AppTextStyles.small),
           ],
         ),
       ],
@@ -452,40 +339,27 @@ class _ItemsSoldReportScreenState
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius:
-            BorderRadius.circular(14),
-        border: Border.all(
-          color: AppColors.border,
-        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
       ),
       child: LayoutBuilder(
-        builder: (
-          context,
-          constraints,
-        ) {
-          final compact =
-              constraints.maxWidth < 700;
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 700;
 
           if (compact) {
             return Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildPeriodLabel(),
 
                 const SizedBox(height: 12),
 
-                _buildPeriodDropdown(
-                  fullWidth: true,
-                ),
+                _buildPeriodDropdown(fullWidth: true),
 
-                if (_selectedPeriod ==
-                    _ItemsSoldPeriod.custom) ...[
+                if (_selectedPeriod == _ItemsSoldPeriod.custom) ...[
                   const SizedBox(height: 12),
 
-                  _buildCustomDateButton(
-                    fullWidth: true,
-                  ),
+                  _buildCustomDateButton(fullWidth: true),
                 ],
               ],
             );
@@ -493,17 +367,13 @@ class _ItemsSoldReportScreenState
 
           return Row(
             children: [
-              Expanded(
-                child:
-                    _buildPeriodLabel(),
-              ),
+              Expanded(child: _buildPeriodLabel()),
 
               const SizedBox(width: 20),
 
               _buildPeriodDropdown(),
 
-              if (_selectedPeriod ==
-                  _ItemsSoldPeriod.custom) ...[
+              if (_selectedPeriod == _ItemsSoldPeriod.custom) ...[
                 const SizedBox(width: 12),
 
                 _buildCustomDateButton(),
@@ -517,111 +387,66 @@ class _ItemsSoldReportScreenState
 
   Widget _buildPeriodLabel() {
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "Sales period",
-          style: AppTextStyles.title,
-        ),
+        const Text("Sales period", style: AppTextStyles.title),
 
         const SizedBox(height: 4),
 
-        Text(
-          _periodDescription(),
-          style:
-              AppTextStyles.bodySecondary,
-        ),
+        Text(_periodDescription(), style: AppTextStyles.bodySecondary),
       ],
     );
   }
 
-  Widget _buildPeriodDropdown({
-    bool fullWidth = false,
-  }) {
+  Widget _buildPeriodDropdown({bool fullWidth = false}) {
     return SizedBox(
       width: fullWidth ? double.infinity : 220,
-      child: DropdownButtonFormField<
-          _ItemsSoldPeriod>(
-        value: _selectedPeriod,
+      child: DropdownButtonFormField<_ItemsSoldPeriod>(
+        initialValue: _selectedPeriod,
         decoration: InputDecoration(
           labelText: "Period",
           filled: true,
-          fillColor:
-              AppColors.surfaceSoft,
+          fillColor: AppColors.surfaceSoft,
           border: OutlineInputBorder(
-            borderRadius:
-                BorderRadius.circular(10),
-            borderSide:
-                const BorderSide(
-              color: AppColors.border,
-            ),
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: AppColors.border),
           ),
-          enabledBorder:
-              OutlineInputBorder(
-            borderRadius:
-                BorderRadius.circular(10),
-            borderSide:
-                const BorderSide(
-              color: AppColors.border,
-            ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: AppColors.border),
           ),
         ),
         items: const [
           DropdownMenuItem(
-            value:
-                _ItemsSoldPeriod.allTime,
-            child: Text(
-              "All Time",
-            ),
+            value: _ItemsSoldPeriod.allTime,
+            child: Text("All Time"),
+          ),
+
+          DropdownMenuItem(value: _ItemsSoldPeriod.today, child: Text("Today")),
+
+          DropdownMenuItem(
+            value: _ItemsSoldPeriod.yesterday,
+            child: Text("Yesterday"),
           ),
 
           DropdownMenuItem(
-            value:
-                _ItemsSoldPeriod.today,
-            child: Text(
-              "Today",
-            ),
+            value: _ItemsSoldPeriod.thisWeek,
+            child: Text("This Week"),
           ),
 
           DropdownMenuItem(
-            value:
-                _ItemsSoldPeriod.yesterday,
-            child: Text(
-              "Yesterday",
-            ),
+            value: _ItemsSoldPeriod.thisMonth,
+            child: Text("This Month"),
           ),
 
           DropdownMenuItem(
-            value:
-                _ItemsSoldPeriod.thisWeek,
-            child: Text(
-              "This Week",
-            ),
+            value: _ItemsSoldPeriod.thisYear,
+            child: Text("This Year"),
           ),
 
           DropdownMenuItem(
-            value:
-                _ItemsSoldPeriod.thisMonth,
-            child: Text(
-              "This Month",
-            ),
-          ),
-
-          DropdownMenuItem(
-            value:
-                _ItemsSoldPeriod.thisYear,
-            child: Text(
-              "This Year",
-            ),
-          ),
-
-          DropdownMenuItem(
-            value:
-                _ItemsSoldPeriod.custom,
-            child: Text(
-              "Custom Range",
-            ),
+            value: _ItemsSoldPeriod.custom,
+            child: Text("Custom Range"),
           ),
         ],
         onChanged: (value) {
@@ -631,8 +456,7 @@ class _ItemsSoldReportScreenState
             _selectedPeriod = value;
           });
 
-          if (value ==
-              _ItemsSoldPeriod.custom) {
+          if (value == _ItemsSoldPeriod.custom) {
             _selectCustomDateRange();
           } else {
             _loadReport();
@@ -646,93 +470,44 @@ class _ItemsSoldReportScreenState
   // CUSTOM DATE
   // ============================================================
 
-  Widget _buildCustomDateButton({
-    bool fullWidth = false,
-  }) {
+  Widget _buildCustomDateButton({bool fullWidth = false}) {
     return SizedBox(
-      width:
-          fullWidth ? double.infinity : 220,
+      width: fullWidth ? double.infinity : 220,
       child: OutlinedButton.icon(
-        onPressed:
-            _selectCustomDateRange,
+        onPressed: _selectCustomDateRange,
         style: OutlinedButton.styleFrom(
-          foregroundColor:
-              AppColors.primary,
-          padding:
-              const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 15,
-          ),
-          side: const BorderSide(
-            color: AppColors.border,
-          ),
-          shape:
-              RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(10),
+          foregroundColor: AppColors.primary,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+          side: const BorderSide(color: AppColors.border),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
           ),
         ),
-        icon: const Icon(
-          Icons.calendar_month_outlined,
-          size: 18,
-        ),
-        label: Text(
-          _customRangeLabel(),
-          overflow:
-              TextOverflow.ellipsis,
-        ),
+        icon: const Icon(Icons.calendar_month_outlined, size: 18),
+        label: Text(_customRangeLabel(), overflow: TextOverflow.ellipsis),
       ),
     );
   }
 
-  Future<void>
-      _selectCustomDateRange() async {
+  Future<void> _selectCustomDateRange() async {
     final now = DateTime.now();
 
     final initialStart =
-        _customStartDate ??
-            DateTime(
-              now.year,
-              now.month,
-              now.day,
-            );
+        _customStartDate ?? DateTime(now.year, now.month, now.day);
 
-    final initialEnd =
-        _customEndDate ??
-            initialStart;
+    final initialEnd = _customEndDate ?? initialStart;
 
-    final picked =
-        await showDateRangePicker(
+    final picked = await showDateRangePicker(
       context: context,
-      firstDate: DateTime(
-        2000,
-        1,
-        1,
-      ),
-      lastDate: DateTime(
-        now.year,
-        now.month,
-        now.day,
-      ),
-      initialDateRange:
-          DateTimeRange(
-        start: initialStart,
-        end: initialEnd,
-      ),
-      builder: (
-        context,
-        child,
-      ) {
+      firstDate: DateTime(2000, 1, 1),
+      lastDate: DateTime(now.year, now.month, now.day),
+      initialDateRange: DateTimeRange(start: initialStart, end: initialEnd),
+      builder: (context, child) {
         return Theme(
-          data: Theme.of(context)
-              .copyWith(
-            colorScheme:
-                Theme.of(context)
-                    .colorScheme
-                    .copyWith(
-                      primary:
-                          AppColors.primary,
-                    ),
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(
+              context,
+            ).colorScheme.copyWith(primary: AppColors.primary),
           ),
           child: child!,
         );
@@ -740,11 +515,9 @@ class _ItemsSoldReportScreenState
     );
 
     if (picked == null) {
-      if (_customStartDate == null ||
-          _customEndDate == null) {
+      if (_customStartDate == null || _customEndDate == null) {
         setState(() {
-          _selectedPeriod =
-              _ItemsSoldPeriod.allTime;
+          _selectedPeriod = _ItemsSoldPeriod.allTime;
         });
 
         _loadReport();
@@ -754,11 +527,9 @@ class _ItemsSoldReportScreenState
     }
 
     setState(() {
-      _customStartDate =
-          picked.start;
+      _customStartDate = picked.start;
 
-      _customEndDate =
-          picked.end;
+      _customEndDate = picked.end;
     });
 
     await _loadReport();
@@ -771,43 +542,30 @@ class _ItemsSoldReportScreenState
   Widget _buildItemsSoldCard() {
     return Container(
       width: double.infinity,
-      padding:
-          const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius:
-            BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.border,
-        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
         boxShadow: const [
           BoxShadow(
-            color:
-                Color(0x08000000),
+            color: Color(0x08000000),
             blurRadius: 8,
-            offset:
-                Offset(0, 3),
+            offset: Offset(0, 3),
           ),
         ],
       ),
       child: LayoutBuilder(
-        builder: (
-          context,
-          constraints,
-        ) {
-          final compact =
-              constraints.maxWidth < 600;
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 600;
 
           if (compact) {
             return Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildItemsSoldIcon(),
 
-                const SizedBox(
-                  height: 16,
-                ),
+                const SizedBox(height: 16),
 
                 _buildItemsSoldContent(),
               ],
@@ -818,18 +576,11 @@ class _ItemsSoldReportScreenState
             children: [
               _buildItemsSoldIcon(),
 
-              const SizedBox(
-                width: 16,
-              ),
+              const SizedBox(width: 16),
 
-              Expanded(
-                child:
-                    _buildItemsSoldContent(),
-              ),
+              Expanded(child: _buildItemsSoldContent()),
 
-              const SizedBox(
-                width: 20,
-              ),
+              const SizedBox(width: 20),
 
               _buildStatusBadge(),
             ],
@@ -844,12 +595,8 @@ class _ItemsSoldReportScreenState
       width: 58,
       height: 58,
       decoration: BoxDecoration(
-        color:
-            AppColors.products.withValues(
-          alpha: 0.10,
-        ),
-        borderRadius:
-            BorderRadius.circular(14),
+        color: AppColors.products.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: const Icon(
         Icons.shopping_cart_outlined,
@@ -861,81 +608,50 @@ class _ItemsSoldReportScreenState
 
   Widget _buildItemsSoldContent() {
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "Items Sold",
-          style:
-              AppTextStyles.bodySecondary,
-        ),
+        const Text("Items Sold", style: AppTextStyles.bodySecondary),
 
         const SizedBox(height: 6),
 
         Text(
           _formatNumber(_itemsSold),
-          style:
-              AppTextStyles.price.copyWith(
+          style: AppTextStyles.price.copyWith(
             fontSize: 30,
-            color:
-                AppColors.textPrimary,
+            color: AppColors.textPrimary,
           ),
-          overflow:
-              TextOverflow.ellipsis,
+          overflow: TextOverflow.ellipsis,
         ),
 
         const SizedBox(height: 5),
 
-        Text(
-          _periodDescription(),
-          style: AppTextStyles.small,
-        ),
+        Text(_periodDescription(), style: AppTextStyles.small),
       ],
     );
   }
 
   Widget _buildStatusBadge() {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 11,
-        vertical: 7,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
       decoration: BoxDecoration(
-        color:
-            AppColors.successLight,
-        borderRadius:
-            BorderRadius.circular(8),
-        border: Border.all(
-          color:
-              AppColors.success.withValues(
-            alpha: 0.20,
-          ),
-        ),
+        color: AppColors.successLight,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.success.withValues(alpha: 0.20)),
       ),
       child: const Row(
-        mainAxisSize:
-            MainAxisSize.min,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.check_circle_outline,
-            size: 15,
-            color:
-                AppColors.success,
-          ),
+          Icon(Icons.check_circle_outline, size: 15, color: AppColors.success),
 
           SizedBox(width: 6),
 
           Text(
             "Sales tracked",
             style: TextStyle(
-              fontFamily:
-                  'Poppins',
+              fontFamily: 'Poppins',
               fontSize: 11,
-              fontWeight:
-                  FontWeight.w600,
-              color:
-                  AppColors.success,
+              fontWeight: FontWeight.w600,
+              color: AppColors.success,
             ),
           ),
         ],
@@ -948,81 +664,48 @@ class _ItemsSoldReportScreenState
   // ============================================================
 
   Widget _buildInformationSection() {
-    final range =
-        _getDateRange();
+    final range = _getDateRange();
 
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "Sales details",
-          style: AppTextStyles.title,
-        ),
+        const Text("Sales details", style: AppTextStyles.title),
 
         const SizedBox(height: 14),
 
         Container(
           width: double.infinity,
-          padding:
-              const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius:
-                BorderRadius.circular(14),
-            border: Border.all(
-              color: AppColors.border,
-            ),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border),
           ),
           child: Column(
             children: [
               _informationRow(
-                icon:
-                    Icons.shopping_cart_outlined,
-                title:
-                    "Items sold",
-                value:
-                    _formatNumber(
-                  _itemsSold,
-                ),
-                color:
-                    AppColors.products,
+                icon: Icons.shopping_cart_outlined,
+                title: "Items sold",
+                value: _formatNumber(_itemsSold),
+                color: AppColors.products,
               ),
 
-              const Divider(
-                height: 24,
-                color:
-                    AppColors.divider,
-              ),
+              const Divider(height: 24, color: AppColors.divider),
 
               _informationRow(
-                icon:
-                    Icons.calendar_today_outlined,
-                title:
-                    "Period",
-                value:
-                    _periodLabel(),
-                color:
-                    AppColors.info,
+                icon: Icons.calendar_today_outlined,
+                title: "Period",
+                value: _periodLabel(),
+                color: AppColors.info,
               ),
 
-              const Divider(
-                height: 24,
-                color:
-                    AppColors.divider,
-              ),
+              const Divider(height: 24, color: AppColors.divider),
 
               _informationRow(
-                icon:
-                    Icons.date_range_outlined,
-                title:
-                    "Date range",
-                value:
-                    _formatDateRange(
-                  range,
-                ),
-                color:
-                    AppColors.inventory,
+                icon: Icons.date_range_outlined,
+                title: "Date range",
+                value: _formatDateRange(range),
+                color: AppColors.inventory,
               ),
             ],
           ),
@@ -1042,55 +725,27 @@ class _ItemsSoldReportScreenState
         Container(
           width: 38,
           height: 38,
-          decoration:
-              BoxDecoration(
-            color:
-                color.withValues(
-              alpha: 0.10,
-            ),
-            borderRadius:
-                BorderRadius.circular(
-              9,
-            ),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(9),
           ),
-          child: Icon(
-            icon,
-            color: color,
-            size: 19,
-          ),
+          child: Icon(icon, color: color, size: 19),
         ),
 
-        const SizedBox(
-          width: 12,
-        ),
+        const SizedBox(width: 12),
 
-        Expanded(
-          child: Text(
-            title,
-            style:
-                AppTextStyles
-                    .bodySecondary,
-          ),
-        ),
+        Expanded(child: Text(title, style: AppTextStyles.bodySecondary)),
 
-        const SizedBox(
-          width: 12,
-        ),
+        const SizedBox(width: 12),
 
         Flexible(
           child: Text(
             value,
-            style:
-                AppTextStyles
-                    .bodySecondary
-                    .copyWith(
-              color:
-                  AppColors.textPrimary,
-              fontWeight:
-                  FontWeight.w600,
+            style: AppTextStyles.bodySecondary.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w600,
             ),
-            textAlign:
-                TextAlign.right,
+            textAlign: TextAlign.right,
           ),
         ),
       ],
@@ -1103,50 +758,33 @@ class _ItemsSoldReportScreenState
 
   Widget _buildExportSection() {
     return Container(
-      padding:
-          const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient:
-            const LinearGradient(
-          colors: [
-            AppColors.primary,
-            AppColors.primaryDark,
-          ],
-          begin:
-              Alignment.topLeft,
-          end:
-              Alignment.bottomRight,
+        gradient: const LinearGradient(
+          colors: [AppColors.primary, AppColors.primaryDark],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        borderRadius:
-            BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: const [
           BoxShadow(
-            color:
-                Color(0x18000000),
+            color: Color(0x18000000),
             blurRadius: 10,
-            offset:
-                Offset(0, 4),
+            offset: Offset(0, 4),
           ),
         ],
       ),
       child: LayoutBuilder(
-        builder: (
-          context,
-          constraints,
-        ) {
-          final compact =
-              constraints.maxWidth < 650;
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 650;
 
           if (compact) {
             return Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _exportContent(),
 
-                const SizedBox(
-                  height: 16,
-                ),
+                const SizedBox(height: 16),
 
                 _exportButton(),
               ],
@@ -1155,14 +793,9 @@ class _ItemsSoldReportScreenState
 
           return Row(
             children: [
-              Expanded(
-                child:
-                    _exportContent(),
-              ),
+              Expanded(child: _exportContent()),
 
-              const SizedBox(
-                width: 20,
-              ),
+              const SizedBox(width: 20),
 
               _exportButton(),
             ],
@@ -1174,32 +807,23 @@ class _ItemsSoldReportScreenState
 
   Widget _exportContent() {
     return const Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(
-          Icons.picture_as_pdf_outlined,
-          color: Colors.white,
-          size: 30,
-        ),
+        Icon(Icons.picture_as_pdf_outlined, color: Colors.white, size: 30),
 
         SizedBox(width: 14),
 
         Expanded(
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 "Export items sold",
                 style: TextStyle(
-                  fontFamily:
-                      'Poppins',
-                  color:
-                      Colors.white,
+                  fontFamily: 'Poppins',
+                  color: Colors.white,
                   fontSize: 16,
-                  fontWeight:
-                      FontWeight.w700,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
 
@@ -1208,10 +832,8 @@ class _ItemsSoldReportScreenState
               Text(
                 "Generate a PDF containing the selected sales volume period.",
                 style: TextStyle(
-                  fontFamily:
-                      'Poppins',
-                  color:
-                      Colors.white70,
+                  fontFamily: 'Poppins',
+                  color: Colors.white70,
                   fontSize: 12,
                 ),
               ),
@@ -1224,36 +846,17 @@ class _ItemsSoldReportScreenState
 
   Widget _exportButton() {
     return ElevatedButton.icon(
-      style:
-          ElevatedButton.styleFrom(
-        backgroundColor:
-            Colors.white,
-        foregroundColor:
-            AppColors.primary,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.white,
+        foregroundColor: AppColors.primary,
         elevation: 0,
-        padding:
-            const EdgeInsets.symmetric(
-          horizontal: 18,
-          vertical: 13,
-        ),
-        shape:
-            RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.circular(10),
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
-      icon: const Icon(
-        Icons.download_outlined,
-        size: 19,
-      ),
+      icon: const Icon(Icons.download_outlined, size: 19),
       label: const Text(
         "Export PDF",
-        style: TextStyle(
-          fontFamily:
-              'Poppins',
-          fontWeight:
-              FontWeight.w600,
-        ),
+        style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600),
       ),
       onPressed: _exportPdf,
     );
@@ -1265,35 +868,16 @@ class _ItemsSoldReportScreenState
 
   Future<void> _exportPdf() async {
     try {
-      final file =
-          await PdfReport.generateReport(
-        title:
-            "Items Sold Report",
+      final file = await PdfReport.generateReport(
+        title: "Items Sold Report",
         sections: [
           {
-            "title":
-                "Items Sold Summary",
-            "headers": [
-              "Metric",
-              "Value",
-            ],
+            "title": "Items Sold Summary",
+            "headers": ["Metric", "Value"],
             "rows": [
-              [
-                "Period",
-                _periodLabel(),
-              ],
-              [
-                "Date Range",
-                _formatDateRange(
-                  _getDateRange(),
-                ),
-              ],
-              [
-                "Items Sold",
-                _formatNumber(
-                  _itemsSold,
-                ),
-              ],
+              ["Period", _periodLabel()],
+              ["Date Range", _formatDateRange(_getDateRange())],
+              ["Items Sold", _formatNumber(_itemsSold)],
             ],
           },
         ],
@@ -1301,44 +885,26 @@ class _ItemsSoldReportScreenState
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          behavior:
-              SnackBarBehavior.floating,
-          backgroundColor:
-              AppColors.success,
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.success,
           content: Text(
             "PDF saved at ${file.path}",
-            style:
-                const TextStyle(
-              fontFamily:
-                  'Poppins',
-              color:
-                  Colors.white,
-            ),
+            style: const TextStyle(fontFamily: 'Poppins', color: Colors.white),
           ),
         ),
       );
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          behavior:
-              SnackBarBehavior.floating,
-          backgroundColor:
-              AppColors.danger,
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.danger,
           content: Text(
             "Unable to generate PDF: $e",
-            style:
-                const TextStyle(
-              fontFamily:
-                  'Poppins',
-              color:
-                  Colors.white,
-            ),
+            style: const TextStyle(fontFamily: 'Poppins', color: Colors.white),
           ),
         ),
       );
@@ -1400,8 +966,7 @@ class _ItemsSoldReportScreenState
   }
 
   String _customRangeLabel() {
-    if (_customStartDate == null ||
-        _customEndDate == null) {
+    if (_customStartDate == null || _customEndDate == null) {
       return "Select dates";
     }
 
@@ -1410,21 +975,14 @@ class _ItemsSoldReportScreenState
         "${_formatDate(_customEndDate!)}";
   }
 
-  String _formatDateRange(
-    _DateRange range,
-  ) {
-    if (_selectedPeriod ==
-        _ItemsSoldPeriod.allTime) {
+  String _formatDateRange(_DateRange range) {
+    if (_selectedPeriod == _ItemsSoldPeriod.allTime) {
       return "All recorded sales";
     }
 
     return "${_formatDate(range.start)}"
         " – "
-        "${_formatDate(
-          range.end.subtract(
-            const Duration(days: 1),
-          ),
-        )}";
+        "${_formatDate(range.end.subtract(const Duration(days: 1)))}";
   }
 
   String _formatDate(DateTime date) {
@@ -1438,14 +996,8 @@ class _ItemsSoldReportScreenState
 
     final buffer = StringBuffer();
 
-    for (
-      int i = 0;
-      i < string.length;
-      i++
-    ) {
-      if (
-          i > 0 &&
-          (string.length - i) % 3 == 0) {
+    for (int i = 0; i < string.length; i++) {
+      if (i > 0 && (string.length - i) % 3 == 0) {
         buffer.write(",");
       }
 
@@ -1479,45 +1031,29 @@ class _DateRange {
 
   final DateTime end;
 
-  const _DateRange({
-    required this.start,
-    required this.end,
-  });
+  const _DateRange({required this.start, required this.end});
 }
 
 // ================================================================
 // LOADING
 // ================================================================
 
-class _ItemsSoldLoadingState
-    extends StatelessWidget {
+class _ItemsSoldLoadingState extends StatelessWidget {
   const _ItemsSoldLoadingState();
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return const Center(
       child: Padding(
-        padding:
-            EdgeInsets.all(40),
+        padding: EdgeInsets.all(40),
         child: Column(
-          mainAxisSize:
-              MainAxisSize.min,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(
-              color:
-                  AppColors.primary,
-            ),
+            CircularProgressIndicator(color: AppColors.primary),
 
             SizedBox(height: 16),
 
-            Text(
-              "Loading items sold...",
-              style:
-                  AppTextStyles
-                      .bodySecondary,
-            ),
+            Text("Loading items sold...", style: AppTextStyles.bodySecondary),
           ],
         ),
       ),
@@ -1529,159 +1065,90 @@ class _ItemsSoldLoadingState
 // ERROR
 // ================================================================
 
-class _ItemsSoldErrorState
-    extends StatelessWidget {
+class _ItemsSoldErrorState extends StatelessWidget {
   final String error;
 
   final VoidCallback onRetry;
 
-  const _ItemsSoldErrorState({
-    required this.error,
-    required this.onRetry,
-  });
+  const _ItemsSoldErrorState({required this.error, required this.onRetry});
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return Center(
-      child:
-          SingleChildScrollView(
-        padding:
-            const EdgeInsets.all(32),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(32),
         child: Container(
-          constraints:
-              const BoxConstraints(
-            maxWidth: 600,
-          ),
-          padding:
-              const EdgeInsets.all(28),
-          decoration:
-              BoxDecoration(
-            color:
-                AppColors.surface,
-            borderRadius:
-                BorderRadius.circular(
-              16,
-            ),
-            border: Border.all(
-              color:
-                  AppColors.border,
-            ),
+          constraints: const BoxConstraints(maxWidth: 600),
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
           ),
           child: Column(
-            mainAxisSize:
-                MainAxisSize.min,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 width: 56,
                 height: 56,
-                decoration:
-                    BoxDecoration(
-                  color:
-                      AppColors
-                          .dangerLight,
-                  borderRadius:
-                      BorderRadius.circular(
-                    14,
-                  ),
+                decoration: BoxDecoration(
+                  color: AppColors.dangerLight,
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(
                   Icons.error_outline,
-                  color:
-                      AppColors.danger,
+                  color: AppColors.danger,
                   size: 30,
                 ),
               ),
 
-              const SizedBox(
-                height: 16,
-              ),
+              const SizedBox(height: 16),
 
               const Text(
                 "Unable to load items sold",
-                style:
-                    AppTextStyles.title,
-                textAlign:
-                    TextAlign.center,
+                style: AppTextStyles.title,
+                textAlign: TextAlign.center,
               ),
 
-              const SizedBox(
-                height: 10,
-              ),
+              const SizedBox(height: 10),
 
               Container(
                 width: double.infinity,
-                padding:
-                    const EdgeInsets.all(
-                  14,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceSoft,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.border),
                 ),
-                decoration:
-                    BoxDecoration(
-                  color:
-                      AppColors
-                          .surfaceSoft,
-                  borderRadius:
-                      BorderRadius.circular(
-                    10,
-                  ),
-                  border: Border.all(
-                    color:
-                        AppColors.border,
-                  ),
-                ),
-                child:
-                    SelectableText(
+                child: SelectableText(
                   error,
-                  style:
-                      AppTextStyles.small,
-                  textAlign:
-                      TextAlign.left,
+                  style: AppTextStyles.small,
+                  textAlign: TextAlign.left,
                 ),
               ),
 
-              const SizedBox(
-                height: 20,
-              ),
+              const SizedBox(height: 20),
 
               ElevatedButton.icon(
-                onPressed:
-                    onRetry,
-                style:
-                    ElevatedButton.styleFrom(
-                  backgroundColor:
-                      AppColors.primary,
-                  foregroundColor:
-                      Colors.white,
+                onPressed: onRetry,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
                   elevation: 0,
-                  padding:
-                      const EdgeInsets
-                          .symmetric(
+                  padding: const EdgeInsets.symmetric(
                     horizontal: 20,
                     vertical: 13,
                   ),
-                  shape:
-                      RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(
-                      10,
-                    ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                icon:
-                    const Icon(
-                  Icons.refresh,
-                  size: 18,
-                ),
-                label:
-                    const Text(
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text(
                   "Try Again",
-                  style:
-                      TextStyle(
-                    fontFamily:
-                        'Poppins',
-                    fontWeight:
-                        FontWeight.w600,
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -1692,4 +1159,3 @@ class _ItemsSoldErrorState
     );
   }
 }
-

@@ -13,6 +13,7 @@ import '../../database/daos/supplier_payment_dao.dart';
 import '../../features/suppliers/supplier_payment_allocation_screen.dart';
 import 'supplier_delivery_screen.dart';
 import 'supplier_statement_screen.dart';
+import 'stock_adjustment_screen.dart';
 
 class SupplierPaymentScreen extends StatefulWidget {
   final Supplier supplier;
@@ -181,6 +182,9 @@ class _SupplierPaymentScreenState extends State<SupplierPaymentScreen> {
                               const SizedBox(height: AppSpacing.xl),
 
                               _buildStatementButton(isTablet),
+
+                              const SizedBox(height: AppSpacing.xxl),
+
 
                               const SizedBox(height: AppSpacing.xxl),
                             ],
@@ -475,11 +479,22 @@ class _SupplierPaymentScreenState extends State<SupplierPaymentScreen> {
             ),
 
             _actionCard(
-              icon: Icons.payments_outlined,
-              title: 'Payments',
-              subtitle: '${_payments.length} records',
-              onTap: () {
-                _showComingSoon('Supplier payments');
+              icon: Icons.tune_rounded,
+              title: 'Stock Adjustments',
+              subtitle: 'Correct inventory',
+              onTap: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => StockAdjustmentScreen(
+                      supplierId: widget.supplier.id,
+                    ),
+                  ),
+                );
+
+                if (!mounted) return;
+
+                await _loadDashboard();
               },
             ),
 

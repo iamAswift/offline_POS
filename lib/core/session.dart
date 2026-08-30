@@ -125,19 +125,36 @@ class Session {
 
   // ============================================================
   // CLEAR SESSION / LOGOUT
+  // This is the ONE logout method the application should use.
+  //
+  // It:
+  // 1. Removes the persisted login session.
+  // 2. Clears the in-memory session.
+  // 3. Prevents the previous user from remaining logged in
   // ============================================================
 
-  static Future<void> clearSession() async {
+  static Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
 
     await prefs.remove('userId');
     await prefs.remove('userLoginId');
     await prefs.remove('userEmail');
     await prefs.remove('userRole');
-
+    // Clear in-memory session
     currentUserId = null;
     currentUserLoginId = null;
     currentUserEmail = null;
     currentUserRole = null;
+  }
+
+  // ============================================================
+  // BACKWARDS COMPATIBILITY
+  //
+  // Existing screens may still call clearSession().
+  // Keep it so we don't break existing code.
+  // ============================================================
+
+  static Future<void> clearSession() async {
+    await logout();
   }
 }

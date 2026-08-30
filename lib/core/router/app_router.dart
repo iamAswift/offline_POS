@@ -6,7 +6,7 @@ import 'package:supermarket_inventory/database/app_database.dart';
 
 import 'package:supermarket_inventory/features/attendance/attendance_screen.dart';
 import 'package:supermarket_inventory/features/stocks/receive_stock_screen.dart';
-import 'package:supermarket_inventory/features/stocks/stock_adjustment_screen.dart';
+import 'package:supermarket_inventory/features/suppliers/stock_adjustment_screen.dart';
 
 import '../../features/users/login_screen.dart';
 import '../../features/users/user_profile_screen.dart';
