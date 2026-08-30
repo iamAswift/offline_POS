@@ -98,7 +98,6 @@ class PaymentSelector extends StatelessWidget {
       barrierColor: Colors.black.withValues(alpha: 0.35),
       builder: (sheetContext) {
         final screenWidth = MediaQuery.of(sheetContext).size.width;
-
         final isTablet = screenWidth >= 600;
 
         return SafeArea(
@@ -111,25 +110,24 @@ class PaymentSelector extends StatelessWidget {
             child: Center(
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  maxWidth: isTablet ? 520 : 430,
+                  maxWidth: isTablet ? 500 : 410,
                 ),
                 child: Material(
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(
-                    isTablet ? 20 : 18,
+                    isTablet ? AppRadius.lg : AppRadius.md,
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: SingleChildScrollView(
                     padding: EdgeInsets.fromLTRB(
-                      isTablet ? 18 : 16,
-                      10,
-                      isTablet ? 18 : 16,
-                      16,
+                      isTablet ? AppSpacing.md : AppSpacing.sm,
+                      AppSpacing.xs,
+                      isTablet ? AppSpacing.md : AppSpacing.sm,
+                      AppSpacing.sm,
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // ==================================================
                         // HANDLE
@@ -137,17 +135,18 @@ class PaymentSelector extends StatelessWidget {
 
                         Center(
                           child: Container(
-                            width: 34,
-                            height: 4,
+                            width: 30,
+                            height: 3,
                             decoration: BoxDecoration(
                               color: AppColors.border,
-                              borderRadius:
-                                  BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.round,
+                              ),
                             ),
                           ),
                         ),
 
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
 
                         // ==================================================
                         // HEADER
@@ -156,23 +155,24 @@ class PaymentSelector extends StatelessWidget {
                         Row(
                           children: [
                             Container(
-                              width: 38,
-                              height: 38,
+                              width: 34,
+                              height: 34,
                               decoration: BoxDecoration(
-                                color: _paymentColor(method)
-                                    .withValues(alpha: 0.10),
-                                borderRadius:
-                                    BorderRadius.circular(10),
+                                color: _paymentColor(method).withValues(
+                                  alpha: 0.10,
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.sm,
+                                ),
                               ),
                               child: Icon(
                                 _paymentIcon(method),
-                                color:
-                                    _paymentColor(method),
-                                size: 20,
+                                color: _paymentColor(method),
+                                size: 18,
                               ),
                             ),
 
-                            const SizedBox(width: 10),
+                            const SizedBox(width: 8),
 
                             Expanded(
                               child: Column(
@@ -181,20 +181,16 @@ class PaymentSelector extends StatelessWidget {
                                 children: [
                                   Text(
                                     'Complete Payment',
-                                    style: AppTextStyles.title
-                                        .copyWith(
-                                      fontSize: 17,
-                                      fontWeight:
-                                          FontWeight.w800,
+                                    style: AppTextStyles.title.copyWith(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
                                     ),
                                   ),
                                   Text(
                                     _paymentLabel(method),
-                                    style: AppTextStyles.small
-                                        .copyWith(
-                                      color: AppColors
-                                          .textSecondary,
-                                      fontSize: 11,
+                                    style: AppTextStyles.small.copyWith(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 10,
                                     ),
                                   ),
                                 ],
@@ -202,28 +198,24 @@ class PaymentSelector extends StatelessWidget {
                             ),
 
                             IconButton(
-                              visualDensity:
-                                  VisualDensity.compact,
+                              visualDensity: VisualDensity.compact,
                               padding: EdgeInsets.zero,
-                              constraints:
-                                  const BoxConstraints(
-                                minWidth: 34,
-                                minHeight: 34,
+                              constraints: const BoxConstraints(
+                                minWidth: 30,
+                                minHeight: 30,
                               ),
                               onPressed: () {
-                                Navigator.pop(
-                                  sheetContext,
-                                );
+                                Navigator.pop(sheetContext);
                               },
                               icon: const Icon(
                                 Icons.close,
-                                size: 20,
+                                size: 18,
                               ),
                             ),
                           ],
                         ),
 
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 9),
 
                         // ==================================================
                         // TOTAL
@@ -231,7 +223,7 @@ class PaymentSelector extends StatelessWidget {
 
                         _buildTotalCard(method),
 
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 9),
 
                         // ==================================================
                         // CASH
@@ -246,8 +238,7 @@ class PaymentSelector extends StatelessWidget {
                                 label: 'Cash Received',
                                 hint: 'Enter amount received',
                                 controller: cashController,
-                                icon:
-                                    Icons.payments_outlined,
+                                icon: Icons.payments_outlined,
                                 color: AppColors.success,
                                 onChanged: (value) {
                                   cashEntered.value =
@@ -258,46 +249,33 @@ class PaymentSelector extends StatelessWidget {
                                 },
                               ),
 
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 6),
 
                               ValueListenableBuilder<double>(
-                                valueListenable:
-                                    cashEntered,
+                                valueListenable: cashEntered,
                                 builder: (
                                   context,
                                   amount,
                                   _,
                                 ) {
-                                  final due =
-                                      total.toDouble();
+                                  final due = total.toDouble();
+                                  final difference = amount - due;
 
-                                  final difference =
-                                      amount - due;
-
-                                  if (amount > 0 &&
-                                      amount < due) {
+                                  if (amount > 0 && amount < due) {
                                     return _buildPaymentStatus(
-                                      label:
-                                          'AMOUNT REMAINING',
-                                      amount:
-                                          due - amount,
-                                      color:
-                                          AppColors.danger,
-                                      icon: Icons
-                                          .warning_amber_outlined,
+                                      label: 'AMOUNT REMAINING',
+                                      amount: due - amount,
+                                      color: AppColors.danger,
+                                      icon: Icons.warning_amber_outlined,
                                     );
                                   }
 
-                                  if ((amount - due).abs() <=
-                                      0.01) {
+                                  if ((amount - due).abs() <= 0.01) {
                                     return _buildPaymentStatus(
-                                      label:
-                                          'EXACT PAYMENT',
+                                      label: 'EXACT PAYMENT',
                                       amount: due,
-                                      color:
-                                          AppColors.success,
-                                      icon: Icons
-                                          .check_circle_outline,
+                                      color: AppColors.success,
+                                      icon: Icons.check_circle_outline,
                                     );
                                   }
 
@@ -305,15 +283,12 @@ class PaymentSelector extends StatelessWidget {
                                     return _buildPaymentStatus(
                                       label: 'CHANGE',
                                       amount: difference,
-                                      color:
-                                          AppColors.success,
-                                      icon: Icons
-                                          .payments_outlined,
+                                      color: AppColors.success,
+                                      icon: Icons.payments_outlined,
                                     );
                                   }
 
-                                  return const SizedBox
-                                      .shrink();
+                                  return const SizedBox.shrink();
                                 },
                               ),
                             ],
@@ -328,8 +303,7 @@ class PaymentSelector extends StatelessWidget {
                             label: 'POS Amount',
                             hint: 'Enter POS amount',
                             controller: posController,
-                            icon:
-                                Icons.credit_card_outlined,
+                            icon: Icons.credit_card_outlined,
                             color: AppColors.primary,
                           ),
 
@@ -341,10 +315,8 @@ class PaymentSelector extends StatelessWidget {
                           _buildAmountField(
                             label: 'Transfer Amount',
                             hint: 'Enter transfer amount',
-                            controller:
-                                transferController,
-                            icon: Icons
-                                .account_balance_outlined,
+                            controller: transferController,
+                            icon: Icons.account_balance_outlined,
                             color: AppColors.inventory,
                           ),
 
@@ -359,7 +331,7 @@ class PaymentSelector extends StatelessWidget {
                             transferController,
                           ),
 
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 9),
 
                         // ==================================================
                         // ACTIONS
@@ -369,79 +341,61 @@ class PaymentSelector extends StatelessWidget {
                           children: [
                             Expanded(
                               child: SizedBox(
-                                height: 46,
+                                height: 40,
                                 child: OutlinedButton(
                                   onPressed: () {
-                                    Navigator.pop(
-                                      sheetContext,
-                                    );
+                                    Navigator.pop(sheetContext);
                                   },
-                                  style:
-                                      OutlinedButton.styleFrom(
+                                  style: OutlinedButton.styleFrom(
                                     foregroundColor:
-                                        AppColors
-                                            .textPrimary,
-                                    side:
-                                        const BorderSide(
-                                      color:
-                                          AppColors.border,
+                                        AppColors.textPrimary,
+                                    side: const BorderSide(
+                                      color: AppColors.border,
                                     ),
-                                    shape:
-                                        RoundedRectangleBorder(
-                                      borderRadius:
-                                          BorderRadius
-                                              .circular(
-                                        10,
+                                    padding: EdgeInsets.zero,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(
+                                        AppRadius.sm,
                                       ),
                                     ),
                                   ),
                                   child: const Text(
                                     'Cancel',
                                     style: TextStyle(
-                                      fontWeight:
-                                          FontWeight.w700,
-                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 12,
                                     ),
                                   ),
                                 ),
                               ),
                             ),
 
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 7),
 
                             Expanded(
                               flex: 2,
                               child: SizedBox(
-                                height: 46,
-                                child:
-                                    ElevatedButton.icon(
+                                height: 40,
+                                child: ElevatedButton.icon(
                                   icon: const Icon(
-                                    Icons
-                                        .check_circle_outline,
-                                    size: 18,
+                                    Icons.check_circle_outline,
+                                    size: 17,
                                   ),
                                   label: const Text(
                                     'Complete Sale',
                                     style: TextStyle(
-                                      fontWeight:
-                                          FontWeight.w800,
-                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 12,
                                     ),
                                   ),
-                                  style:
-                                      ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        AppColors
-                                            .success,
-                                    foregroundColor:
-                                        Colors.white,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.success,
+                                    foregroundColor: Colors.white,
                                     elevation: 0,
-                                    shape:
-                                        RoundedRectangleBorder(
-                                      borderRadius:
-                                          BorderRadius
-                                              .circular(
-                                        10,
+                                    padding: EdgeInsets.zero,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(
+                                        AppRadius.sm,
                                       ),
                                     ),
                                   ),
@@ -487,12 +441,12 @@ class PaymentSelector extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 10,
+        horizontal: 10,
+        vertical: 8,
       ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.055),
-        borderRadius: BorderRadius.circular(11),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
         border: Border.all(
           color: color.withValues(alpha: 0.14),
         ),
@@ -500,8 +454,8 @@ class PaymentSelector extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 32,
-            height: 32,
+            width: 29,
+            height: 29,
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.10),
               shape: BoxShape.circle,
@@ -509,30 +463,29 @@ class PaymentSelector extends StatelessWidget {
             child: Icon(
               Icons.receipt_long_outlined,
               color: color,
-              size: 17,
+              size: 15,
             ),
           ),
 
-          const SizedBox(width: 9),
+          const SizedBox(width: 8),
 
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'TOTAL DUE',
                   style: AppTextStyles.small.copyWith(
                     color: AppColors.textSecondary,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 0.7,
-                    fontSize: 9,
+                    letterSpacing: 0.6,
+                    fontSize: 8,
                   ),
                 ),
                 Text(
                   '₦${_formatMoney(total)}',
                   style: AppTextStyles.heading.copyWith(
-                    fontSize: 22,
+                    fontSize: 20,
                     color: color,
                     fontWeight: FontWeight.w800,
                   ),
@@ -558,12 +511,12 @@ class PaymentSelector extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
-        horizontal: 11,
-        vertical: 9,
+        horizontal: 9,
+        vertical: 7,
       ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(9),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
         border: Border.all(
           color: color.withValues(alpha: 0.18),
         ),
@@ -573,26 +526,29 @@ class PaymentSelector extends StatelessWidget {
           Icon(
             icon,
             color: color,
-            size: 17,
+            size: 15,
           ),
-          const SizedBox(width: 8),
+
+          const SizedBox(width: 7),
+
           Expanded(
             child: Text(
               label,
               style: AppTextStyles.small.copyWith(
                 color: color,
                 fontWeight: FontWeight.w700,
-                letterSpacing: 0.5,
-                fontSize: 10,
+                letterSpacing: 0.4,
+                fontSize: 9,
               ),
             ),
           ),
+
           Text(
             '₦${_formatMoney(amount)}',
             style: AppTextStyles.body.copyWith(
               color: color,
               fontWeight: FontWeight.w800,
-              fontSize: 14,
+              fontSize: 13,
             ),
           ),
         ],
@@ -651,70 +607,69 @@ class PaymentSelector extends StatelessWidget {
           'Split Payment',
           style: AppTextStyles.body.copyWith(
             fontWeight: FontWeight.w800,
-            fontSize: 14,
+            fontSize: 13,
           ),
         ),
 
-        const SizedBox(height: 3),
+        const SizedBox(height: 2),
 
         Text(
           'Enter the amount for each method.',
           style: AppTextStyles.small.copyWith(
             color: AppColors.textSecondary,
-            fontSize: 10,
+            fontSize: 9,
           ),
         ),
 
-        const SizedBox(height: 9),
+        const SizedBox(height: 7),
 
-        // Compact 2-column layout.
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: 6,
+          runSpacing: 6,
           children: enabled.map((field) {
             return SizedBox(
               width: enabled.length == 1
                   ? double.infinity
-                  : (enabled.length == 2
-                      ? 220
-                      : 180),
+                  : enabled.length == 2
+                  ? 205
+                  : 165,
               child: field,
             );
           }).toList(),
         ),
 
-        const SizedBox(height: 9),
+        const SizedBox(height: 7),
 
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(
-            horizontal: 10,
-            vertical: 8,
+            horizontal: 8,
+            vertical: 6,
           ),
           decoration: BoxDecoration(
             color: AppColors.warningLight,
-            borderRadius: BorderRadius.circular(9),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
             border: Border.all(
-              color: AppColors.warning.withValues(
-                alpha: 0.15,
-              ),
+              color: AppColors.warning.withValues(alpha: 0.15),
             ),
           ),
           child: Row(
             children: [
               const Icon(
                 Icons.info_outline,
-                size: 16,
+                size: 14,
                 color: AppColors.warning,
               ),
-              const SizedBox(width: 7),
+
+              const SizedBox(width: 6),
+
               Expanded(
                 child: Text(
                   'Combined amounts must equal the total due.',
                   style: AppTextStyles.small.copyWith(
                     color: AppColors.warning,
                     fontWeight: FontWeight.w600,
-                    fontSize: 10,
+                    fontSize: 9,
                   ),
                 ),
               ),
@@ -737,12 +692,11 @@ class PaymentSelector extends StatelessWidget {
   ) {
     return TextField(
       controller: controller,
-      keyboardType:
-          const TextInputType.numberWithOptions(
+      keyboardType: const TextInputType.numberWithOptions(
         decimal: true,
       ),
       style: AppTextStyles.body.copyWith(
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: FontWeight.w700,
       ),
       decoration: InputDecoration(
@@ -750,33 +704,32 @@ class PaymentSelector extends StatelessWidget {
         prefixIcon: Icon(
           icon,
           color: color,
-          size: 18,
+          size: 17,
         ),
         filled: true,
         fillColor: color.withValues(alpha: 0.045),
         isDense: true,
-        contentPadding:
-            const EdgeInsets.symmetric(
-          horizontal: 10,
-          vertical: 11,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 8,
+          vertical: 9,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           borderSide: BorderSide(
             color: color.withValues(alpha: 0.18),
           ),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           borderSide: BorderSide(
             color: color.withValues(alpha: 0.18),
           ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           borderSide: BorderSide(
             color: color,
-            width: 1.5,
+            width: 1.3,
           ),
         ),
       ),
@@ -795,8 +748,7 @@ class PaymentSelector extends StatelessWidget {
     TextEditingController posController,
     TextEditingController transferController,
   ) {
-    if (method != 'split' &&
-        !_isPaymentMethodEnabled(method)) {
+    if (method != 'split' && !_isPaymentMethodEnabled(method)) {
       _showError(
         context,
         '${PosSettings.paymentMethodLabel(method)} '
@@ -969,8 +921,7 @@ class PaymentSelector extends StatelessWidget {
       }
 
       if ((paymentTotal - due).abs() > 0.01) {
-        final difference =
-            due - paymentTotal;
+        final difference = due - paymentTotal;
 
         if (difference > 0) {
           _showError(
@@ -1020,11 +971,17 @@ class PaymentSelector extends StatelessWidget {
       SnackBar(
         behavior: SnackBarBehavior.floating,
         backgroundColor: AppColors.danger,
-        margin: const EdgeInsets.all(12),
+        margin: const EdgeInsets.all(10),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
         ),
-        content: Text(message),
+        content: Text(
+          message,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }
@@ -1045,12 +1002,11 @@ class PaymentSelector extends StatelessWidget {
       controller: controller,
       autofocus: true,
       onChanged: onChanged,
-      keyboardType:
-          const TextInputType.numberWithOptions(
+      keyboardType: const TextInputType.numberWithOptions(
         decimal: true,
       ),
       style: AppTextStyles.body.copyWith(
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: FontWeight.w700,
       ),
       decoration: InputDecoration(
@@ -1059,33 +1015,32 @@ class PaymentSelector extends StatelessWidget {
         prefixIcon: Icon(
           icon,
           color: color,
-          size: 20,
+          size: 19,
         ),
         filled: true,
         fillColor: color.withValues(alpha: 0.045),
         isDense: true,
-        contentPadding:
-            const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 13,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 10,
+          vertical: 11,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(11),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           borderSide: BorderSide(
             color: color.withValues(alpha: 0.18),
           ),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(11),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           borderSide: BorderSide(
             color: color.withValues(alpha: 0.18),
           ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(11),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           borderSide: BorderSide(
             color: color,
-            width: 1.5,
+            width: 1.3,
           ),
         ),
       ),
@@ -1100,10 +1055,10 @@ class PaymentSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(
-        10,
-        8,
-        10,
-        9,
+        AppSpacing.sm,
+        AppSpacing.xs,
+        AppSpacing.sm,
+        AppSpacing.sm,
       ),
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -1114,8 +1069,8 @@ class PaymentSelector extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            blurRadius: 10,
-            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            color: Colors.black.withValues(alpha: 0.035),
             offset: const Offset(0, -2),
           ),
         ],
@@ -1126,7 +1081,6 @@ class PaymentSelector extends StatelessWidget {
           constraints,
         ) {
           final width = constraints.maxWidth;
-
           final isTablet = width >= 600;
 
           final paymentButtons = <Widget>[];
@@ -1163,8 +1117,7 @@ class PaymentSelector extends StatelessWidget {
                 context,
                 label: 'Transfer',
                 subtitle: 'Bank',
-                icon:
-                    Icons.account_balance_outlined,
+                icon: Icons.account_balance_outlined,
                 color: AppColors.inventory,
                 method: 'transfer',
               ),
@@ -1185,8 +1138,7 @@ class PaymentSelector extends StatelessWidget {
           }
 
           return Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
               // ==================================================
@@ -1196,77 +1148,61 @@ class PaymentSelector extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    width: 27,
-                    height: 27,
+                    width: 25,
+                    height: 25,
                     decoration: BoxDecoration(
-                      color:
-                          AppColors.primaryLight,
-                      borderRadius:
-                          BorderRadius.circular(7),
+                      color: AppColors.primaryLight,
+                      borderRadius: BorderRadius.circular(
+                        AppRadius.sm,
+                      ),
                     ),
                     child: const Icon(
                       Icons.payments_outlined,
-                      color:
-                          AppColors.primary,
-                      size: 15,
+                      color: AppColors.primary,
+                      size: 14,
                     ),
                   ),
 
-                  const SizedBox(width: 7),
+                  const SizedBox(width: 6),
 
                   Expanded(
                     child: Text(
                       'Payment',
-                      style:
-                          AppTextStyles.body.copyWith(
-                        fontWeight:
-                            FontWeight.w800,
-                        fontSize: 13,
+                      style: AppTextStyles.body.copyWith(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
                       ),
                     ),
                   ),
 
                   if (total > 0)
                     Container(
-                      padding:
-                          const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 5,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 4,
                       ),
-                      decoration:
-                          BoxDecoration(
-                        color:
-                            AppColors.primaryLight,
-                        borderRadius:
-                            BorderRadius.circular(
-                          13,
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(
+                          AppRadius.round,
                         ),
                       ),
                       child: Text(
                         '₦${_formatMoney(total)}',
-                        style:
-                            AppTextStyles.body.copyWith(
-                          color:
-                              AppColors.primary,
-                          fontWeight:
-                              FontWeight.w800,
-                          fontSize: 11,
+                        style: AppTextStyles.body.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 10,
                         ),
                       ),
                     ),
                 ],
               ),
 
-              const SizedBox(height: 7),
+              const SizedBox(height: 5),
 
               // ==================================================
               // PAYMENT BUTTONS
-              //
-              // iPad/tablet:
-              // 2 per row.
-              //
-              // Phone:
-              // natural wrapping.
               // ==================================================
 
               if (paymentButtons.isEmpty)
@@ -1278,13 +1214,12 @@ class PaymentSelector extends StatelessWidget {
                 )
               else
                 Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
+                  spacing: 5,
+                  runSpacing: 5,
                   children: paymentButtons.map(
                     (button) {
                       return SizedBox(
-                        width:
-                            (width - 6) / 2,
+                        width: (width - 5) / 2,
                         child: button,
                       );
                     },
@@ -1305,12 +1240,11 @@ class PaymentSelector extends StatelessWidget {
     List<Widget> buttons,
     double width,
   ) {
-    final itemWidth =
-        (width - 7) / 2;
+    final itemWidth = (width - 6) / 2;
 
     return Wrap(
-      spacing: 7,
-      runSpacing: 7,
+      spacing: 6,
+      runSpacing: 5,
       children: buttons.map(
         (button) {
           return SizedBox(
@@ -1329,20 +1263,19 @@ class PaymentSelector extends StatelessWidget {
   Widget _buildNoPaymentMethods() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 9,
+        vertical: 7,
+      ),
       decoration: BoxDecoration(
-        color:
-            AppColors.danger.withValues(
-          alpha: 0.06,
-        ),
-        borderRadius:
-            BorderRadius.circular(9),
+        color: AppColors.danger.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
       ),
       child: const Text(
         'No payment methods are enabled.',
         style: TextStyle(
           color: AppColors.danger,
-          fontSize: 10,
+          fontSize: 9,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -1361,16 +1294,14 @@ class PaymentSelector extends StatelessWidget {
     required Color color,
     required String method,
   }) {
-    final isSelected =
-        selectedMethod == method;
+    final isSelected = selectedMethod == method;
 
     return SizedBox(
-      height: 43,
+      height: 39,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius:
-              BorderRadius.circular(9),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           onTap: () {
             _showPaymentPopup(
               context,
@@ -1378,105 +1309,72 @@ class PaymentSelector extends StatelessWidget {
             );
           },
           child: AnimatedContainer(
-            duration:
-                const Duration(
-              milliseconds: 140,
+            duration: const Duration(milliseconds: 140),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 7,
+              vertical: 4,
             ),
-            padding:
-                const EdgeInsets.symmetric(
-              horizontal: 8,
-              vertical: 5,
-            ),
-            decoration:
-                BoxDecoration(
+            decoration: BoxDecoration(
               color: isSelected
                   ? color
-                  : color.withValues(
-                      alpha: 0.055,
-                    ),
-              borderRadius:
-                  BorderRadius.circular(9),
+                  : color.withValues(alpha: 0.055),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
               border: Border.all(
                 color: isSelected
                     ? color
-                    : color.withValues(
-                        alpha: 0.16,
-                      ),
-                width:
-                    isSelected ? 1.2 : 1,
+                    : color.withValues(alpha: 0.16),
+                width: isSelected ? 1.1 : 0.8,
               ),
             ),
             child: Row(
               children: [
                 Container(
-                  width: 29,
-                  height: 29,
-                  decoration:
-                      BoxDecoration(
+                  width: 27,
+                  height: 27,
+                  decoration: BoxDecoration(
                     color: isSelected
-                        ? Colors.white
-                            .withValues(
-                            alpha: 0.18,
-                          )
-                        : color.withValues(
-                            alpha: 0.09,
-                          ),
-                    borderRadius:
-                        BorderRadius.circular(
-                      7,
+                        ? Colors.white.withValues(alpha: 0.18)
+                        : color.withValues(alpha: 0.09),
+                    borderRadius: BorderRadius.circular(
+                      AppRadius.sm,
                     ),
                   ),
                   child: Icon(
                     icon,
-                    size: 16,
-                    color: isSelected
-                        ? Colors.white
-                        : color,
+                    size: 15,
+                    color: isSelected ? Colors.white : color,
                   ),
                 ),
 
-                const SizedBox(width: 7),
+                const SizedBox(width: 6),
 
                 Expanded(
                   child: Column(
-                    mainAxisAlignment:
-                        MainAxisAlignment.center,
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         label,
                         maxLines: 1,
-                        overflow:
-                            TextOverflow.ellipsis,
-                        style:
-                            AppTextStyles.body
-                                .copyWith(
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.body.copyWith(
                           color: isSelected
                               ? Colors.white
-                              : AppColors
-                                  .textPrimary,
-                          fontWeight:
-                              FontWeight.w800,
-                          fontSize: 11,
+                              : AppColors.textPrimary,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 10,
                         ),
                       ),
+
                       Text(
                         subtitle,
                         maxLines: 1,
-                        overflow:
-                            TextOverflow.ellipsis,
-                        style:
-                            AppTextStyles.small
-                                .copyWith(
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.small.copyWith(
                           color: isSelected
-                              ? Colors.white
-                                  .withValues(
-                                  alpha: 0.80,
-                                )
-                              : AppColors
-                                  .textSecondary,
-                          fontSize: 8,
+                              ? Colors.white.withValues(alpha: 0.80)
+                              : AppColors.textSecondary,
+                          fontSize: 7,
                         ),
                       ),
                     ],
@@ -1487,7 +1385,7 @@ class PaymentSelector extends StatelessWidget {
                   const Icon(
                     Icons.check_circle,
                     color: Colors.white,
-                    size: 16,
+                    size: 15,
                   ),
               ],
             ),
@@ -1505,10 +1403,13 @@ class PaymentSelector extends StatelessWidget {
     switch (method) {
       case 'pos':
         return Icons.credit_card_outlined;
+
       case 'transfer':
         return Icons.account_balance_outlined;
+
       case 'split':
         return Icons.call_split;
+
       case 'cash':
       default:
         return Icons.payments_outlined;
@@ -1523,10 +1424,13 @@ class PaymentSelector extends StatelessWidget {
     switch (method) {
       case 'pos':
         return AppColors.primary;
+
       case 'transfer':
         return AppColors.inventory;
+
       case 'split':
         return AppColors.warning;
+
       case 'cash':
       default:
         return AppColors.success;
@@ -1541,10 +1445,13 @@ class PaymentSelector extends StatelessWidget {
     switch (method) {
       case 'pos':
         return 'POS / Card payment';
+
       case 'transfer':
         return 'Bank transfer';
+
       case 'split':
         return 'Multiple payment methods';
+
       case 'cash':
       default:
         return 'Cash payment';
@@ -1559,9 +1466,7 @@ class PaymentSelector extends StatelessWidget {
     return value
         .toStringAsFixed(0)
         .replaceAllMapped(
-          RegExp(
-            r'\B(?=(\d{3})+(?!\d))',
-          ),
+          RegExp(r'\B(?=(\d{3})+(?!\d))'),
           (match) => ',',
         );
   }
