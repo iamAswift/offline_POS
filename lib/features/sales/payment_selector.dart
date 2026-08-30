@@ -76,6 +76,12 @@ class PaymentSelector extends StatelessWidget {
     final posController = TextEditingController();
     final transferController = TextEditingController();
 
+    // ============================================================
+    // IMPORTANT:
+    // This notifier belongs to the bottom sheet.
+    // It is disposed only after the sheet has completely closed.
+    // ============================================================
+
     final cashEntered = ValueNotifier<double>(0);
 
     if (method == 'cash') {
@@ -91,7 +97,7 @@ class PaymentSelector extends StatelessWidget {
       transferController.text = total.toString();
     }
 
-    showModalBottomSheet(
+    showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -423,12 +429,107 @@ class PaymentSelector extends StatelessWidget {
           ),
         );
       },
-    ).whenComplete(() {
-      cashController.dispose();
-      posController.dispose();
-      transferController.dispose();
-      cashEntered.dispose();
-    });
+    ).then(
+      (result) {
+        // ============================================================
+        // IMPORTANT:
+        // The bottom sheet is now fully closed.
+        //
+        // Only NOW do we:
+        //   1. Dispose controllers/notifier
+        //   2. Update parent payment method
+        //   3. Send payment to SalesScreen
+        //
+        // This prevents the "dirty widget in wrong build scope"
+        // and "_dependents.isEmpty" assertions.
+        // ============================================================
+
+        cashController.dispose();
+        posController.dispose();
+        transferController.dispose();
+        cashEntered.dispose();
+
+        if (result == null) {
+          return;
+        }
+
+        final resultMethod = result['method'] as String?;
+
+        if (resultMethod == null) {
+          return;
+        }
+
+        onMethodSelected(resultMethod);
+
+        if (resultMethod == 'cash') {
+          final cashReceived =
+              (result['cashReceived'] as num?)?.toDouble() ?? 0;
+
+          final cashApplied =
+              (result['cashApplied'] as num?)?.toDouble() ?? 0;
+
+          final change =
+              (result['change'] as num?)?.toDouble() ?? 0;
+
+          onCashPaymentDetails?.call(
+            cashReceived,
+            cashApplied,
+            change,
+          );
+
+          onPaymentConfirmed(
+            cashApplied,
+            0,
+            0,
+          );
+
+          return;
+        }
+
+        if (resultMethod == 'pos') {
+          final pos =
+              (result['pos'] as num?)?.toDouble() ?? 0;
+
+          onPaymentConfirmed(
+            0,
+            pos,
+            0,
+          );
+
+          return;
+        }
+
+        if (resultMethod == 'transfer') {
+          final transfer =
+              (result['transfer'] as num?)?.toDouble() ?? 0;
+
+          onPaymentConfirmed(
+            0,
+            0,
+            transfer,
+          );
+
+          return;
+        }
+
+        if (resultMethod == 'split') {
+          final cash =
+              (result['cash'] as num?)?.toDouble() ?? 0;
+
+          final pos =
+              (result['pos'] as num?)?.toDouble() ?? 0;
+
+          final transfer =
+              (result['transfer'] as num?)?.toDouble() ?? 0;
+
+          onPaymentConfirmed(
+            cash,
+            pos,
+            transfer,
+          );
+        }
+      },
+    );
   }
 
   // ============================================================
@@ -811,20 +912,22 @@ class PaymentSelector extends StatelessWidget {
       final cashApplied = due;
       final change = cashEntered - cashApplied;
 
-      onMethodSelected(method);
+      // ========================================================
+      // IMPORTANT:
+      // Do NOT call the parent immediately.
+      //
+      // Return the result to the bottom-sheet Future instead.
+      // The parent will be updated only after the sheet closes.
+      // ========================================================
 
-      onCashPaymentDetails?.call(
-        cashEntered,
-        cashApplied,
-        change,
-      );
-
-      Navigator.pop(sheetContext);
-
-      onPaymentConfirmed(
-        cashApplied,
-        0,
-        0,
+      Navigator.pop(
+        sheetContext,
+        <String, dynamic>{
+          'method': method,
+          'cashReceived': cashEntered,
+          'cashApplied': cashApplied,
+          'change': change,
+        },
       );
 
       return;
@@ -853,14 +956,12 @@ class PaymentSelector extends StatelessWidget {
         return;
       }
 
-      onMethodSelected(method);
-
-      Navigator.pop(sheetContext);
-
-      onPaymentConfirmed(
-        0,
-        pos,
-        0,
+      Navigator.pop(
+        sheetContext,
+        <String, dynamic>{
+          'method': method,
+          'pos': pos,
+        },
       );
 
       return;
@@ -889,14 +990,12 @@ class PaymentSelector extends StatelessWidget {
         return;
       }
 
-      onMethodSelected(method);
-
-      Navigator.pop(sheetContext);
-
-      onPaymentConfirmed(
-        0,
-        0,
-        transfer,
+      Navigator.pop(
+        sheetContext,
+        <String, dynamic>{
+          'method': method,
+          'transfer': transfer,
+        },
       );
 
       return;
@@ -940,14 +1039,30 @@ class PaymentSelector extends StatelessWidget {
         return;
       }
 
-      onMethodSelected(method);
+      // ========================================================
+      // CRITICAL FIX:
+      //
+      // Previously:
+      //
+      // Navigator.pop(sheetContext);
+      // onPaymentConfirmed(...);
+      //
+      // This caused the bottom sheet and SalesScreen to rebuild
+      // during the same widget lifecycle.
+      //
+      // Now we simply return the payment result.
+      // The .then() in _showPaymentPopup() handles it after
+      // the bottom sheet has completely closed.
+      // ========================================================
 
-      Navigator.pop(sheetContext);
-
-      onPaymentConfirmed(
-        cashEntered,
-        pos,
-        transfer,
+      Navigator.pop(
+        sheetContext,
+        <String, dynamic>{
+          'method': method,
+          'cash': cashEntered,
+          'pos': pos,
+          'transfer': transfer,
+        },
       );
 
       return;
