@@ -116,7 +116,9 @@ class _SalesScreenState extends State<SalesScreen> {
   bool _isPaymentMethodEnabled(String method) {
     final settings = _posSettings;
 
-    if (settings == null) return false;
+    if (settings == null) {
+      return false;
+    }
 
     return settings.isPaymentMethodEnabled(method);
   }
@@ -124,7 +126,9 @@ class _SalesScreenState extends State<SalesScreen> {
   String _getSafePaymentMethod() {
     final settings = _posSettings;
 
-    if (settings == null) return 'cash';
+    if (settings == null) {
+      return 'cash';
+    }
 
     return settings.safeDefaultPaymentMethod;
   }
@@ -175,23 +179,33 @@ class _SalesScreenState extends State<SalesScreen> {
   // ============================================================
 
   Future<void> _loadCategories() async {
-    final list = await categoryDao.getAllCategories();
+    try {
+      final list = await categoryDao.getAllCategories();
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() {
-      categories = list;
-    });
+      setState(() {
+        categories = list;
+      });
+    } catch (e) {
+      debugPrint('Failed to load categories: $e');
+    }
   }
 
   Future<void> _loadProducts() async {
-    final list = await productDao.getAllProducts();
+    try {
+      final list = await productDao.getAllProducts();
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() {
-      products = list;
-    });
+      setState(() {
+        products = list;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      _showMessage('Could not load products.', isError: true);
+    }
   }
 
   // ============================================================
@@ -202,7 +216,9 @@ class _SalesScreenState extends State<SalesScreen> {
     return cart.entries.fold<int>(0, (sum, entry) {
       final product = _findProduct(entry.key);
 
-      if (product == null) return sum;
+      if (product == null) {
+        return sum;
+      }
 
       return sum + (entry.value * product.sellingPrice.toInt());
     });
@@ -231,7 +247,9 @@ class _SalesScreenState extends State<SalesScreen> {
     double posAmount,
     double transferAmount,
   ) async {
-    if (_processingSale) return;
+    if (_processingSale) {
+      return;
+    }
 
     if (_loadingPosSettings || _posSettings == null) {
       _showMessage('POS settings are still loading.', isError: true);
@@ -308,7 +326,9 @@ class _SalesScreenState extends State<SalesScreen> {
       // ========================================================
 
       final receivedCash = cashAmount < 0 ? 0.0 : cashAmount;
+
       final receivedPos = posAmount < 0 ? 0.0 : posAmount;
+
       final receivedTransfer = transferAmount < 0 ? 0.0 : transferAmount;
 
       // ========================================================
@@ -336,7 +356,8 @@ class _SalesScreenState extends State<SalesScreen> {
           throw Exception(
             'Transfer amount does not match sale total.\n'
             'Sale total: ₦${_formatMoney(cartTotal)}\n'
-            'Transfer received: ₦${_formatMoney(receivedTransfer)}',
+            'Transfer received: '
+            '₦${_formatMoney(receivedTransfer)}',
           );
         }
       } else if (normalizedPaymentMethod == 'split') {
@@ -346,7 +367,8 @@ class _SalesScreenState extends State<SalesScreen> {
           throw Exception(
             'Split payment must equal sale total.\n'
             'Sale total: ₦${_formatMoney(cartTotal)}\n'
-            'Payment received: ₦${_formatMoney(paymentTotal)}',
+            'Payment received: '
+            '₦${_formatMoney(paymentTotal)}',
           );
         }
 
@@ -364,7 +386,7 @@ class _SalesScreenState extends State<SalesScreen> {
       }
 
       // ========================================================
-      // 5. STOCK
+      // 5. STOCK VALIDATION
       // ========================================================
 
       for (final entry in cart.entries) {
@@ -376,7 +398,9 @@ class _SalesScreenState extends State<SalesScreen> {
 
         final requestedQty = entry.value;
 
-        if (requestedQty <= 0) continue;
+        if (requestedQty <= 0) {
+          continue;
+        }
 
         if (requestedQty > product.stock) {
           throw Exception(
@@ -433,7 +457,9 @@ class _SalesScreenState extends State<SalesScreen> {
 
         final qty = entry.value;
 
-        if (qty <= 0) continue;
+        if (qty <= 0) {
+          continue;
+        }
 
         final lineTotal = qty * product.sellingPrice.toInt();
 
@@ -445,13 +471,17 @@ class _SalesScreenState extends State<SalesScreen> {
 
         if (isLastItem) {
           lineCash = appliedCash - processedCash;
+
           linePos = appliedPos - processedPos;
+
           lineTransfer = appliedTransfer - processedTransfer;
         } else {
           final ratio = lineTotal / cartTotal;
 
           lineCash = appliedCash * ratio;
+
           linePos = appliedPos * ratio;
+
           lineTransfer = appliedTransfer * ratio;
         }
 
@@ -498,7 +528,9 @@ class _SalesScreenState extends State<SalesScreen> {
       // 8. CLEAR CART
       // ========================================================
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       setState(() {
         cart.clear();
@@ -515,7 +547,9 @@ class _SalesScreenState extends State<SalesScreen> {
       // 10. RECEIPT
       // ========================================================
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       Navigator.push(
         context,
@@ -529,7 +563,9 @@ class _SalesScreenState extends State<SalesScreen> {
         ),
       );
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       _showMessage(e.toString().replaceFirst('Exception: ', ''), isError: true);
     } finally {
@@ -546,23 +582,25 @@ class _SalesScreenState extends State<SalesScreen> {
   // ============================================================
 
   void _showMessage(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: AppTextStyles.small.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w500,
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            message,
+            style: AppTextStyles.small.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          backgroundColor: isError ? AppColors.danger : AppColors.primary,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(AppSpacing.lg),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
           ),
         ),
-        backgroundColor: isError ? AppColors.danger : AppColors.primary,
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(AppSpacing.lg),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-        ),
-      ),
-    );
+      );
   }
 
   // ============================================================
@@ -629,6 +667,7 @@ class _SalesScreenState extends State<SalesScreen> {
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           elevation: 0,
+          toolbarHeight: r.isCompact ? 54 : 60,
           title: Text(
             'Point of Sale',
             style: AppTextStyles.title.copyWith(color: Colors.white),
@@ -647,10 +686,23 @@ class _SalesScreenState extends State<SalesScreen> {
         top: false,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final bool useSplitLayout = constraints.maxWidth >= 900;
+            /*
+             * IMPORTANT
+             *
+             * The split decision is based on
+             * ACTUAL AVAILABLE WIDTH.
+             *
+             * This matters because MainScaffold
+             * may consume part of the screen with
+             * its sidebar.
+             */
+
+            final width = constraints.maxWidth;
+
+            final bool useSplitLayout = width >= 1000;
 
             if (useSplitLayout) {
-              return _buildSplitLayout();
+              return _buildSplitLayout(constraints);
             }
 
             return _buildStackedLayout(constraints, r);
@@ -759,15 +811,29 @@ class _SalesScreenState extends State<SalesScreen> {
   // SPLIT LAYOUT
   // ============================================================
 
-  Widget _buildSplitLayout() {
+  Widget _buildSplitLayout(BoxConstraints constraints) {
+    /*
+     * Desktop / large tablet:
+     *
+     * Products = approximately 68%
+     * Current Sale = approximately 32%
+     *
+     * A minimum sale width prevents the
+     * payment controls becoming cramped.
+     */
+
+    final width = constraints.maxWidth;
+
+    final saleWidth = (width * 0.32).clamp(340.0, 460.0);
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(flex: 7, child: _buildProductsPanel()),
+        Expanded(child: _buildProductsPanel()),
 
         const VerticalDivider(width: 1, thickness: 1, color: AppColors.border),
 
-        Expanded(flex: 3, child: _buildCurrentSalePanel()),
+        SizedBox(width: saleWidth, child: _buildCurrentSalePanel()),
       ],
     );
   }
@@ -780,45 +846,58 @@ class _SalesScreenState extends State<SalesScreen> {
     final availableHeight = constraints.maxHeight;
 
     /*
-     * Compact iPad / portrait layout.
+     * This is the primary layout for the
+     * 800 x 1280 device once the navigation
+     * shell has been accounted for.
      *
-     * The current-sale section receives enough
-     * room for:
+     * Products occupy the majority of the
+     * screen.
      *
-     *   1. Cart header
-     *   2. Scrollable cart
-     *   3. Compact payment section
-     *
-     * PaymentSelector itself can scroll internally.
+     * Current sale remains visible at the
+     * bottom.
      */
 
-    final bool veryShort = availableHeight < 600;
+    final bool veryShort = availableHeight < 560;
 
-    final bool compactHeight = availableHeight < 720;
+    final bool short = availableHeight < 700;
 
     final double paymentHeight = veryShort
-        ? 178
-        : compactHeight
-        ? 190
-        : 205;
+        ? 110
+        : short
+        ? 130
+        : r.isCompact
+        ? 160
+        : 180;
 
-    final double productHeight = availableHeight - paymentHeight - 1;
+    final double headerHeight = r.isCompact ? 44 : 48;
+
+    final double minimumCartHeight = 110;
+
+    final double minimumProductHeight = 220;
+
+    final double minimumRequired =
+        minimumProductHeight +
+        minimumCartHeight +
+        paymentHeight +
+        headerHeight +
+        2;
 
     /*
-     * Extremely short window.
-     *
-     * Use a vertical scroll instead of creating
-     * impossible flex constraints.
+     * If the available height is genuinely
+     * too small, allow the complete POS to
+     * scroll rather than forcing RenderFlex
+     * overflow.
      */
 
-    if (productHeight < 240) {
+    if (availableHeight < minimumRequired) {
       return SingleChildScrollView(
         child: Column(
           children: [
-            SizedBox(height: 380, child: _buildProductsPanel()),
-
+            SizedBox(
+              height: minimumProductHeight + 180,
+              child: _buildProductsPanel(),
+            ),
             const Divider(height: 1, thickness: 1, color: AppColors.border),
-
             SizedBox(
               height: 360,
               child: _buildCurrentSalePanel(forceCompact: true),
@@ -828,6 +907,15 @@ class _SalesScreenState extends State<SalesScreen> {
       );
     }
 
+    /*
+     * Normal stacked tablet layout.
+     */
+
+    final currentSaleHeight =
+        paymentHeight + headerHeight + minimumCartHeight + 2;
+
+    final productHeight = availableHeight - currentSaleHeight;
+
     return Column(
       children: [
         Expanded(child: _buildProductsPanel()),
@@ -835,7 +923,9 @@ class _SalesScreenState extends State<SalesScreen> {
         const Divider(height: 1, thickness: 1, color: AppColors.border),
 
         SizedBox(
-          height: paymentHeight,
+          height: productHeight < minimumProductHeight
+              ? availableHeight * 0.52
+              : currentSaleHeight,
           child: _buildCurrentSalePanel(forceCompact: true),
         ),
       ],
@@ -870,15 +960,17 @@ class _SalesScreenState extends State<SalesScreen> {
   Widget _buildSearchBar() {
     final r = context.responsive;
 
+    final height = r.isCompact ? 42.0 : 46.0;
+
     return Padding(
       padding: EdgeInsets.fromLTRB(
         r.horizontalPadding,
-        r.isCompact ? AppSpacing.xs : AppSpacing.sm,
+        r.isCompact ? AppSpacing.sm : AppSpacing.md,
         r.horizontalPadding,
         AppSpacing.xs,
       ),
       child: SizedBox(
-        height: r.isCompact ? 38 : 44,
+        height: height,
         child: TextField(
           style: AppTextStyles.body.copyWith(fontSize: r.isCompact ? 11 : 12),
           textInputAction: TextInputAction.search,
@@ -890,7 +982,7 @@ class _SalesScreenState extends State<SalesScreen> {
             ),
             prefixIcon: const Icon(
               Icons.search,
-              size: 18,
+              size: 19,
               color: AppColors.textSecondary,
             ),
             suffixIcon: _searchQuery.isNotEmpty
@@ -898,7 +990,7 @@ class _SalesScreenState extends State<SalesScreen> {
                     tooltip: 'Clear search',
                     icon: const Icon(
                       Icons.close,
-                      size: 16,
+                      size: 17,
                       color: AppColors.textSecondary,
                     ),
                     onPressed: () {
@@ -947,7 +1039,7 @@ class _SalesScreenState extends State<SalesScreen> {
     final r = context.responsive;
 
     return SizedBox(
-      height: r.isCompact ? 42 : 48,
+      height: r.isCompact ? 46 : 50,
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.symmetric(
@@ -999,9 +1091,10 @@ class _SalesScreenState extends State<SalesScreen> {
           borderRadius: BorderRadius.circular(AppRadius.round),
           onTap: onTap,
           child: Container(
+            constraints: const BoxConstraints(minHeight: 32),
             padding: EdgeInsets.symmetric(
-              horizontal: r.isCompact ? AppSpacing.sm : AppSpacing.md,
-              vertical: r.isCompact ? 4 : AppSpacing.xs,
+              horizontal: r.isCompact ? AppSpacing.md : AppSpacing.lg,
+              vertical: r.isCompact ? 5 : AppSpacing.xs,
             ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppRadius.round),
@@ -1058,40 +1151,70 @@ class _SalesScreenState extends State<SalesScreen> {
       return _buildNoProductsState();
     }
 
-    final horizontalSpacing = r.isCompact ? AppSpacing.xs : AppSpacing.sm;
-
-    final verticalSpacing = r.isCompact ? AppSpacing.xs : AppSpacing.sm;
-
     return LayoutBuilder(
       builder: (context, constraints) {
-        final availableWidth = constraints.maxWidth - (r.horizontalPadding * 2);
+        final width = constraints.maxWidth;
+
+        /*
+         * Product grid is based on
+         * real available width.
+         *
+         * 800px device:
+         *   usually 3 columns
+         *
+         * Larger tablet:
+         *   4 columns
+         *
+         * Desktop:
+         *   4-5 columns
+         */
 
         int columns;
 
-        if (constraints.maxWidth < 430) {
+        if (width < 360) {
           columns = 2;
-        } else if (constraints.maxWidth < 700) {
+        } else if (width < 620) {
+          columns = 2;
+        } else if (width < 900) {
           columns = 3;
-        } else if (constraints.maxWidth < 1100) {
+        } else if (width < 1250) {
           columns = 4;
         } else {
           columns = 5;
         }
 
+        final horizontalPadding = r.isCompact
+            ? AppSpacing.sm
+            : r.horizontalPadding;
+
+        final horizontalSpacing = width < 600 ? AppSpacing.xs : AppSpacing.sm;
+
+        final verticalSpacing = width < 600 ? AppSpacing.xs : AppSpacing.sm;
+
+        final availableWidth = width - (horizontalPadding * 2);
+
         final cardWidth =
             (availableWidth - (horizontalSpacing * (columns - 1))) / columns;
 
         /*
-         * SMALL COMPACT PRODUCT CARD
-         *
-         * This is intentionally much smaller
-         * for iPad and compact screens.
+         * Keep cards compact on the
+         * 800 x 1280 device.
          */
 
-        final cardHeight = r.isCompact ? 126.0 : 145.0;
+        final double cardHeight;
+
+        if (width < 500) {
+          cardHeight = 142;
+        } else if (width < 700) {
+          cardHeight = 150;
+        } else if (width < 1000) {
+          cardHeight = 158;
+        } else {
+          cardHeight = 168;
+        }
 
         return GridView.builder(
-          padding: EdgeInsets.all(r.horizontalPadding),
+          padding: EdgeInsets.all(horizontalPadding),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
             mainAxisSpacing: verticalSpacing,
@@ -1134,7 +1257,7 @@ class _SalesScreenState extends State<SalesScreen> {
               ),
             ),
 
-            const SizedBox(height: AppSpacing.xs),
+            const SizedBox(height: AppSpacing.sm),
 
             Text(
               _searchQuery.isNotEmpty
@@ -1194,17 +1317,17 @@ class _SalesScreenState extends State<SalesScreen> {
                 _addProductToCart(product);
               },
         child: Padding(
-          padding: EdgeInsets.all(r.isCompact ? 6 : AppSpacing.sm),
+          padding: EdgeInsets.all(r.isCompact ? 7 : AppSpacing.sm),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ------------------------------------------------
-              // SMALL IMAGE
+              // IMAGE
               // ------------------------------------------------
-              SizedBox(
-                height: r.isCompact ? 42 : 52,
-                width: double.infinity,
+              Expanded(
+                flex: 5,
                 child: Container(
+                  width: double.infinity,
                   decoration: BoxDecoration(
                     color: AppColors.surfaceSoft,
                     borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -1224,7 +1347,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                     return const Center(
                                       child: Icon(
                                         Icons.image_not_supported_outlined,
-                                        size: 18,
+                                        size: 20,
                                         color: AppColors.textMuted,
                                       ),
                                     );
@@ -1233,7 +1356,7 @@ class _SalesScreenState extends State<SalesScreen> {
                               : Center(
                                   child: Icon(
                                     Icons.inventory_2_outlined,
-                                    size: r.isCompact ? 20 : 23,
+                                    size: r.isCompact ? 24 : 28,
                                     color: isOutOfStock
                                         ? AppColors.textMuted
                                         : AppColors.primary,
@@ -1243,8 +1366,8 @@ class _SalesScreenState extends State<SalesScreen> {
                       ),
 
                       Positioned(
-                        top: 2,
-                        right: 2,
+                        top: 4,
+                        right: 4,
                         child: _buildStockBadge(stock),
                       ),
                     ],
@@ -1252,22 +1375,22 @@ class _SalesScreenState extends State<SalesScreen> {
                 ),
               ),
 
-              const SizedBox(height: 3),
+              const SizedBox(height: 5),
 
               // ------------------------------------------------
-              // PRODUCT NAME
+              // NAME
               // ------------------------------------------------
               Text(
                 product.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: AppTextStyles.body.copyWith(
-                  fontSize: r.isCompact ? 9 : 10,
+                  fontSize: r.isCompact ? 10 : 11,
                   fontWeight: FontWeight.w600,
                 ),
               ),
 
-              const SizedBox(height: 1),
+              const SizedBox(height: 2),
 
               // ------------------------------------------------
               // PRICE
@@ -1277,13 +1400,13 @@ class _SalesScreenState extends State<SalesScreen> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: AppTextStyles.price.copyWith(
-                  fontSize: r.isCompact ? 10 : 11,
+                  fontSize: r.isCompact ? 11 : 12,
                   color: AppColors.primary,
                   fontWeight: FontWeight.w700,
                 ),
               ),
 
-              const Spacer(),
+              const SizedBox(height: 5),
 
               // ------------------------------------------------
               // QUANTITY
@@ -1306,7 +1429,7 @@ class _SalesScreenState extends State<SalesScreen> {
   Widget _buildQuantityControls(Product product, int qty, bool canAdd) {
     final r = context.responsive;
 
-    final controlHeight = r.isCompact ? 25.0 : 29.0;
+    final controlHeight = r.isCompact ? 28.0 : 32.0;
 
     return SizedBox(
       height: controlHeight,
@@ -1320,11 +1443,11 @@ class _SalesScreenState extends State<SalesScreen> {
         child: Row(
           children: [
             SizedBox(
-              width: r.isCompact ? 26 : 30,
+              width: r.isCompact ? 30 : 34,
               height: controlHeight,
               child: IconButton(
                 padding: EdgeInsets.zero,
-                iconSize: r.isCompact ? 12 : 14,
+                iconSize: r.isCompact ? 13 : 15,
                 tooltip: 'Remove',
                 color: qty > 0 ? AppColors.danger : AppColors.textMuted,
                 onPressed: qty > 0
@@ -1341,7 +1464,7 @@ class _SalesScreenState extends State<SalesScreen> {
                 child: Text(
                   '$qty',
                   style: AppTextStyles.body.copyWith(
-                    fontSize: r.isCompact ? 9 : 10,
+                    fontSize: r.isCompact ? 10 : 11,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -1349,11 +1472,11 @@ class _SalesScreenState extends State<SalesScreen> {
             ),
 
             SizedBox(
-              width: r.isCompact ? 26 : 30,
+              width: r.isCompact ? 30 : 34,
               height: controlHeight,
               child: IconButton(
                 padding: EdgeInsets.zero,
-                iconSize: r.isCompact ? 12 : 14,
+                iconSize: r.isCompact ? 13 : 15,
                 tooltip: canAdd ? 'Add' : 'Maximum stock reached',
                 color: canAdd ? AppColors.primary : AppColors.textMuted,
                 onPressed: canAdd
@@ -1378,7 +1501,7 @@ class _SalesScreenState extends State<SalesScreen> {
     final r = context.responsive;
 
     return Container(
-      height: r.isCompact ? 25 : 29,
+      height: r.isCompact ? 28 : 32,
       width: double.infinity,
       decoration: BoxDecoration(
         color: AppColors.dangerLight,
@@ -1410,56 +1533,39 @@ class _SalesScreenState extends State<SalesScreen> {
       color: AppColors.surface,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          /*
-           * IMPORTANT FIX
-           *
-           * The old implementation gave PaymentSelector
-           * a minHeight of 190-205 while the entire
-           * Current Sale panel could itself be around
-           * 190-285 pixels tall.
-           *
-           * That caused the cart and payment section
-           * to compete for the same space.
-           *
-           * Now:
-           *
-           *   Header = fixed small height
-           *   Cart = Expanded + scrollable
-           *   Payment = fixed compact section
-           *
-           * No minHeight is forced on PaymentSelector.
-           */
-
           final height = constraints.maxHeight;
 
-          final bool compact = forceCompact || r.isCompact || height < 260;
+          final compact = forceCompact || r.isCompact || height < 300;
 
-          final headerHeight = compact ? 44.0 : 50.0;
+          final headerHeight = compact ? 46.0 : 52.0;
 
           /*
-           * Payment gets a small predictable
-           * area. PaymentSelector scrolls inside it.
+           * Payment selector is deliberately
+           * given a controlled height.
+           *
+           * It is wrapped in its own scroll
+           * container so it cannot force the
+           * cart out of the available space.
            */
+
           double paymentHeight;
 
           if (height < 220) {
-            paymentHeight = 112;
-          } else if (height < 260) {
-            paymentHeight = 125;
-          } else if (height < 320) {
-            paymentHeight = 145;
+            paymentHeight = 104;
+          } else if (height < 280) {
+            paymentHeight = 120;
+          } else if (height < 360) {
+            paymentHeight = 140;
+          } else if (compact) {
+            paymentHeight = 154;
           } else {
-            paymentHeight = 160;
+            paymentHeight = 174;
           }
 
-          /*
-           * Never allow the payment section to
-           * consume the whole Current Sale panel.
-           */
-          final maximumPayment = height - headerHeight - 50;
+          final availablePayment = height - headerHeight - 42;
 
-          if (paymentHeight > maximumPayment) {
-            paymentHeight = maximumPayment.clamp(90.0, 160.0);
+          if (availablePayment < paymentHeight) {
+            paymentHeight = availablePayment.clamp(90.0, 174.0);
           }
 
           return Column(
@@ -1473,9 +1579,6 @@ class _SalesScreenState extends State<SalesScreen> {
 
               /*
                * CART
-               *
-               * Expanded means the cart can never
-               * overlap the payment section.
                */
               Expanded(child: _buildCartSummary(compact: compact)),
 
@@ -1483,16 +1586,12 @@ class _SalesScreenState extends State<SalesScreen> {
 
               /*
                * PAYMENT
-               *
-               * Fixed compact area.
-               *
-               * PaymentSelector scrolls internally.
                */
               SizedBox(
                 height: paymentHeight,
                 child: ClipRect(
                   child: SingleChildScrollView(
-                    padding: EdgeInsets.zero,
+                    physics: const ClampingScrollPhysics(),
                     child: PaymentSelector(
                       selectedMethod: paymentMethod,
                       total: total,
@@ -1552,20 +1651,20 @@ class _SalesScreenState extends State<SalesScreen> {
       child: Row(
         children: [
           Container(
-            width: compact ? 28 : 32,
-            height: compact ? 28 : 32,
+            width: compact ? 30 : 34,
+            height: compact ? 30 : 34,
             decoration: BoxDecoration(
               color: AppColors.primaryLight,
               borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
             child: Icon(
               Icons.shopping_cart_outlined,
-              size: compact ? 15 : 17,
+              size: compact ? 16 : 18,
               color: AppColors.primary,
             ),
           ),
 
-          const SizedBox(width: AppSpacing.xs),
+          const SizedBox(width: AppSpacing.sm),
 
           Expanded(
             child: Column(
@@ -1598,7 +1697,7 @@ class _SalesScreenState extends State<SalesScreen> {
 
           if (totalItems > 0)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: AppColors.primaryLight,
                 borderRadius: BorderRadius.circular(AppRadius.round),
@@ -1647,7 +1746,7 @@ class _SalesScreenState extends State<SalesScreen> {
                 ),
               ),
 
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: AppSpacing.sm),
 
               Text(
                 'Cart is empty',
@@ -1671,6 +1770,7 @@ class _SalesScreenState extends State<SalesScreen> {
     }
 
     return ListView.builder(
+      physics: const ClampingScrollPhysics(),
       padding: EdgeInsets.fromLTRB(
         compact ? 6 : AppSpacing.sm,
         compact ? 5 : AppSpacing.sm,
@@ -1714,7 +1814,7 @@ class _SalesScreenState extends State<SalesScreen> {
 
     final canAdd = qty < product.stock;
 
-    final itemHeight = compact ? 42.0 : 48.0;
+    final itemHeight = compact ? 48.0 : 54.0;
 
     return Container(
       height: itemHeight,
@@ -1731,8 +1831,8 @@ class _SalesScreenState extends State<SalesScreen> {
       child: Row(
         children: [
           Container(
-            width: compact ? 32 : 36,
-            height: compact ? 32 : 36,
+            width: compact ? 34 : 38,
+            height: compact ? 34 : 38,
             decoration: BoxDecoration(
               color: AppColors.surfaceSoft,
               borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -1759,7 +1859,7 @@ class _SalesScreenState extends State<SalesScreen> {
                   ),
           ),
 
-          const SizedBox(width: 5),
+          const SizedBox(width: 6),
 
           Expanded(
             child: Column(
@@ -1776,7 +1876,6 @@ class _SalesScreenState extends State<SalesScreen> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-
                 Text(
                   '₦${_formatMoney(product.sellingPrice)} × $qty',
                   maxLines: 1,
@@ -1800,8 +1899,8 @@ class _SalesScreenState extends State<SalesScreen> {
           ),
 
           SizedBox(
-            width: compact ? 22 : 25,
-            height: compact ? 25 : 28,
+            width: compact ? 25 : 28,
+            height: compact ? 28 : 30,
             child: IconButton(
               padding: EdgeInsets.zero,
               iconSize: compact ? 13 : 14,
@@ -1815,7 +1914,7 @@ class _SalesScreenState extends State<SalesScreen> {
           ),
 
           SizedBox(
-            width: 14,
+            width: 16,
             child: Text(
               '$qty',
               textAlign: TextAlign.center,
@@ -1827,8 +1926,8 @@ class _SalesScreenState extends State<SalesScreen> {
           ),
 
           SizedBox(
-            width: compact ? 22 : 25,
-            height: compact ? 25 : 28,
+            width: compact ? 25 : 28,
+            height: compact ? 28 : 30,
             child: IconButton(
               padding: EdgeInsets.zero,
               iconSize: compact ? 13 : 14,
@@ -1856,7 +1955,7 @@ class _SalesScreenState extends State<SalesScreen> {
       margin: const EdgeInsets.only(top: 2, bottom: 2),
       padding: EdgeInsets.symmetric(
         horizontal: compact ? 8 : AppSpacing.md,
-        vertical: compact ? 6 : AppSpacing.sm,
+        vertical: compact ? 7 : AppSpacing.sm,
       ),
       decoration: BoxDecoration(
         color: AppColors.primaryLight,
@@ -1892,7 +1991,9 @@ class _SalesScreenState extends State<SalesScreen> {
   // ============================================================
 
   void _addProductToCart(Product product) {
-    if (_processingSale) return;
+    if (_processingSale) {
+      return;
+    }
 
     if (product.stock <= 0) {
       _showMessage('${product.name} is out of stock.', isError: true);
@@ -1920,7 +2021,9 @@ class _SalesScreenState extends State<SalesScreen> {
   // ============================================================
 
   void _removeProductFromCart(Product product) {
-    if (_processingSale) return;
+    if (_processingSale) {
+      return;
+    }
 
     final currentQty = cart[product.id] ?? 0;
 
@@ -1942,7 +2045,7 @@ class _SalesScreenState extends State<SalesScreen> {
 
     if (stock <= 0) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
         decoration: BoxDecoration(
           color: AppColors.dangerLight,
           borderRadius: BorderRadius.circular(AppRadius.round),
@@ -1960,7 +2063,7 @@ class _SalesScreenState extends State<SalesScreen> {
 
     if (stock <= 5) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
         decoration: BoxDecoration(
           color: AppColors.warningLight,
           borderRadius: BorderRadius.circular(AppRadius.round),
@@ -1977,7 +2080,7 @@ class _SalesScreenState extends State<SalesScreen> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
       decoration: BoxDecoration(
         color: AppColors.successLight,
         borderRadius: BorderRadius.circular(AppRadius.round),
