@@ -3,6 +3,7 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 
+import 'package:supermarket_inventory/core/responsive/responsive.dart';
 import 'package:supermarket_inventory/core/widgets/back_button.dart';
 
 import '../../core/theme/styles.dart';
@@ -217,6 +218,8 @@ class _SupplierDeliveriesScreenState
 
   @override
   Widget build(BuildContext context) {
+    final responsive = context.responsive;
+
     return Scaffold(
       backgroundColor: AppColors.background,
 
@@ -238,8 +241,7 @@ class _SupplierDeliveriesScreenState
             onPressed: _loading ? null : _loadDeliveries,
             icon: const Icon(Icons.refresh),
           ),
-
-          const SizedBox(width: 4),
+          SizedBox(width: responsive.isCompact ? 4 : 8),
         ],
       ),
 
@@ -259,10 +261,10 @@ class _SupplierDeliveriesScreenState
                   // ========================================================
 
                   SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(
-                      16,
-                      16,
-                      16,
+                    padding: EdgeInsets.fromLTRB(
+                      responsive.horizontalPadding,
+                      responsive.isCompact ? 12 : 16,
+                      responsive.horizontalPadding,
                       8,
                     ),
                     sliver: SliverToBoxAdapter(
@@ -275,10 +277,10 @@ class _SupplierDeliveriesScreenState
                   // ========================================================
 
                   SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(
-                      16,
+                    padding: EdgeInsets.fromLTRB(
+                      responsive.horizontalPadding,
                       8,
-                      16,
+                      responsive.horizontalPadding,
                       8,
                     ),
                     sliver: SliverToBoxAdapter(
@@ -297,10 +299,10 @@ class _SupplierDeliveriesScreenState
                     )
                   else
                     SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(
-                        16,
+                      padding: EdgeInsets.fromLTRB(
+                        responsive.horizontalPadding,
                         8,
-                        16,
+                        responsive.horizontalPadding,
                         110,
                       ),
                       sliver: SliverLayoutBuilder(
@@ -311,12 +313,36 @@ class _SupplierDeliveriesScreenState
                           final width =
                               constraints.crossAxisExtent;
 
-                          int columns = 1;
+                          // ------------------------------------------------
+                          // CM8800plus:
+                          //
+                          // Physical: 800 x 1280
+                          // Density override: 248
+                          // Flutter logical width ≈ 516
+                          //
+                          // Keep ONE column here.
+                          // ------------------------------------------------
 
-                          if (width >= 1100) {
+                          int columns;
+
+                          if (width >= 1150) {
                             columns = 3;
-                          } else if (width >= 720) {
+                          } else if (width >= 760) {
                             columns = 2;
+                          } else {
+                            columns = 1;
+                          }
+
+                          final double aspectRatio;
+
+                          if (columns == 1) {
+                            aspectRatio = width < 600
+                                ? 1.72
+                                : 1.85;
+                          } else if (columns == 2) {
+                            aspectRatio = 1.48;
+                          } else {
+                            aspectRatio = 1.38;
                           }
 
                           return SliverGrid(
@@ -345,18 +371,13 @@ class _SupplierDeliveriesScreenState
                               childCount:
                                   _filteredDeliveries.length,
                             ),
+
                             gridDelegate:
                                 SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: columns,
                               crossAxisSpacing: 14,
                               mainAxisSpacing: 14,
-
-                              childAspectRatio:
-                                  columns == 1
-                                      ? 1.85
-                                      : columns == 2
-                                          ? 1.55
-                                          : 1.45,
+                              childAspectRatio: aspectRatio,
                             ),
                           );
                         },
@@ -397,8 +418,12 @@ class _SupplierDeliveriesScreenState
   // ============================================================
 
   Widget _buildHeader() {
+    final responsive = context.responsive;
+
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(
+        responsive.isCompact ? 16 : 20,
+      ),
 
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -416,22 +441,24 @@ class _SupplierDeliveriesScreenState
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                width: 56,
-                height: 56,
+                width: responsive.isCompact ? 50 : 56,
+                height: responsive.isCompact ? 50 : 56,
 
                 decoration: BoxDecoration(
                   color: AppColors.primaryLight,
                   borderRadius: BorderRadius.circular(15),
                 ),
 
-                child: const Icon(
+                child: Icon(
                   Icons.local_shipping_outlined,
                   color: AppColors.primary,
-                  size: 29,
+                  size: responsive.isCompact ? 26 : 29,
                 ),
               ),
 
-              const SizedBox(width: 14),
+              SizedBox(
+                width: responsive.isCompact ? 11 : 14,
+              ),
 
               Expanded(
                 child: Column(
@@ -446,7 +473,7 @@ class _SupplierDeliveriesScreenState
 
                     const SizedBox(height: 4),
 
-                    Text(
+                    const Text(
                       'Supplier delivery history',
                       style: AppTextStyles.bodySecondary,
                     ),
@@ -456,7 +483,9 @@ class _SupplierDeliveriesScreenState
             ],
           ),
 
-          const SizedBox(height: 20),
+          SizedBox(
+            height: responsive.isCompact ? 16 : 20,
+          ),
 
           LayoutBuilder(
             builder: (
@@ -623,14 +652,14 @@ class _SupplierDeliveriesScreenState
 
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(13),
-          borderSide: BorderSide(
+          borderSide: const BorderSide(
             color: AppColors.border,
           ),
         ),
 
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(13),
-          borderSide: BorderSide(
+          borderSide: const BorderSide(
             color: AppColors.border,
           ),
         ),
@@ -651,7 +680,8 @@ class _SupplierDeliveriesScreenState
   // ============================================================
 
   Widget _buildEmptyState() {
-    final searching = _searchQuery.trim().isNotEmpty;
+    final searching =
+        _searchQuery.trim().isNotEmpty;
 
     return Center(
       child: Padding(
@@ -670,7 +700,7 @@ class _SupplierDeliveriesScreenState
                 width: 76,
                 height: 76,
 
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: AppColors.primaryLight,
                   shape: BoxShape.circle,
                 ),
@@ -886,7 +916,8 @@ class _AddDeliveryDialogState
       return;
     }
 
-    final totalCost = quantity * unitCost;
+    final totalCost =
+        quantity * unitCost;
 
     setState(() {
       _saving = true;
@@ -981,13 +1012,30 @@ class _AddDeliveryDialogState
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
+    final responsive = context.responsive;
 
-    final dialogWidth = width >= 900
-        ? 650.0
-        : width >= 600
-            ? 580.0
-            : width - 32;
+    final width =
+        MediaQuery.sizeOf(context).width;
+
+    final screenHeight =
+        MediaQuery.sizeOf(context).height;
+
+    // ------------------------------------------------------------
+    // For CM8800plus:
+    //
+    // logical width ≈ 516
+    //
+    // Dialog width becomes roughly 484, which is appropriate.
+    // Keep a little extra breathing room on compact devices.
+    // ------------------------------------------------------------
+
+    final dialogWidth = responsive.isCompact
+        ? width - 24
+        : width >= 900
+            ? 650.0
+            : width >= 600
+                ? 580.0
+                : width - 32;
 
     final quantity =
         int.tryParse(
@@ -1001,33 +1049,35 @@ class _AddDeliveryDialogState
             ) ??
             0;
 
-    final total = quantity * unitCost;
+    final total =
+        quantity * unitCost;
 
     return AlertDialog(
-      insetPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 24,
+      insetPadding: EdgeInsets.symmetric(
+        horizontal:
+            responsive.isCompact ? 12 : 16,
+        vertical: 20,
       ),
 
-      titlePadding: const EdgeInsets.fromLTRB(
-        24,
-        22,
-        24,
+      titlePadding: EdgeInsets.fromLTRB(
+        responsive.isCompact ? 18 : 24,
+        18,
+        responsive.isCompact ? 18 : 24,
         8,
       ),
 
-      contentPadding: const EdgeInsets.fromLTRB(
-        24,
+      contentPadding: EdgeInsets.fromLTRB(
+        responsive.isCompact ? 18 : 24,
         10,
-        24,
+        responsive.isCompact ? 18 : 24,
         8,
       ),
 
-      actionsPadding: const EdgeInsets.fromLTRB(
-        16,
+      actionsPadding: EdgeInsets.fromLTRB(
+        responsive.isCompact ? 12 : 16,
         4,
-        16,
-        16,
+        responsive.isCompact ? 12 : 16,
+        12,
       ),
 
       title: Row(
@@ -1038,7 +1088,8 @@ class _AddDeliveryDialogState
 
             decoration: BoxDecoration(
               color: AppColors.primaryLight,
-              borderRadius: BorderRadius.circular(11),
+              borderRadius:
+                  BorderRadius.circular(11),
             ),
 
             child: const Icon(
@@ -1061,405 +1112,476 @@ class _AddDeliveryDialogState
       content: SizedBox(
         width: dialogWidth,
 
-        child: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
+        // ----------------------------------------------------------
+        // Limit the form height so the dialog remains usable when
+        // the CM8800plus keyboard appears.
+        // ----------------------------------------------------------
 
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: screenHeight * 0.68,
+          ),
 
-              children: [
-                // ========================================================
-                // INVOICE
-                // ========================================================
+          child: SingleChildScrollView(
+            keyboardDismissBehavior:
+                ScrollViewKeyboardDismissBehavior.onDrag,
 
-                TextFormField(
-                  controller: _invoiceController,
+            child: Form(
+              key: _formKey,
 
-                  decoration: const InputDecoration(
-                    labelText: 'Invoice / Delivery Note',
-                    hintText: 'Optional',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(
-                      Icons.receipt_long_outlined,
-                    ),
-                  ),
-                ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
 
-                const SizedBox(height: 14),
+                children: [
+                  // ========================================================
+                  // INVOICE
+                  // ========================================================
 
-                // ========================================================
-                // DATE
-                // ========================================================
+                  TextFormField(
+                    controller:
+                        _invoiceController,
 
-                InkWell(
-                  borderRadius:
-                      BorderRadius.circular(8),
-
-                  onTap: _selectDeliveryDate,
-
-                  child: InputDecorator(
-                    decoration: const InputDecoration(
-                      labelText: 'Delivery Date',
-                      border: OutlineInputBorder(),
+                    decoration:
+                        const InputDecoration(
+                      labelText:
+                          'Invoice / Delivery Note',
+                      hintText: 'Optional',
+                      border:
+                          OutlineInputBorder(),
                       prefixIcon: Icon(
-                        Icons.calendar_today_outlined,
+                        Icons
+                            .receipt_long_outlined,
                       ),
                     ),
+                  ),
 
-                    child: Text(
-                      _formatDate(_deliveryDate),
-                      style: AppTextStyles.body,
+                  const SizedBox(height: 14),
+
+                  // ========================================================
+                  // DATE
+                  // ========================================================
+
+                  InkWell(
+                    borderRadius:
+                        BorderRadius.circular(8),
+
+                    onTap:
+                        _saving
+                            ? null
+                            : _selectDeliveryDate,
+
+                    child: InputDecorator(
+                      decoration:
+                          const InputDecoration(
+                        labelText:
+                            'Delivery Date',
+                        border:
+                            OutlineInputBorder(),
+                        prefixIcon: Icon(
+                          Icons
+                              .calendar_today_outlined,
+                        ),
+                      ),
+
+                      child: Text(
+                        _formatDate(
+                          _deliveryDate,
+                        ),
+                        style:
+                            AppTextStyles.body,
+                      ),
                     ),
                   ),
-                ),
 
-                const SizedBox(height: 22),
+                  const SizedBox(height: 20),
 
-                // ========================================================
-                // SECTION TITLE
-                // ========================================================
+                  // ========================================================
+                  // SECTION TITLE
+                  // ========================================================
 
-                const Text(
-                  'Delivery Item',
-                  style: AppTextStyles.title,
-                ),
+                  const Text(
+                    'Delivery Item',
+                    style:
+                        AppTextStyles.title,
+                  ),
 
-                const SizedBox(height: 10),
+                  const SizedBox(height: 10),
 
-                // ========================================================
-                // PRODUCT
-                // ========================================================
+                  // ========================================================
+                  // PRODUCT
+                  // ========================================================
 
-                _buildProductSelector(),
+                  _buildProductSelector(),
 
-                const SizedBox(height: 14),
+                  const SizedBox(height: 14),
 
-                // ========================================================
-                // QUANTITY / COST
-                // ========================================================
+                  // ========================================================
+                  // QUANTITY / COST
+                  // ========================================================
 
-                LayoutBuilder(
-                  builder: (
-                    context,
-                    constraints,
-                  ) {
-                    final compact =
-                        constraints.maxWidth < 420;
+                  LayoutBuilder(
+                    builder: (
+                      context,
+                      constraints,
+                    ) {
+                      final compact =
+                          constraints.maxWidth < 420;
 
-                    if (compact) {
-                      return Column(
-                        children: [
-                          TextFormField(
-                            controller:
-                                _quantityController,
+                      if (compact) {
+                        return Column(
+                          children: [
+                            TextFormField(
+                              controller:
+                                  _quantityController,
 
-                            keyboardType:
-                                TextInputType.number,
+                              keyboardType:
+                                  TextInputType.number,
 
-                            decoration:
-                                const InputDecoration(
-                              labelText: 'Quantity',
-                              hintText: '0',
-                              border:
-                                  OutlineInputBorder(),
+                              decoration:
+                                  const InputDecoration(
+                                labelText:
+                                    'Quantity',
+                                hintText: '0',
+                                border:
+                                    OutlineInputBorder(),
+                              ),
+
+                              validator: (value) {
+                                final quantity =
+                                    int.tryParse(
+                                  value?.trim() ??
+                                      '',
+                                );
+
+                                if (quantity ==
+                                        null ||
+                                    quantity <= 0) {
+                                  return 'Enter quantity';
+                                }
+
+                                return null;
+                              },
+
+                              onChanged: (_) {
+                                setState(() {});
+                              },
                             ),
 
-                            validator: (value) {
-                              final quantity =
-                                  int.tryParse(
-                                value?.trim() ?? '',
-                              );
+                            const SizedBox(height: 14),
 
-                              if (quantity == null ||
-                                  quantity <= 0) {
-                                return 'Enter quantity';
-                              }
+                            TextFormField(
+                              controller:
+                                  _unitCostController,
 
-                              return null;
-                            },
+                              keyboardType:
+                                  const TextInputType
+                                      .numberWithOptions(
+                                decimal: true,
+                              ),
 
-                            onChanged: (_) {
-                              setState(() {});
-                            },
+                              decoration:
+                                  const InputDecoration(
+                                labelText:
+                                    'Unit Cost',
+                                hintText: '0.00',
+                                border:
+                                    OutlineInputBorder(),
+                              ),
+
+                              validator: (value) {
+                                final cost =
+                                    double.tryParse(
+                                  value?.trim() ??
+                                      '',
+                                );
+
+                                if (cost == null ||
+                                    cost < 0) {
+                                  return 'Enter valid cost';
+                                }
+
+                                return null;
+                              },
+
+                              onChanged: (_) {
+                                setState(() {});
+                              },
+                            ),
+                          ],
+                        );
+                      }
+
+                      return Row(
+                        crossAxisAlignment:
+                            CrossAxisAlignment.start,
+
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller:
+                                  _quantityController,
+
+                              keyboardType:
+                                  TextInputType.number,
+
+                              decoration:
+                                  const InputDecoration(
+                                labelText:
+                                    'Quantity',
+                                hintText: '0',
+                                border:
+                                    OutlineInputBorder(),
+                              ),
+
+                              validator: (value) {
+                                final quantity =
+                                    int.tryParse(
+                                  value?.trim() ??
+                                      '',
+                                );
+
+                                if (quantity ==
+                                        null ||
+                                    quantity <= 0) {
+                                  return 'Enter quantity';
+                                }
+
+                                return null;
+                              },
+
+                              onChanged: (_) {
+                                setState(() {});
+                              },
+                            ),
                           ),
 
-                          const SizedBox(height: 14),
+                          const SizedBox(width: 12),
 
-                          TextFormField(
-                            controller:
-                                _unitCostController,
+                          Expanded(
+                            child: TextFormField(
+                              controller:
+                                  _unitCostController,
 
-                            keyboardType:
-                                const TextInputType
-                                    .numberWithOptions(
-                              decimal: true,
+                              keyboardType:
+                                  const TextInputType
+                                      .numberWithOptions(
+                                decimal: true,
+                              ),
+
+                              decoration:
+                                  const InputDecoration(
+                                labelText:
+                                    'Unit Cost',
+                                hintText: '0.00',
+                                border:
+                                    OutlineInputBorder(),
+                              ),
+
+                              validator: (value) {
+                                final cost =
+                                    double.tryParse(
+                                  value?.trim() ??
+                                      '',
+                                );
+
+                                if (cost == null ||
+                                    cost < 0) {
+                                  return 'Enter valid cost';
+                                }
+
+                                return null;
+                              },
+
+                              onChanged: (_) {
+                                setState(() {});
+                              },
                             ),
-
-                            decoration:
-                                const InputDecoration(
-                              labelText: 'Unit Cost',
-                              hintText: '0.00',
-                              border:
-                                  OutlineInputBorder(),
-                            ),
-
-                            validator: (value) {
-                              final cost =
-                                  double.tryParse(
-                                value?.trim() ?? '',
-                              );
-
-                              if (cost == null ||
-                                  cost < 0) {
-                                return 'Enter valid cost';
-                              }
-
-                              return null;
-                            },
-
-                            onChanged: (_) {
-                              setState(() {});
-                            },
                           ),
                         ],
                       );
-                    }
+                    },
+                  ),
 
-                    return Row(
+                  const SizedBox(height: 16),
+
+                  // ========================================================
+                  // TOTAL
+                  // ========================================================
+
+                  Container(
+                    width: double.infinity,
+                    padding:
+                        const EdgeInsets.all(15),
+
+                    decoration:
+                        BoxDecoration(
+                      color:
+                          AppColors.primaryLight,
+                      borderRadius:
+                          BorderRadius.circular(
+                        12,
+                      ),
+                      border: Border.all(
+                        color: AppColors.primary
+                            .withValues(
+                          alpha: 0.12,
+                        ),
+                      ),
+                    ),
+
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+
+                          decoration:
+                              BoxDecoration(
+                            color:
+                                AppColors.surface,
+                            borderRadius:
+                                BorderRadius.circular(
+                              9,
+                            ),
+                          ),
+
+                          child: const Icon(
+                            Icons
+                                .calculate_outlined,
+                            color:
+                                AppColors.primary,
+                            size: 20,
+                          ),
+                        ),
+
+                        const SizedBox(width: 10),
+
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment
+                                    .start,
+                            children: [
+                              Text(
+                                'Delivery Total',
+                                style:
+                                    AppTextStyles.small,
+                              ),
+
+                              SizedBox(height: 2),
+
+                              Text(
+                                'Purchase value',
+                                style:
+                                    AppTextStyles
+                                        .bodySecondary,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        Flexible(
+                          child: Text(
+                            _money(total),
+                            maxLines: 1,
+                            overflow:
+                                TextOverflow.ellipsis,
+                            textAlign:
+                                TextAlign.end,
+                            style:
+                                AppTextStyles.price,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // ========================================================
+                  // NOTES
+                  // ========================================================
+
+                  TextFormField(
+                    controller:
+                        _notesController,
+
+                    maxLines: 3,
+
+                    decoration:
+                        const InputDecoration(
+                      labelText: 'Notes',
+                      hintText:
+                          'Optional delivery notes...',
+                      border:
+                          OutlineInputBorder(),
+                      alignLabelWithHint: true,
+                      prefixIcon: Padding(
+                        padding:
+                            EdgeInsets.only(
+                          bottom: 42,
+                        ),
+                        child: Icon(
+                          Icons.notes_outlined,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // ========================================================
+                  // INFORMATION
+                  // ========================================================
+
+                  Container(
+                    padding:
+                        const EdgeInsets.all(12),
+
+                    decoration:
+                        BoxDecoration(
+                      color:
+                          AppColors.warningLight,
+                      borderRadius:
+                          BorderRadius.circular(
+                        11,
+                      ),
+                      border: Border.all(
+                        color: AppColors.warning
+                            .withValues(
+                          alpha: 0.25,
+                        ),
+                      ),
+                    ),
+
+                    child: const Row(
                       crossAxisAlignment:
                           CrossAxisAlignment.start,
 
                       children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller:
-                                _quantityController,
-
-                            keyboardType:
-                                TextInputType.number,
-
-                            decoration:
-                                const InputDecoration(
-                              labelText: 'Quantity',
-                              hintText: '0',
-                              border:
-                                  OutlineInputBorder(),
-                            ),
-
-                            validator: (value) {
-                              final quantity =
-                                  int.tryParse(
-                                value?.trim() ?? '',
-                              );
-
-                              if (quantity == null ||
-                                  quantity <= 0) {
-                                return 'Enter quantity';
-                              }
-
-                              return null;
-                            },
-
-                            onChanged: (_) {
-                              setState(() {});
-                            },
-                          ),
+                        Icon(
+                          Icons.info_outline,
+                          size: 19,
+                          color:
+                              AppColors.warning,
                         ),
 
-                        const SizedBox(width: 12),
+                        SizedBox(width: 8),
 
                         Expanded(
-                          child: TextFormField(
-                            controller:
-                                _unitCostController,
-
-                            keyboardType:
-                                const TextInputType
-                                    .numberWithOptions(
-                              decimal: true,
-                            ),
-
-                            decoration:
-                                const InputDecoration(
-                              labelText: 'Unit Cost',
-                              hintText: '0.00',
-                              border:
-                                  OutlineInputBorder(),
-                            ),
-
-                            validator: (value) {
-                              final cost =
-                                  double.tryParse(
-                                value?.trim() ?? '',
-                              );
-
-                              if (cost == null ||
-                                  cost < 0) {
-                                return 'Enter valid cost';
-                              }
-
-                              return null;
-                            },
-
-                            onChanged: (_) {
-                              setState(() {});
-                            },
+                          child: Text(
+                            'Receiving this delivery will increase product stock and create the corresponding purchase stock movement.',
+                            style:
+                                AppTextStyles.small,
                           ),
                         ),
                       ],
-                    );
-                  },
-                ),
-
-                const SizedBox(height: 16),
-
-                // ========================================================
-                // TOTAL
-                // ========================================================
-
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(15),
-
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
-                    borderRadius:
-                        BorderRadius.circular(12),
-                    border: Border.all(
-                      color: AppColors.primary
-                          .withValues(alpha: 0.12),
                     ),
                   ),
-
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 38,
-                        height: 38,
-
-                        decoration:
-                            BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius:
-                              BorderRadius.circular(
-                            9,
-                          ),
-                        ),
-
-                        child: const Icon(
-                          Icons.calculate_outlined,
-                          color:
-                              AppColors.primary,
-                          size: 20,
-                        ),
-                      ),
-
-                      const SizedBox(width: 10),
-
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Delivery Total',
-                              style:
-                                  AppTextStyles.small,
-                            ),
-
-                            SizedBox(height: 2),
-
-                            Text(
-                              'Purchase value',
-                              style:
-                                  AppTextStyles.bodySecondary,
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      Text(
-                        _money(total),
-                        style:
-                            AppTextStyles.price,
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // ========================================================
-                // NOTES
-                // ========================================================
-
-                TextFormField(
-                  controller: _notesController,
-
-                  maxLines: 3,
-
-                  decoration: const InputDecoration(
-                    labelText: 'Notes',
-                    hintText:
-                        'Optional delivery notes...',
-                    border: OutlineInputBorder(),
-                    alignLabelWithHint: true,
-                    prefixIcon: Padding(
-                      padding:
-                          EdgeInsets.only(bottom: 42),
-                      child: Icon(
-                        Icons.notes_outlined,
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 14),
-
-                // ========================================================
-                // INFORMATION
-                // ========================================================
-
-                Container(
-                  padding: const EdgeInsets.all(12),
-
-                  decoration: BoxDecoration(
-                    color: AppColors.warningLight,
-                    borderRadius:
-                        BorderRadius.circular(11),
-                    border: Border.all(
-                      color: AppColors.warning
-                          .withValues(alpha: 0.25),
-                    ),
-                  ),
-
-                  child: const Row(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
-
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        size: 19,
-                        color: AppColors.warning,
-                      ),
-
-                      SizedBox(width: 8),
-
-                      Expanded(
-                        child: Text(
-                          'Receiving this delivery will increase product stock and create the corresponding purchase stock movement.',
-                          style:
-                              AppTextStyles.small,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -1470,7 +1592,8 @@ class _AddDeliveryDialogState
           onPressed: _saving
               ? null
               : () {
-                  Navigator.of(context).pop(false);
+                  Navigator.of(context)
+                      .pop(false);
                 },
 
           child: const Text('Cancel'),
@@ -1508,13 +1631,13 @@ class _AddDeliveryDialogState
 
   Widget _buildProductSelector() {
     if (_loadingProducts) {
-      return InputDecorator(
-        decoration: const InputDecoration(
+      return const InputDecorator(
+        decoration: InputDecoration(
           labelText: 'Product',
           border: OutlineInputBorder(),
         ),
 
-        child: const Row(
+        child: Row(
           children: [
             SizedBox(
               width: 18,
@@ -1535,11 +1658,13 @@ class _AddDeliveryDialogState
     if (_products.isEmpty) {
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(14),
+        padding:
+            const EdgeInsets.all(14),
 
         decoration: BoxDecoration(
           color: AppColors.warningLight,
-          borderRadius: BorderRadius.circular(11),
+          borderRadius:
+              BorderRadius.circular(11),
           border: Border.all(
             color: AppColors.warning,
           ),
@@ -1565,14 +1690,17 @@ class _AddDeliveryDialogState
     }
 
     return DropdownButtonFormField<int>(
-      initialValue: _selectedProduct?.id,
+      initialValue:
+          _selectedProduct?.id,
 
       isExpanded: true,
 
-      decoration: const InputDecoration(
+      decoration:
+          const InputDecoration(
         labelText: 'Product',
         hintText: 'Select a product',
-        border: OutlineInputBorder(),
+        border:
+            OutlineInputBorder(),
         prefixIcon: Icon(
           Icons.inventory_2_outlined,
         ),
@@ -1606,7 +1734,8 @@ class _AddDeliveryDialogState
               );
 
               setState(() {
-                _selectedProduct = product;
+                _selectedProduct =
+                    product;
               });
             },
 
@@ -1625,7 +1754,8 @@ class _AddDeliveryDialogState
   // ============================================================
 
   Future<void> _selectDeliveryDate() async {
-    final selected = await showDatePicker(
+    final selected =
+        await showDatePicker(
       context: context,
       initialDate: _deliveryDate,
       firstDate: DateTime(2020),
@@ -1664,10 +1794,12 @@ class _AddDeliveryDialogState
   void _showError(String message) {
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: AppColors.danger,
+        backgroundColor:
+            AppColors.danger,
       ),
     );
   }
@@ -1744,12 +1876,14 @@ class _DeliveryCardState
   Widget build(BuildContext context) {
     final delivery = widget.delivery;
 
-    final invoice = delivery.invoiceNumber;
+    final invoice =
+        delivery.invoiceNumber;
 
     return Material(
       color: AppColors.surface,
 
-      borderRadius: BorderRadius.circular(16),
+      borderRadius:
+          BorderRadius.circular(16),
 
       child: InkWell(
         onTap: widget.onTap,
@@ -1758,9 +1892,11 @@ class _DeliveryCardState
             BorderRadius.circular(16),
 
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding:
+              const EdgeInsets.all(16),
 
-          decoration: BoxDecoration(
+          decoration:
+              BoxDecoration(
             borderRadius:
                 BorderRadius.circular(16),
 
@@ -1787,7 +1923,8 @@ class _DeliveryCardState
                     width: 43,
                     height: 43,
 
-                    decoration: BoxDecoration(
+                    decoration:
+                        BoxDecoration(
                       color:
                           AppColors.primaryLight,
                       borderRadius:
@@ -1837,7 +1974,8 @@ class _DeliveryCardState
                                   .calendar_today_outlined,
                               size: 13,
                               color:
-                                  AppColors.textSecondary,
+                                  AppColors
+                                      .textSecondary,
                             ),
 
                             const SizedBox(width: 5),
@@ -1857,19 +1995,23 @@ class _DeliveryCardState
                   ),
 
                   PopupMenuButton<String>(
-                    padding: EdgeInsets.zero,
+                    padding:
+                        EdgeInsets.zero,
 
                     icon: const Icon(
                       Icons.more_vert,
                     ),
 
                     onSelected: (value) {
-                      if (value == 'delete') {
+                      if (value ==
+                          'delete') {
                         widget.onDelete();
                       }
                     },
 
-                    itemBuilder: (context) => const [
+                    itemBuilder:
+                        (context) =>
+                            const [
                       PopupMenuItem(
                         value: 'delete',
 
@@ -1879,7 +2021,8 @@ class _DeliveryCardState
                               Icons
                                   .delete_outline,
                               color:
-                                  AppColors.danger,
+                                  AppColors
+                                      .danger,
                             ),
 
                             SizedBox(width: 8),
@@ -1911,18 +2054,21 @@ class _DeliveryCardState
 
                       children: [
                         _infoChip(
-                          icon:
-                              Icons.inventory_2_outlined,
-                          text: _loadingCount
-                              ? '...'
-                              : '$_itemCount items',
+                          icon: Icons
+                              .inventory_2_outlined,
+                          text:
+                              _loadingCount
+                                  ? '...'
+                                  : '$_itemCount items',
                         ),
 
-                        if ((delivery.notes ?? '')
+                        if ((delivery
+                                    .notes ??
+                                '')
                             .isNotEmpty)
                           const _InfoIconChip(
-                            icon:
-                                Icons.notes_outlined,
+                            icon: Icons
+                                .notes_outlined,
                             text: 'Notes',
                           ),
                       ],
@@ -1934,7 +2080,8 @@ class _DeliveryCardState
                   Flexible(
                     child: Text(
                       _money(
-                        delivery.totalAmount,
+                        delivery
+                            .totalAmount,
                       ),
 
                       maxLines: 1,
@@ -1972,14 +2119,16 @@ class _DeliveryCardState
         vertical: 6,
       ),
 
-      decoration: BoxDecoration(
+      decoration:
+          BoxDecoration(
         color: AppColors.background,
         borderRadius:
             BorderRadius.circular(8),
       ),
 
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize:
+            MainAxisSize.min,
 
         children: [
           Icon(
@@ -1993,7 +2142,8 @@ class _DeliveryCardState
 
           Text(
             text,
-            style: AppTextStyles.small,
+            style:
+                AppTextStyles.small,
           ),
         ],
       ),
@@ -2040,14 +2190,16 @@ class _InfoIconChip
         vertical: 6,
       ),
 
-      decoration: BoxDecoration(
+      decoration:
+          BoxDecoration(
         color: AppColors.background,
         borderRadius:
             BorderRadius.circular(8),
       ),
 
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize:
+            MainAxisSize.min,
 
         children: [
           Icon(
@@ -2061,7 +2213,8 @@ class _InfoIconChip
 
           Text(
             text,
-            style: AppTextStyles.small,
+            style:
+                AppTextStyles.small,
           ),
         ],
       ),
@@ -2133,12 +2286,17 @@ class _DeliveryDetailsSheetState
   Widget build(BuildContext context) {
     final delivery = widget.delivery;
 
-    final screenWidth =
-        MediaQuery.of(context).size.width;
+    final size =
+        MediaQuery.sizeOf(context);
+
+    final isCompact =
+        size.width < 600;
 
     final sheetHeight =
-        MediaQuery.of(context).size.height *
-            (screenWidth < 600 ? 0.92 : 0.84);
+        size.height *
+            (isCompact
+                ? 0.94
+                : 0.84);
 
     return SafeArea(
       child: Container(
@@ -2176,10 +2334,10 @@ class _DeliveryDetailsSheetState
 
             Padding(
               padding:
-                  const EdgeInsets.fromLTRB(
-                20,
-                18,
-                12,
+                  EdgeInsets.fromLTRB(
+                isCompact ? 16 : 20,
+                16,
+                8,
                 14,
               ),
 
@@ -2224,12 +2382,16 @@ class _DeliveryDetailsSheetState
                         const SizedBox(height: 3),
 
                         Text(
-                          delivery.invoiceNumber
+                          delivery
+                                      .invoiceNumber
                                       ?.isNotEmpty ==
                                   true
                               ? delivery
                                   .invoiceNumber!
                               : 'Delivery #${delivery.id}',
+                          maxLines: 1,
+                          overflow:
+                              TextOverflow.ellipsis,
                           style:
                               AppTextStyles.bodySecondary,
                         ),
@@ -2240,10 +2402,13 @@ class _DeliveryDetailsSheetState
                   IconButton(
                     tooltip: 'Close',
                     onPressed: () {
-                      Navigator.pop(context);
+                      Navigator.pop(
+                        context,
+                      );
                     },
-                    icon:
-                        const Icon(Icons.close),
+                    icon: const Icon(
+                      Icons.close,
+                    ),
                   ),
                 ],
               ),
@@ -2266,12 +2431,20 @@ class _DeliveryDetailsSheetState
                           const AlwaysScrollableScrollPhysics(),
 
                       padding:
-                          const EdgeInsets.all(20),
+                          EdgeInsets.all(
+                        isCompact
+                            ? 16
+                            : 20,
+                      ),
 
                       children: [
-                        _buildSummary(delivery),
+                        _buildSummary(
+                          delivery,
+                        ),
 
-                        const SizedBox(height: 22),
+                        const SizedBox(
+                          height: 20,
+                        ),
 
                         const Text(
                           'Items Received',
@@ -2279,7 +2452,9 @@ class _DeliveryDetailsSheetState
                               AppTextStyles.title,
                         ),
 
-                        const SizedBox(height: 10),
+                        const SizedBox(
+                          height: 10,
+                        ),
 
                         if (_items.isEmpty)
                           _emptyItems()
@@ -2288,9 +2463,13 @@ class _DeliveryDetailsSheetState
                             _buildItem,
                           ),
 
-                        if ((delivery.notes ?? '')
+                        if ((delivery
+                                    .notes ??
+                                '')
                             .isNotEmpty) ...[
-                          const SizedBox(height: 20),
+                          const SizedBox(
+                            height: 20,
+                          ),
 
                           _buildNotes(
                             delivery.notes!,
@@ -2313,15 +2492,19 @@ class _DeliveryDetailsSheetState
     SupplierDelivery delivery,
   ) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding:
+          const EdgeInsets.all(16),
 
       decoration: BoxDecoration(
-        color: AppColors.primaryLight,
+        color:
+            AppColors.primaryLight,
         borderRadius:
             BorderRadius.circular(14),
         border: Border.all(
           color: AppColors.primary
-              .withValues(alpha: 0.10),
+              .withValues(
+            alpha: 0.10,
+          ),
         ),
       ),
 
@@ -2341,7 +2524,8 @@ class _DeliveryDetailsSheetState
                 _summaryValue(
                   'Delivery Date',
                   _formatDate(
-                    delivery.deliveryDate,
+                    delivery
+                        .deliveryDate,
                   ),
                 ),
 
@@ -2350,7 +2534,8 @@ class _DeliveryDetailsSheetState
                 _summaryValue(
                   'Purchase Total',
                   _money(
-                    delivery.totalAmount,
+                    delivery
+                        .totalAmount,
                   ),
                   price: true,
                 ),
@@ -2364,7 +2549,8 @@ class _DeliveryDetailsSheetState
                 child: _summaryValue(
                   'Delivery Date',
                   _formatDate(
-                    delivery.deliveryDate,
+                    delivery
+                        .deliveryDate,
                   ),
                 ),
               ),
@@ -2372,7 +2558,8 @@ class _DeliveryDetailsSheetState
               Container(
                 width: 1,
                 height: 45,
-                color: AppColors.border,
+                color:
+                    AppColors.border,
               ),
 
               const SizedBox(width: 16),
@@ -2384,7 +2571,8 @@ class _DeliveryDetailsSheetState
                   child: _summaryValue(
                     'Purchase Total',
                     _money(
-                      delivery.totalAmount,
+                      delivery
+                          .totalAmount,
                     ),
                     price: true,
                     alignEnd: true,
@@ -2405,14 +2593,16 @@ class _DeliveryDetailsSheetState
     bool alignEnd = false,
   }) {
     return Column(
-      crossAxisAlignment: alignEnd
-          ? CrossAxisAlignment.end
-          : CrossAxisAlignment.start,
+      crossAxisAlignment:
+          alignEnd
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
 
       children: [
         Text(
           label,
-          style: AppTextStyles.small,
+          style:
+              AppTextStyles.small,
         ),
 
         const SizedBox(height: 4),
@@ -2439,18 +2629,22 @@ class _DeliveryDetailsSheetState
 
     return Container(
       margin:
-          const EdgeInsets.only(bottom: 10),
+          const EdgeInsets.only(
+        bottom: 10,
+      ),
 
       padding:
           const EdgeInsets.all(14),
 
       decoration:
           BoxDecoration(
-        color: AppColors.background,
+        color:
+            AppColors.background,
         borderRadius:
             BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.border,
+          color:
+              AppColors.border,
         ),
       ),
 
@@ -2462,14 +2656,19 @@ class _DeliveryDetailsSheetState
 
             decoration:
                 BoxDecoration(
-              color: AppColors.surface,
+              color:
+                  AppColors.surface,
               borderRadius:
-                  BorderRadius.circular(10),
+                  BorderRadius.circular(
+                10,
+              ),
             ),
 
             child: const Icon(
-              Icons.inventory_2_outlined,
-              color: AppColors.primary,
+              Icons
+                  .inventory_2_outlined,
+              color:
+                  AppColors.primary,
             ),
           ),
 
@@ -2486,14 +2685,19 @@ class _DeliveryDetailsSheetState
                   maxLines: 1,
                   overflow:
                       TextOverflow.ellipsis,
-                  style: AppTextStyles.body,
+                  style:
+                      AppTextStyles.body,
                 ),
 
                 const SizedBox(height: 4),
 
                 Text(
                   '${item.quantity} × ${_money(item.unitCost)}',
-                  style: AppTextStyles.small,
+                  maxLines: 1,
+                  overflow:
+                      TextOverflow.ellipsis,
+                  style:
+                      AppTextStyles.small,
                 ),
               ],
             ),
@@ -2501,11 +2705,21 @@ class _DeliveryDetailsSheetState
 
           const SizedBox(width: 10),
 
-          Text(
-            _money(item.totalCost),
-            style:
-                AppTextStyles.price.copyWith(
-              fontSize: 16,
+          Flexible(
+            child: Text(
+              _money(
+                item.totalCost,
+              ),
+              maxLines: 1,
+              overflow:
+                  TextOverflow.ellipsis,
+              textAlign:
+                  TextAlign.end,
+              style:
+                  AppTextStyles.price
+                      .copyWith(
+                fontSize: 16,
+              ),
             ),
           ),
         ],
@@ -2517,16 +2731,21 @@ class _DeliveryDetailsSheetState
   // NOTES
   // ============================================================
 
-  Widget _buildNotes(String notes) {
+  Widget _buildNotes(
+    String notes,
+  ) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding:
+          const EdgeInsets.all(14),
 
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color:
+            AppColors.background,
         borderRadius:
             BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.border,
+          color:
+              AppColors.border,
         ),
       ),
 
@@ -2540,14 +2759,16 @@ class _DeliveryDetailsSheetState
               const Icon(
                 Icons.notes_outlined,
                 size: 19,
-                color: AppColors.primary,
+                color:
+                    AppColors.primary,
               ),
 
               const SizedBox(width: 7),
 
               const Text(
                 'Notes',
-                style: AppTextStyles.title,
+                style:
+                    AppTextStyles.title,
               ),
             ],
           ),
@@ -2556,7 +2777,8 @@ class _DeliveryDetailsSheetState
 
           Text(
             notes,
-            style: AppTextStyles.body,
+            style:
+                AppTextStyles.body,
           ),
         ],
       ),
@@ -2565,14 +2787,18 @@ class _DeliveryDetailsSheetState
 
   Widget _emptyItems() {
     return Container(
-      padding: const EdgeInsets.all(22),
+      padding:
+          const EdgeInsets.all(22),
 
-      decoration: BoxDecoration(
-        color: AppColors.background,
+      decoration:
+          BoxDecoration(
+        color:
+            AppColors.background,
         borderRadius:
             BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.border,
+          color:
+              AppColors.border,
         ),
       ),
 
@@ -2581,14 +2807,16 @@ class _DeliveryDetailsSheetState
           const Icon(
             Icons.inventory_2_outlined,
             size: 32,
-            color: AppColors.textSecondary,
+            color:
+                AppColors.textSecondary,
           ),
 
           const SizedBox(height: 8),
 
           Text(
             'No delivery items found.',
-            textAlign: TextAlign.center,
+            textAlign:
+                TextAlign.center,
             style:
                 AppTextStyles.bodySecondary,
           ),
@@ -2605,7 +2833,9 @@ class _DeliveryDetailsSheetState
     return '₦${amount.toStringAsFixed(2)}';
   }
 
-  String _formatDate(DateTime date) {
+  String _formatDate(
+    DateTime date,
+  ) {
     final day = date.day
         .toString()
         .padLeft(2, '0');
