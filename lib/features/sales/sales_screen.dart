@@ -53,7 +53,6 @@ class _SalesScreenState extends State<SalesScreen> {
   bool _processingSale = false;
 
   String _searchQuery = '';
-
   int? _selectedCategoryId;
 
   // ============================================================
@@ -80,11 +79,15 @@ class _SalesScreenState extends State<SalesScreen> {
 
   Future<void> _loadPosSettings() async {
     try {
-      final service = PosSettingsService(settingsDao: settingsDao);
+      final service = PosSettingsService(
+        settingsDao: settingsDao,
+      );
 
       final settings = await service.load();
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       setState(() {
         _posSettings = settings;
@@ -92,7 +95,9 @@ class _SalesScreenState extends State<SalesScreen> {
         _loadingPosSettings = false;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       const fallbackSettings = PosSettings();
 
@@ -151,7 +156,10 @@ class _SalesScreenState extends State<SalesScreen> {
         return 'split';
 
       default:
-        return 'cash';
+        // IMPORTANT:
+        // Do not silently convert an invalid payment method
+        // into cash.
+        return '';
     }
   }
 
@@ -170,7 +178,7 @@ class _SalesScreenState extends State<SalesScreen> {
         return 'Split';
 
       default:
-        return value;
+        return value.isEmpty ? 'Unknown payment method' : value;
     }
   }
 
@@ -182,7 +190,9 @@ class _SalesScreenState extends State<SalesScreen> {
     try {
       final list = await categoryDao.getAllCategories();
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       setState(() {
         categories = list;
@@ -196,15 +206,22 @@ class _SalesScreenState extends State<SalesScreen> {
     try {
       final list = await productDao.getAllProducts();
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       setState(() {
         products = list;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
-      _showMessage('Could not load products.', isError: true);
+      _showMessage(
+        'Could not load products.',
+        isError: true,
+      );
     }
   }
 
@@ -213,19 +230,26 @@ class _SalesScreenState extends State<SalesScreen> {
   // ============================================================
 
   int get total {
-    return cart.entries.fold<int>(0, (sum, entry) {
-      final product = _findProduct(entry.key);
+    return cart.entries.fold<int>(
+      0,
+      (sum, entry) {
+        final product = _findProduct(entry.key);
 
-      if (product == null) {
-        return sum;
-      }
+        if (product == null) {
+          return sum;
+        }
 
-      return sum + (entry.value * product.sellingPrice.toInt());
-    });
+        return sum +
+            (entry.value * product.sellingPrice.toInt());
+      },
+    );
   }
 
   int get totalItems {
-    return cart.values.fold<int>(0, (sum, quantity) => sum + quantity);
+    return cart.values.fold<int>(
+      0,
+      (sum, quantity) => sum + quantity,
+    );
   }
 
   Product? _findProduct(int productId) {
@@ -252,37 +276,79 @@ class _SalesScreenState extends State<SalesScreen> {
     }
 
     if (_loadingPosSettings || _posSettings == null) {
-      _showMessage('POS settings are still loading.', isError: true);
+      _showMessage(
+        'POS settings are still loading.',
+        isError: true,
+      );
       return;
     }
 
     if (cart.isEmpty) {
-      _showMessage('Cart is empty.', isError: true);
+      _showMessage(
+        'Cart is empty.',
+        isError: true,
+      );
       return;
     }
 
     final currentUserEmail = Session.currentUserEmail;
 
-    if (currentUserEmail == null || currentUserEmail.trim().isEmpty) {
-      _showMessage('No logged-in staff found.', isError: true);
+    if (currentUserEmail == null ||
+        currentUserEmail.trim().isEmpty) {
+      _showMessage(
+        'No logged-in staff found.',
+        isError: true,
+      );
       return;
     }
 
-    final normalizedPaymentMethod = _normalizePaymentMethod(paymentMethod);
+    // ==========================================================
+    // 1. NORMALIZE PAYMENT METHOD
+    // ==========================================================
 
-    if (!_isPaymentMethodEnabled(normalizedPaymentMethod)) {
+    final normalizedPaymentMethod =
+        _normalizePaymentMethod(paymentMethod);
+
+    if (normalizedPaymentMethod.isEmpty) {
+      _showMessage(
+        'Invalid payment method selected.',
+        isError: true,
+      );
+
+      if (mounted) {
+        setState(() {
+          paymentMethod = _getSafePaymentMethod();
+        });
+      }
+
+      return;
+    }
+
+    // ==========================================================
+    // 2. VERIFY PAYMENT METHOD IS ENABLED
+    // ==========================================================
+
+    if (!_isPaymentMethodEnabled(
+      normalizedPaymentMethod,
+    )) {
       _showMessage(
         '${_formatPaymentMethodName(normalizedPaymentMethod)} '
         'is disabled in POS settings.',
         isError: true,
       );
 
-      setState(() {
-        paymentMethod = _getSafePaymentMethod();
-      });
+      if (mounted) {
+        setState(() {
+          paymentMethod = _getSafePaymentMethod();
+        });
+      }
 
       return;
     }
+
+    // ==========================================================
+    // 3. ONLY SUPPORTED METHODS ARE ALLOWED
+    // ==========================================================
 
     if (normalizedPaymentMethod != 'cash' &&
         normalizedPaymentMethod != 'pos' &&
@@ -296,46 +362,77 @@ class _SalesScreenState extends State<SalesScreen> {
       return;
     }
 
+    if (!mounted) {
+      return;
+    }
+
     setState(() {
       _processingSale = true;
     });
 
     try {
       // ========================================================
-      // 1. STAFF
+      // 4. STAFF
       // ========================================================
 
-      final staff = await getUserDao().getUserByEmail(currentUserEmail);
+      final staff = await getUserDao().getUserByEmail(
+        currentUserEmail,
+      );
 
       if (staff == null) {
-        throw Exception('No staff record found for the current session.');
+        throw Exception(
+          'No staff record found for the current session.',
+        );
       }
 
       // ========================================================
-      // 2. TOTAL
+      // 5. TOTAL
       // ========================================================
 
       final cartTotal = total;
 
       if (cartTotal <= 0) {
-        throw Exception('Sale total must be greater than zero.');
+        throw Exception(
+          'Sale total must be greater than zero.',
+        );
       }
 
       // ========================================================
-      // 3. PAYMENT AMOUNTS
+      // 6. PAYMENT AMOUNTS
       // ========================================================
 
-      final receivedCash = cashAmount < 0 ? 0.0 : cashAmount;
+      final receivedCash =
+          cashAmount.isFinite && cashAmount > 0
+              ? cashAmount
+              : 0.0;
 
-      final receivedPos = posAmount < 0 ? 0.0 : posAmount;
+      final receivedPos =
+          posAmount.isFinite && posAmount > 0
+              ? posAmount
+              : 0.0;
 
-      final receivedTransfer = transferAmount < 0 ? 0.0 : transferAmount;
+      final receivedTransfer =
+          transferAmount.isFinite && transferAmount > 0
+              ? transferAmount
+              : 0.0;
 
       // ========================================================
-      // 4. VALIDATE PAYMENT
+      // 7. VALIDATE PAYMENT
       // ========================================================
 
       if (normalizedPaymentMethod == 'cash') {
+        /*
+         * PaymentSelector sends the AMOUNT APPLIED to the sale.
+         *
+         * Therefore:
+         *
+         * Sale = ₦7,500
+         * Cash callback = ₦7,500
+         *
+         * The physical ₦10,000 received and ₦2,500 change
+         * are handled inside PaymentSelector.
+         */
+
         if (receivedCash < cartTotal) {
           throw Exception(
             'Cash amount is not enough.\n'
@@ -361,7 +458,10 @@ class _SalesScreenState extends State<SalesScreen> {
           );
         }
       } else if (normalizedPaymentMethod == 'split') {
-        final paymentTotal = receivedCash + receivedPos + receivedTransfer;
+        final paymentTotal =
+            receivedCash +
+            receivedPos +
+            receivedTransfer;
 
         if ((paymentTotal - cartTotal).abs() > 0.01) {
           throw Exception(
@@ -372,28 +472,62 @@ class _SalesScreenState extends State<SalesScreen> {
           );
         }
 
-        if (receivedCash > 0 && !_isPaymentMethodEnabled('cash')) {
-          throw Exception('Cash is disabled in POS settings.');
+        if (receivedCash > 0 &&
+            !_isPaymentMethodEnabled('cash')) {
+          throw Exception(
+            'Cash is disabled in POS settings.',
+          );
         }
 
-        if (receivedPos > 0 && !_isPaymentMethodEnabled('pos')) {
-          throw Exception('POS is disabled in POS settings.');
+        if (receivedPos > 0 &&
+            !_isPaymentMethodEnabled('pos')) {
+          throw Exception(
+            'POS is disabled in POS settings.',
+          );
         }
 
-        if (receivedTransfer > 0 && !_isPaymentMethodEnabled('transfer')) {
-          throw Exception('Transfer is disabled in POS settings.');
+        if (receivedTransfer > 0 &&
+            !_isPaymentMethodEnabled('transfer')) {
+          throw Exception(
+            'Transfer is disabled in POS settings.',
+          );
         }
       }
 
       // ========================================================
-      // 5. STOCK VALIDATION
+      // 8. VALID CART ENTRIES
       // ========================================================
 
-      for (final entry in cart.entries) {
+      final entries = cart.entries
+          .where(
+            (entry) => entry.value > 0,
+          )
+          .toList();
+
+      if (entries.isEmpty) {
+        throw Exception(
+          'No valid products were found in the cart.',
+        );
+      }
+
+      // ========================================================
+      // 9. STOCK VALIDATION
+      // ========================================================
+      //
+      // Validate everything BEFORE inserting any sale.
+      //
+      // SalesDao performs its own stock validation again against
+      // the actual database, so this screen-level validation is
+      // primarily for immediate cashier feedback.
+      //
+
+      for (final entry in entries) {
         final product = _findProduct(entry.key);
 
         if (product == null) {
-          throw Exception('Product ${entry.key} could not be found.');
+          throw Exception(
+            'Product ${entry.key} could not be found.',
+          );
         }
 
         final requestedQty = entry.value;
@@ -411,48 +545,54 @@ class _SalesScreenState extends State<SalesScreen> {
       }
 
       // ========================================================
-      // 6. PAYMENT ALLOCATION
+      // 10. PAYMENT ALLOCATION
       // ========================================================
 
       double appliedCash = 0;
       double appliedPos = 0;
       double appliedTransfer = 0;
 
-      if (normalizedPaymentMethod == 'cash') {
-        appliedCash = cartTotal.toDouble();
-      } else if (normalizedPaymentMethod == 'pos') {
-        appliedPos = cartTotal.toDouble();
-      } else if (normalizedPaymentMethod == 'transfer') {
-        appliedTransfer = cartTotal.toDouble();
-      } else if (normalizedPaymentMethod == 'split') {
-        appliedCash = receivedCash;
-        appliedPos = receivedPos;
-        appliedTransfer = receivedTransfer;
+      switch (normalizedPaymentMethod) {
+        case 'cash':
+          appliedCash = cartTotal.toDouble();
+          break;
+
+        case 'pos':
+          appliedPos = cartTotal.toDouble();
+          break;
+
+        case 'transfer':
+          appliedTransfer = cartTotal.toDouble();
+          break;
+
+        case 'split':
+          appliedCash = receivedCash;
+          appliedPos = receivedPos;
+          appliedTransfer = receivedTransfer;
+          break;
       }
 
       // ========================================================
-      // 7. INSERT SALES
+      // 11. INSERT SALES
       // ========================================================
 
       final List<Sale> completedSales = [];
-
-      final entries = cart.entries.where((entry) => entry.value > 0).toList();
-
-      if (entries.isEmpty) {
-        throw Exception('No valid products were found in the cart.');
-      }
 
       double processedCash = 0;
       double processedPos = 0;
       double processedTransfer = 0;
 
-      for (int index = 0; index < entries.length; index++) {
+      for (int index = 0;
+          index < entries.length;
+          index++) {
         final entry = entries[index];
 
         final product = _findProduct(entry.key);
 
         if (product == null) {
-          throw Exception('Product ${entry.key} could not be found.');
+          throw Exception(
+            'Product ${entry.key} could not be found.',
+          );
         }
 
         final qty = entry.value;
@@ -461,29 +601,64 @@ class _SalesScreenState extends State<SalesScreen> {
           continue;
         }
 
-        final lineTotal = qty * product.sellingPrice.toInt();
+        // ======================================================
+        // LINE TOTAL
+        // ======================================================
 
-        final isLastItem = index == entries.length - 1;
+        final lineTotal =
+            qty * product.sellingPrice.toInt();
+
+        if (lineTotal <= 0) {
+          throw Exception(
+            '${product.name} has an invalid sale value.',
+          );
+        }
+
+        // ======================================================
+        // PAYMENT ALLOCATION
+        // ======================================================
+        //
+        // Payment allocations are distributed proportionally
+        // across the individual sale rows.
+        //
+        // The final item receives the remainder so floating
+        // point rounding cannot cause the recorded payment
+        // totals to differ from the actual sale total.
+        //
+
+        final isLastItem =
+            index == entries.length - 1;
 
         double lineCash;
         double linePos;
         double lineTransfer;
 
         if (isLastItem) {
-          lineCash = appliedCash - processedCash;
+          lineCash =
+              appliedCash - processedCash;
 
-          linePos = appliedPos - processedPos;
+          linePos =
+              appliedPos - processedPos;
 
-          lineTransfer = appliedTransfer - processedTransfer;
+          lineTransfer =
+              appliedTransfer - processedTransfer;
         } else {
-          final ratio = lineTotal / cartTotal;
+          final ratio =
+              lineTotal / cartTotal;
 
-          lineCash = appliedCash * ratio;
+          lineCash =
+              appliedCash * ratio;
 
-          linePos = appliedPos * ratio;
+          linePos =
+              appliedPos * ratio;
 
-          lineTransfer = appliedTransfer * ratio;
+          lineTransfer =
+              appliedTransfer * ratio;
         }
+
+        // ======================================================
+        // FLOATING POINT PROTECTION
+        // ======================================================
 
         if (lineCash.abs() < 0.005) {
           lineCash = 0;
@@ -497,27 +672,78 @@ class _SalesScreenState extends State<SalesScreen> {
           lineTransfer = 0;
         }
 
+        // Prevent tiny negative rounding leftovers.
+        if (lineCash < 0 && lineCash > -0.01) {
+          lineCash = 0;
+        }
+
+        if (linePos < 0 && linePos > -0.01) {
+          linePos = 0;
+        }
+
+        if (lineTransfer < 0 &&
+            lineTransfer > -0.01) {
+          lineTransfer = 0;
+        }
+
+        // ======================================================
+        // INSERT SALE
+        // ======================================================
+        //
+        // SalesDao.insertSale() handles:
+        //
+        // 1. Sale validation
+        // 2. Actual database stock validation
+        // 3. Cost price capture
+        // 4. Sale insertion
+        // 5. Product stock reduction
+        // 6. Stock movement creation
+        //
+        // inside its database transaction.
+        //
+
         final saleId = await salesDao.insertSale(
           SalesCompanion.insert(
             productId: product.id,
             quantity: qty,
             unitPrice: product.sellingPrice.toInt(),
             totalPrice: lineTotal,
-            costPriceAtSale: Value(product.costPrice),
-            paymentMethod: normalizedPaymentMethod,
+
+            // Historical cost at time of sale.
+            costPriceAtSale: Value(
+              product.costPrice,
+            ),
+
+            paymentMethod:
+                normalizedPaymentMethod,
+
             cashAmount: Value(lineCash),
             posAmount: Value(linePos),
             transferAmount: Value(lineTransfer),
+
             status: const Value('paid'),
+
             staffId: staff.id,
           ),
         );
 
-        final sale = await (salesDao.select(
-          salesDao.sales,
-        )..where((s) => s.id.equals(saleId))).getSingle();
+        // ======================================================
+        // FETCH INSERTED SALE FOR RECEIPT
+        // ======================================================
+
+        final sale = await (
+          salesDao.select(
+            salesDao.sales,
+          )..where(
+            (s) => s.id.equals(saleId),
+          )
+        ).getSingle();
 
         completedSales.add(sale);
+
+        // ======================================================
+        // PAYMENT TRACKING
+        // ======================================================
 
         processedCash += lineCash;
         processedPos += linePos;
@@ -525,7 +751,30 @@ class _SalesScreenState extends State<SalesScreen> {
       }
 
       // ========================================================
-      // 8. CLEAR CART
+      // 12. FINAL PAYMENT CONSISTENCY CHECK
+      // ========================================================
+      //
+      // This protects the POS from a rounding/allocation problem
+      // before the receipt is shown.
+      //
+
+      final recordedPaymentTotal =
+          processedCash +
+          processedPos +
+          processedTransfer;
+
+      if ((recordedPaymentTotal -
+                  cartTotal.toDouble())
+              .abs() >
+          0.01) {
+        throw Exception(
+          'Recorded payment allocation does not '
+          'match the sale total.',
+        );
+      }
+
+      // ========================================================
+      // 13. CLEAR CART
       // ========================================================
 
       if (!mounted) {
@@ -534,17 +783,20 @@ class _SalesScreenState extends State<SalesScreen> {
 
       setState(() {
         cart.clear();
+
+        // Return to configured default payment method
+        // after a successful sale.
         paymentMethod = _getSafePaymentMethod();
       });
 
       // ========================================================
-      // 9. REFRESH PRODUCTS
+      // 14. REFRESH PRODUCTS
       // ========================================================
 
       await _loadProducts();
 
       // ========================================================
-      // 10. RECEIPT
+      // 15. SHOW RECEIPT
       // ========================================================
 
       if (!mounted) {
@@ -567,7 +819,13 @@ class _SalesScreenState extends State<SalesScreen> {
         return;
       }
 
-      _showMessage(e.toString().replaceFirst('Exception: ', ''), isError: true);
+      _showMessage(
+        e.toString().replaceFirst(
+          'Exception: ',
+          '',
+        ),
+        isError: true,
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -581,7 +839,10 @@ class _SalesScreenState extends State<SalesScreen> {
   // MESSAGE
   // ============================================================
 
-  void _showMessage(String message, {bool isError = false}) {
+  void _showMessage(
+    String message, {
+    bool isError = false,
+  }) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
@@ -593,11 +854,22 @@ class _SalesScreenState extends State<SalesScreen> {
               fontWeight: FontWeight.w500,
             ),
           ),
-          backgroundColor: isError ? AppColors.danger : AppColors.primary,
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(AppSpacing.lg),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.lg),
+          backgroundColor:
+              isError
+                  ? AppColors.danger
+                  : AppColors.primary,
+          behavior:
+              SnackBarBehavior.floating,
+          margin:
+              const EdgeInsets.all(
+            AppSpacing.lg,
+          ),
+          shape:
+              RoundedRectangleBorder(
+            borderRadius:
+                BorderRadius.circular(
+              AppRadius.lg,
+            ),
           ),
         ),
       );
@@ -609,11 +881,17 @@ class _SalesScreenState extends State<SalesScreen> {
 
   Widget _buildBusinessLogo() {
     return FutureBuilder<String?>(
-      future: BusinessIdentity.getBusinessLogo(settingsDao),
-      builder: (context, snapshot) {
+      future: BusinessIdentity.getBusinessLogo(
+        settingsDao,
+      ),
+      builder: (
+        context,
+        snapshot,
+      ) {
         final logoPath = snapshot.data;
 
-        if (logoPath == null || logoPath.trim().isEmpty) {
+        if (logoPath == null ||
+            logoPath.trim().isEmpty) {
           return const Icon(
             Icons.storefront_outlined,
             color: Colors.white,
@@ -632,13 +910,20 @@ class _SalesScreenState extends State<SalesScreen> {
         }
 
         return ClipRRect(
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderRadius:
+              BorderRadius.circular(
+            AppRadius.md,
+          ),
           child: Image.file(
             logoFile,
             width: 32,
             height: 32,
             fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) {
+            errorBuilder: (
+              context,
+              error,
+              stackTrace,
+            ) {
               return const Icon(
                 Icons.storefront_outlined,
                 color: Colors.white,
@@ -661,32 +946,50 @@ class _SalesScreenState extends State<SalesScreen> {
 
     if (_loadingPosSettings) {
       return Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor:
+            AppColors.background,
         appBar: AppBar(
-          leading: const CentralBackButton(),
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
+          leading:
+              const CentralBackButton(),
+          backgroundColor:
+              AppColors.primary,
+          foregroundColor:
+              Colors.white,
           elevation: 0,
-          toolbarHeight: r.isCompact ? 52 : 58,
+          toolbarHeight:
+              r.isCompact ? 52 : 58,
           title: Text(
             'Point of Sale',
-            style: AppTextStyles.title.copyWith(color: Colors.white),
+            style:
+                AppTextStyles.title
+                    .copyWith(
+              color: Colors.white,
+            ),
           ),
         ),
         body: const Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
+          child:
+              CircularProgressIndicator(
+            color:
+                AppColors.primary,
+          ),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor:
+          AppColors.background,
       appBar: _buildAppBar(r),
       body: SafeArea(
         top: false,
         child: LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth;
+          builder: (
+            context,
+            constraints,
+          ) {
+            final width =
+                constraints.maxWidth;
 
             /*
              * Large screens use the horizontal
@@ -696,13 +999,19 @@ class _SalesScreenState extends State<SalesScreen> {
              * layout.
              */
 
-            final bool useSplitLayout = width >= 1000;
+            final bool useSplitLayout =
+                width >= 1000;
 
             if (useSplitLayout) {
-              return _buildSplitLayout(constraints);
+              return _buildSplitLayout(
+                constraints,
+              );
             }
 
-            return _buildStackedLayout(constraints, r);
+            return _buildStackedLayout(
+              constraints,
+              r,
+            );
           },
         ),
       ),
@@ -713,87 +1022,150 @@ class _SalesScreenState extends State<SalesScreen> {
   // APP BAR
   // ============================================================
 
-  PreferredSizeWidget _buildAppBar(Responsive r) {
-    final email = Session.currentUserEmail ?? 'Unknown Staff';
+  PreferredSizeWidget _buildAppBar(
+    Responsive r,
+  ) {
+    final email =
+        Session.currentUserEmail ??
+            'Unknown Staff';
 
-    final toolbarHeight = r.isCompact ? 52.0 : 58.0;
+    final toolbarHeight =
+        r.isCompact
+            ? 52.0
+            : 58.0;
 
     return AppBar(
-      leading: const CentralBackButton(),
-      backgroundColor: AppColors.primary,
-      foregroundColor: Colors.white,
+      leading:
+          const CentralBackButton(),
+      backgroundColor:
+          AppColors.primary,
+      foregroundColor:
+          Colors.white,
       elevation: 0,
-      toolbarHeight: toolbarHeight,
-      titleSpacing: AppSpacing.xs,
+      toolbarHeight:
+          toolbarHeight,
+      titleSpacing:
+          AppSpacing.xs,
       title: Row(
         children: [
           Container(
-            width: r.isCompact ? 30 : 34,
-            height: r.isCompact ? 30 : 34,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(AppRadius.md),
+            width:
+                r.isCompact ? 30 : 34,
+            height:
+                r.isCompact ? 30 : 34,
+            decoration:
+                BoxDecoration(
+              color:
+                  Colors.white.withValues(
+                alpha: 0.12,
+              ),
+              borderRadius:
+                  BorderRadius.circular(
+                AppRadius.md,
+              ),
             ),
-            child: _buildBusinessLogo(),
+            child:
+                _buildBusinessLogo(),
           ),
-
-          const SizedBox(width: AppSpacing.sm),
-
+          const SizedBox(
+            width: AppSpacing.sm,
+          ),
           Expanded(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment:
+                  MainAxisAlignment.center,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              mainAxisSize:
+                  MainAxisSize.min,
               children: [
                 Text(
                   'Point of Sale',
                   maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.heading.copyWith(
-                    color: Colors.white,
-                    fontSize: r.isCompact ? 13 : 16,
+                  overflow:
+                      TextOverflow.ellipsis,
+                  style:
+                      AppTextStyles.heading
+                          .copyWith(
+                    color:
+                        Colors.white,
+                    fontSize:
+                        r.isCompact
+                            ? 13
+                            : 16,
                   ),
                 ),
                 Text(
                   'Cashier: $email',
                   maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.small.copyWith(
-                    color: Colors.white70,
-                    fontSize: r.isCompact ? 8 : 9,
+                  overflow:
+                      TextOverflow.ellipsis,
+                  style:
+                      AppTextStyles.small
+                          .copyWith(
+                    color:
+                        Colors.white70,
+                    fontSize:
+                        r.isCompact
+                            ? 8
+                            : 9,
                   ),
                 ),
               ],
             ),
           ),
-
           if (totalItems > 0)
             Container(
-              margin: EdgeInsets.only(
-                right: r.isCompact ? AppSpacing.xs : AppSpacing.sm,
+              margin:
+                  EdgeInsets.only(
+                right:
+                    r.isCompact
+                        ? AppSpacing.xs
+                        : AppSpacing.sm,
               ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.sm,
-                vertical: AppSpacing.xs,
+              padding:
+                  const EdgeInsets
+                      .symmetric(
+                horizontal:
+                    AppSpacing.sm,
+                vertical:
+                    AppSpacing.xs,
               ),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(AppRadius.round),
+              decoration:
+                  BoxDecoration(
+                color:
+                    Colors.white.withValues(
+                  alpha: 0.14,
+                ),
+                borderRadius:
+                    BorderRadius.circular(
+                  AppRadius.round,
+                ),
               ),
               child: Row(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisSize:
+                    MainAxisSize.min,
                 children: [
                   const Icon(
-                    Icons.shopping_cart_outlined,
+                    Icons
+                        .shopping_cart_outlined,
                     size: 14,
-                    color: Colors.white,
+                    color:
+                        Colors.white,
                   ),
-                  const SizedBox(width: AppSpacing.xs),
+                  const SizedBox(
+                    width:
+                        AppSpacing.xs,
+                  ),
                   Text(
                     '$totalItems',
-                    style: AppTextStyles.small.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
+                    style:
+                        AppTextStyles.small
+                            .copyWith(
+                      color:
+                          Colors.white,
+                      fontWeight:
+                          FontWeight.w700,
                     ),
                   ),
                 ],
@@ -808,10 +1180,14 @@ class _SalesScreenState extends State<SalesScreen> {
   // SPLIT LAYOUT
   // ============================================================
 
-  Widget _buildSplitLayout(BoxConstraints constraints) {
-    final width = constraints.maxWidth;
+  Widget _buildSplitLayout(
+    BoxConstraints constraints,
+  ) {
+    final width =
+        constraints.maxWidth;
 
-    double saleWidth = width * 0.32;
+    double saleWidth =
+        width * 0.32;
 
     /*
      * Keep the sale panel large enough for
@@ -828,13 +1204,24 @@ class _SalesScreenState extends State<SalesScreen> {
     }
 
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      crossAxisAlignment:
+          CrossAxisAlignment.stretch,
       children: [
-        Expanded(child: _buildProductsPanel()),
-
-        const VerticalDivider(width: 1, thickness: 1, color: AppColors.border),
-
-        SizedBox(width: saleWidth, child: _buildCurrentSalePanel()),
+        Expanded(
+          child:
+              _buildProductsPanel(),
+        ),
+        const VerticalDivider(
+          width: 1,
+          thickness: 1,
+          color:
+              AppColors.border,
+        ),
+        SizedBox(
+          width: saleWidth,
+          child:
+              _buildCurrentSalePanel(),
+        ),
       ],
     );
   }
@@ -843,14 +1230,21 @@ class _SalesScreenState extends State<SalesScreen> {
   // STACKED LAYOUT
   // ============================================================
 
-  Widget _buildStackedLayout(BoxConstraints constraints, Responsive r) {
-    final availableHeight = constraints.maxHeight;
+  Widget _buildStackedLayout(
+    BoxConstraints constraints,
+    Responsive r,
+  ) {
+    final availableHeight =
+        constraints.maxHeight;
 
-    final availableWidth = constraints.maxWidth;
+    final availableWidth =
+        constraints.maxWidth;
 
-    final bool veryShort = availableHeight < 560;
+    final bool veryShort =
+        availableHeight < 560;
 
-    final bool short = availableHeight < 700;
+    final bool short =
+        availableHeight < 700;
 
     /*
      * ============================================================
@@ -860,16 +1254,27 @@ class _SalesScreenState extends State<SalesScreen> {
 
     if (veryShort) {
       return SingleChildScrollView(
-        physics: const ClampingScrollPhysics(),
+        physics:
+            const ClampingScrollPhysics(),
         child: Column(
           children: [
-            SizedBox(height: 300, child: _buildProductsPanel()),
-
-            const Divider(height: 1, thickness: 1, color: AppColors.border),
-
+            SizedBox(
+              height: 300,
+              child:
+                  _buildProductsPanel(),
+            ),
+            const Divider(
+              height: 1,
+              thickness: 1,
+              color:
+                  AppColors.border,
+            ),
             SizedBox(
               height: 360,
-              child: _buildCurrentSalePanel(forceCompact: true),
+              child:
+                  _buildCurrentSalePanel(
+                forceCompact: true,
+              ),
             ),
           ],
         ),
@@ -891,9 +1296,11 @@ class _SalesScreenState extends State<SalesScreen> {
         availableHeight >= 800;
 
     if (tabletPortrait) {
-      const double minimumProductsHeight = 360;
+      const double minimumProductsHeight =
+          360;
 
-      const double minimumSaleHeight = 300;
+      const double minimumSaleHeight =
+          300;
 
       double saleHeight;
 
@@ -902,11 +1309,14 @@ class _SalesScreenState extends State<SalesScreen> {
        */
 
       if (availableHeight >= 1100) {
-        saleHeight = availableHeight * 0.32;
+        saleHeight =
+            availableHeight * 0.32;
       } else if (availableHeight >= 950) {
-        saleHeight = availableHeight * 0.35;
+        saleHeight =
+            availableHeight * 0.35;
       } else {
-        saleHeight = availableHeight * 0.38;
+        saleHeight =
+            availableHeight * 0.38;
       }
 
       /*
@@ -915,14 +1325,21 @@ class _SalesScreenState extends State<SalesScreen> {
        * No double.clamp().
        */
 
-      if (saleHeight < minimumSaleHeight) {
-        saleHeight = minimumSaleHeight;
+      if (saleHeight <
+          minimumSaleHeight) {
+        saleHeight =
+            minimumSaleHeight;
       }
 
-      final maximumSaleHeight = availableHeight - minimumProductsHeight - 1;
+      final maximumSaleHeight =
+          availableHeight -
+              minimumProductsHeight -
+              1;
 
-      if (saleHeight > maximumSaleHeight) {
-        saleHeight = maximumSaleHeight;
+      if (saleHeight >
+          maximumSaleHeight) {
+        saleHeight =
+            maximumSaleHeight;
       }
 
       /*
@@ -933,12 +1350,20 @@ class _SalesScreenState extends State<SalesScreen> {
         saleHeight = 240;
       }
 
-      double productHeight = availableHeight - saleHeight - 1;
+      double productHeight =
+          availableHeight -
+              saleHeight -
+              1;
 
-      if (productHeight < minimumProductsHeight) {
-        productHeight = minimumProductsHeight;
+      if (productHeight <
+          minimumProductsHeight) {
+        productHeight =
+            minimumProductsHeight;
 
-        saleHeight = availableHeight - productHeight - 1;
+        saleHeight =
+            availableHeight -
+                productHeight -
+                1;
 
         if (saleHeight < 240) {
           saleHeight = 240;
@@ -947,13 +1372,23 @@ class _SalesScreenState extends State<SalesScreen> {
 
       return Column(
         children: [
-          SizedBox(height: productHeight, child: _buildProductsPanel()),
-
-          const Divider(height: 1, thickness: 1, color: AppColors.border),
-
+          SizedBox(
+            height: productHeight,
+            child:
+                _buildProductsPanel(),
+          ),
+          const Divider(
+            height: 1,
+            thickness: 1,
+            color:
+                AppColors.border,
+          ),
           SizedBox(
             height: saleHeight,
-            child: _buildCurrentSalePanel(forceCompact: true),
+            child:
+                _buildCurrentSalePanel(
+              forceCompact: true,
+            ),
           ),
         ],
       );
@@ -965,7 +1400,8 @@ class _SalesScreenState extends State<SalesScreen> {
      * ============================================================
      */
 
-    final double headerHeight = r.isCompact ? 42.0 : 46.0;
+    final double headerHeight =
+        r.isCompact ? 42.0 : 46.0;
 
     double paymentHeight;
 
@@ -977,29 +1413,45 @@ class _SalesScreenState extends State<SalesScreen> {
       paymentHeight = 140;
     }
 
-    final double minimumCartHeight = short ? 145.0 : 175.0;
+    final double minimumCartHeight =
+        short ? 145.0 : 175.0;
 
     double currentSaleHeight =
-        headerHeight + minimumCartHeight + paymentHeight + 2;
+        headerHeight +
+            minimumCartHeight +
+            paymentHeight +
+            2;
 
-    const double minimumProductHeight = 280.0;
+    const double minimumProductHeight =
+        280.0;
 
-    final maximumSaleHeight = availableHeight - minimumProductHeight - 1;
+    final maximumSaleHeight =
+        availableHeight -
+            minimumProductHeight -
+            1;
 
-    if (currentSaleHeight > maximumSaleHeight) {
-      currentSaleHeight = maximumSaleHeight;
+    if (currentSaleHeight >
+        maximumSaleHeight) {
+      currentSaleHeight =
+          maximumSaleHeight;
     }
 
     if (currentSaleHeight < 240) {
       currentSaleHeight = 240;
     }
 
-    double productHeight = availableHeight - currentSaleHeight - 1;
+    double productHeight =
+        availableHeight -
+            currentSaleHeight -
+            1;
 
     if (productHeight < 220) {
       productHeight = 220;
 
-      currentSaleHeight = availableHeight - productHeight - 1;
+      currentSaleHeight =
+          availableHeight -
+              productHeight -
+              1;
 
       if (currentSaleHeight < 240) {
         currentSaleHeight = 240;
@@ -1008,13 +1460,23 @@ class _SalesScreenState extends State<SalesScreen> {
 
     return Column(
       children: [
-        SizedBox(height: productHeight, child: _buildProductsPanel()),
-
-        const Divider(height: 1, thickness: 1, color: AppColors.border),
-
+        SizedBox(
+          height: productHeight,
+          child:
+              _buildProductsPanel(),
+        ),
+        const Divider(
+          height: 1,
+          thickness: 1,
+          color:
+              AppColors.border,
+        ),
         SizedBox(
           height: currentSaleHeight,
-          child: _buildCurrentSalePanel(forceCompact: true),
+          child:
+              _buildCurrentSalePanel(
+            forceCompact: true,
+          ),
         ),
       ],
     );
@@ -1026,16 +1488,22 @@ class _SalesScreenState extends State<SalesScreen> {
 
   Widget _buildProductsPanel() {
     return Container(
-      color: AppColors.background,
+      color:
+          AppColors.background,
       child: Column(
         children: [
           _buildSearchBar(),
-
           _buildCategoryBar(),
-
-          const Divider(height: 1, thickness: 1, color: AppColors.border),
-
-          Expanded(child: _buildProductArea()),
+          const Divider(
+            height: 1,
+            thickness: 1,
+            color:
+                AppColors.border,
+          ),
+          Expanded(
+            child:
+                _buildProductArea(),
+          ),
         ],
       ),
     );
@@ -1046,72 +1514,130 @@ class _SalesScreenState extends State<SalesScreen> {
   // ============================================================
 
   Widget _buildSearchBar() {
-    final r = context.responsive;
+    final r =
+        context.responsive;
 
-    final height = r.isCompact ? 40.0 : 44.0;
+    final height =
+        r.isCompact ? 40.0 : 44.0;
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(
+      padding:
+          EdgeInsets.fromLTRB(
         r.horizontalPadding,
-        r.isCompact ? AppSpacing.xs : AppSpacing.sm,
+        r.isCompact
+            ? AppSpacing.xs
+            : AppSpacing.sm,
         r.horizontalPadding,
         AppSpacing.xs,
       ),
       child: SizedBox(
         height: height,
         child: TextField(
-          style: AppTextStyles.body.copyWith(fontSize: r.isCompact ? 10 : 11),
-          textInputAction: TextInputAction.search,
-          decoration: InputDecoration(
-            hintText: 'Search products or scan barcode...',
-            hintStyle: AppTextStyles.bodySecondary.copyWith(
-              color: AppColors.textMuted,
-              fontSize: r.isCompact ? 9 : 10,
+          style:
+              AppTextStyles.body
+                  .copyWith(
+            fontSize:
+                r.isCompact
+                    ? 10
+                    : 11,
+          ),
+          textInputAction:
+              TextInputAction.search,
+          decoration:
+              InputDecoration(
+            hintText:
+                'Search products or scan barcode...',
+            hintStyle:
+                AppTextStyles
+                    .bodySecondary
+                    .copyWith(
+              color:
+                  AppColors.textMuted,
+              fontSize:
+                  r.isCompact
+                      ? 9
+                      : 10,
             ),
-            prefixIcon: const Icon(
+            prefixIcon:
+                const Icon(
               Icons.search,
               size: 18,
-              color: AppColors.textSecondary,
+              color:
+                  AppColors.textSecondary,
             ),
-            suffixIcon: _searchQuery.isNotEmpty
-                ? IconButton(
-                    tooltip: 'Clear search',
-                    icon: const Icon(
-                      Icons.close,
-                      size: 16,
-                      color: AppColors.textSecondary,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _searchQuery = '';
-                      });
-                    },
-                  )
-                : null,
+            suffixIcon:
+                _searchQuery.isNotEmpty
+                    ? IconButton(
+                        tooltip:
+                            'Clear search',
+                        icon:
+                            const Icon(
+                          Icons.close,
+                          size: 16,
+                          color:
+                              AppColors.textSecondary,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _searchQuery =
+                                '';
+                          });
+                        },
+                      )
+                    : null,
             filled: true,
-            fillColor: AppColors.surface,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.sm,
+            fillColor:
+                AppColors.surface,
+            contentPadding:
+                const EdgeInsets
+                    .symmetric(
+              horizontal:
+                  AppSpacing.sm,
             ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              borderSide: const BorderSide(color: AppColors.border),
+            border:
+                OutlineInputBorder(
+              borderRadius:
+                  BorderRadius.circular(
+                AppRadius.md,
+              ),
+              borderSide:
+                  const BorderSide(
+                color:
+                    AppColors.border,
+              ),
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              borderSide: const BorderSide(color: AppColors.border),
+            enabledBorder:
+                OutlineInputBorder(
+              borderRadius:
+                  BorderRadius.circular(
+                AppRadius.md,
+              ),
+              borderSide:
+                  const BorderSide(
+                color:
+                    AppColors.border,
+              ),
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              borderSide: const BorderSide(
-                color: AppColors.primary,
+            focusedBorder:
+                OutlineInputBorder(
+              borderRadius:
+                  BorderRadius.circular(
+                AppRadius.md,
+              ),
+              borderSide:
+                  const BorderSide(
+                color:
+                    AppColors.primary,
                 width: 1.2,
               ),
             ),
           ),
           onChanged: (query) {
             setState(() {
-              _searchQuery = query.trim().toLowerCase();
+              _searchQuery =
+                  query
+                      .trim()
+                      .toLowerCase();
             });
           },
         ),
@@ -1124,33 +1650,46 @@ class _SalesScreenState extends State<SalesScreen> {
   // ============================================================
 
   Widget _buildCategoryBar() {
-    final r = context.responsive;
+    final r =
+        context.responsive;
 
     return SizedBox(
-      height: r.isCompact ? 42 : 46,
+      height:
+          r.isCompact ? 42 : 46,
       child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(
-          horizontal: r.horizontalPadding,
-          vertical: AppSpacing.xs,
+        scrollDirection:
+            Axis.horizontal,
+        padding:
+            EdgeInsets.symmetric(
+          horizontal:
+              r.horizontalPadding,
+          vertical:
+              AppSpacing.xs,
         ),
         children: [
           _buildCategoryChip(
             label: 'All',
-            selected: _selectedCategoryId == null,
+            selected:
+                _selectedCategoryId ==
+                    null,
             onTap: () {
               setState(() {
-                _selectedCategoryId = null;
+                _selectedCategoryId =
+                    null;
               });
             },
           ),
-          for (final category in categories)
+          for (final category
+              in categories)
             _buildCategoryChip(
               label: category.name,
-              selected: _selectedCategoryId == category.id,
+              selected:
+                  _selectedCategoryId ==
+                      category.id,
               onTap: () {
                 setState(() {
-                  _selectedCategoryId = category.id;
+                  _selectedCategoryId =
+                      category.id;
                 });
               },
             ),
@@ -1168,37 +1707,79 @@ class _SalesScreenState extends State<SalesScreen> {
     required bool selected,
     required VoidCallback onTap,
   }) {
-    final r = context.responsive;
+    final r =
+        context.responsive;
 
     return Padding(
-      padding: const EdgeInsets.only(right: AppSpacing.xs),
+      padding:
+          const EdgeInsets.only(
+        right: AppSpacing.xs,
+      ),
       child: Material(
-        color: selected ? AppColors.primary : AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.round),
+        color:
+            selected
+                ? AppColors.primary
+                : AppColors.surface,
+        borderRadius:
+            BorderRadius.circular(
+          AppRadius.round,
+        ),
         child: InkWell(
-          borderRadius: BorderRadius.circular(AppRadius.round),
+          borderRadius:
+              BorderRadius.circular(
+            AppRadius.round,
+          ),
           onTap: onTap,
           child: Container(
-            constraints: const BoxConstraints(minHeight: 28),
-            padding: EdgeInsets.symmetric(
-              horizontal: r.isCompact ? AppSpacing.sm : AppSpacing.md,
-              vertical: r.isCompact ? 4 : 5,
+            constraints:
+                const BoxConstraints(
+              minHeight: 28,
             ),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppRadius.round),
-              border: Border.all(
-                color: selected ? AppColors.primary : AppColors.border,
+            padding:
+                EdgeInsets.symmetric(
+              horizontal:
+                  r.isCompact
+                      ? AppSpacing.sm
+                      : AppSpacing.md,
+              vertical:
+                  r.isCompact
+                      ? 4
+                      : 5,
+            ),
+            decoration:
+                BoxDecoration(
+              borderRadius:
+                  BorderRadius.circular(
+                AppRadius.round,
+              ),
+              border:
+                  Border.all(
+                color:
+                    selected
+                        ? AppColors.primary
+                        : AppColors.border,
               ),
             ),
             child: Center(
               child: Text(
                 label,
                 maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.small.copyWith(
-                  color: selected ? Colors.white : AppColors.textSecondary,
-                  fontSize: r.isCompact ? 8 : 9,
-                  fontWeight: FontWeight.w600,
+                overflow:
+                    TextOverflow.ellipsis,
+                style:
+                    AppTextStyles.small
+                        .copyWith(
+                  color:
+                      selected
+                          ? Colors.white
+                          : AppColors
+                              .textSecondary,
+                  fontSize:
+                      r.isCompact
+                          ? 8
+                          : 9,
+                  fontWeight:
+                      FontWeight.w600,
                 ),
               ),
             ),
@@ -1213,26 +1794,52 @@ class _SalesScreenState extends State<SalesScreen> {
   // ============================================================
 
   Widget _buildProductArea() {
-    final r = context.responsive;
+    final r =
+        context.responsive;
 
-    final search = _searchQuery.trim().toLowerCase();
+    final search =
+        _searchQuery
+            .trim()
+            .toLowerCase();
 
-    List<Product> visibleProducts = products;
+    List<Product>
+        visibleProducts =
+        products;
 
     if (search.isNotEmpty) {
-      visibleProducts = visibleProducts.where((product) {
-        final name = product.name.toLowerCase();
+      visibleProducts =
+          visibleProducts
+              .where(
+        (product) {
+          final name =
+              product.name
+                  .toLowerCase();
 
-        final barcode = product.barcode?.toLowerCase() ?? '';
+          final barcode =
+              product.barcode
+                      ?.toLowerCase() ??
+                  '';
 
-        return name.contains(search) || barcode.contains(search);
-      }).toList();
+          return name.contains(
+                search,
+              ) ||
+              barcode.contains(
+                search,
+              );
+        },
+      ).toList();
     }
 
-    if (_selectedCategoryId != null) {
-      visibleProducts = visibleProducts.where((product) {
-        return product.categoryId == _selectedCategoryId;
-      }).toList();
+    if (_selectedCategoryId !=
+        null) {
+      visibleProducts =
+          visibleProducts
+              .where(
+        (product) {
+          return product.categoryId ==
+              _selectedCategoryId;
+        },
+      ).toList();
     }
 
     if (visibleProducts.isEmpty) {
@@ -1240,15 +1847,12 @@ class _SalesScreenState extends State<SalesScreen> {
     }
 
     return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-
-        /*
-         * Compact grid sizing.
-         *
-         * 800px tablet:
-         * approximately 4 columns.
-         */
+      builder: (
+        context,
+        constraints,
+      ) {
+        final width =
+            constraints.maxWidth;
 
         int columns;
 
@@ -1264,24 +1868,31 @@ class _SalesScreenState extends State<SalesScreen> {
           columns = 6;
         }
 
-        final horizontalPadding = r.isCompact
-            ? AppSpacing.sm
-            : r.horizontalPadding;
+        final horizontalPadding =
+            r.isCompact
+                ? AppSpacing.sm
+                : r.horizontalPadding;
 
-        final horizontalSpacing = width < 600 ? AppSpacing.xs : AppSpacing.sm;
+        final horizontalSpacing =
+            width < 600
+                ? AppSpacing.xs
+                : AppSpacing.sm;
 
-        final verticalSpacing = width < 600 ? AppSpacing.xs : AppSpacing.sm;
+        final verticalSpacing =
+            width < 600
+                ? AppSpacing.xs
+                : AppSpacing.sm;
 
-        final availableWidth = width - (horizontalPadding * 2);
+        final availableWidth =
+            width -
+                (horizontalPadding *
+                    2);
 
         final cardWidth =
-            (availableWidth - (horizontalSpacing * (columns - 1))) / columns;
-
-        /*
-         * Smaller cards make the tablet POS
-         * denser without making the content
-         * unreadable.
-         */
+            (availableWidth -
+                    (horizontalSpacing *
+                        (columns - 1))) /
+                columns;
 
         final double cardHeight;
 
@@ -1298,16 +1909,29 @@ class _SalesScreenState extends State<SalesScreen> {
         }
 
         return GridView.builder(
-          padding: EdgeInsets.all(horizontalPadding),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            mainAxisSpacing: verticalSpacing,
-            crossAxisSpacing: horizontalSpacing,
-            childAspectRatio: cardWidth / cardHeight,
+          padding:
+              EdgeInsets.all(
+            horizontalPadding,
           ),
-          itemCount: visibleProducts.length,
-          itemBuilder: (context, index) {
-            return _buildProductCard(visibleProducts[index]);
+          gridDelegate:
+              SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount:
+                columns,
+            mainAxisSpacing:
+                verticalSpacing,
+            crossAxisSpacing:
+                horizontalSpacing,
+            childAspectRatio:
+                cardWidth /
+                    cardHeight,
+          ),
+          itemCount:
+              visibleProducts.length,
+          itemBuilder:
+              (context, index) {
+            return _buildProductCard(
+              visibleProducts[index],
+            );
           },
         );
       },
@@ -1319,49 +1943,85 @@ class _SalesScreenState extends State<SalesScreen> {
   // ============================================================
 
   Widget _buildNoProductsState() {
-    final r = context.responsive;
+    final r =
+        context.responsive;
 
     return Center(
-      child: SingleChildScrollView(
-        padding: EdgeInsets.all(r.horizontalPadding),
+      child:
+          SingleChildScrollView(
+        padding:
+            EdgeInsets.all(
+          r.horizontalPadding,
+        ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize:
+              MainAxisSize.min,
           children: [
             Container(
-              width: r.isCompact ? 44 : 50,
-              height: r.isCompact ? 44 : 50,
-              decoration: const BoxDecoration(
-                color: AppColors.surfaceSoft,
-                shape: BoxShape.circle,
+              width:
+                  r.isCompact
+                      ? 44
+                      : 50,
+              height:
+                  r.isCompact
+                      ? 44
+                      : 50,
+              decoration:
+                  const BoxDecoration(
+                color:
+                    AppColors
+                        .surfaceSoft,
+                shape:
+                    BoxShape.circle,
               ),
               child: Icon(
-                Icons.inventory_2_outlined,
-                size: r.isCompact ? 20 : 24,
-                color: AppColors.textMuted,
+                Icons
+                    .inventory_2_outlined,
+                size:
+                    r.isCompact
+                        ? 20
+                        : 24,
+                color:
+                    AppColors.textMuted,
               ),
             ),
-
-            const SizedBox(height: AppSpacing.sm),
-
+            const SizedBox(
+              height:
+                  AppSpacing.sm,
+            ),
             Text(
-              _searchQuery.isNotEmpty
+              _searchQuery
+                      .isNotEmpty
                   ? 'No products found'
                   : 'No products available',
-              style: AppTextStyles.body.copyWith(
-                fontSize: r.isCompact ? 10 : 11,
-                fontWeight: FontWeight.w600,
+              style:
+                  AppTextStyles.body
+                      .copyWith(
+                fontSize:
+                    r.isCompact
+                        ? 10
+                        : 11,
+                fontWeight:
+                    FontWeight.w600,
               ),
             ),
-
-            const SizedBox(height: 2),
-
+            const SizedBox(
+              height: 2,
+            ),
             Text(
-              _searchQuery.isNotEmpty
+              _searchQuery
+                      .isNotEmpty
                   ? 'Try another product name or barcode.'
                   : 'Add products to start selling.',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.small.copyWith(
-                fontSize: r.isCompact ? 8 : 9,
+              textAlign:
+                  TextAlign.center,
+              style:
+                  AppTextStyles.small
+                      .copyWith(
+                fontSize:
+                    r.isCompact
+                        ? 8
+                        : 9,
               ),
             ),
           ],
@@ -1374,131 +2034,203 @@ class _SalesScreenState extends State<SalesScreen> {
   // PRODUCT CARD
   // ============================================================
 
-  Widget _buildProductCard(Product product) {
-    final r = context.responsive;
+  Widget _buildProductCard(
+    Product product,
+  ) {
+    final r =
+        context.responsive;
 
-    final qty = cart[product.id] ?? 0;
+    final qty =
+        cart[product.id] ?? 0;
 
-    final stock = product.stock;
+    final stock =
+        product.stock;
 
-    final isOutOfStock = stock <= 0;
+    final isOutOfStock =
+        stock <= 0;
 
-    final canAdd = qty < stock;
+    final canAdd =
+        qty < stock;
 
     return Card(
       elevation: 0,
-      margin: EdgeInsets.zero,
-      color: AppColors.productCard,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        side: const BorderSide(color: AppColors.border),
+      margin:
+          EdgeInsets.zero,
+      color:
+          AppColors.productCard,
+      clipBehavior:
+          Clip.antiAlias,
+      shape:
+          RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.circular(
+          AppRadius.md,
+        ),
+        side:
+            const BorderSide(
+          color:
+              AppColors.border,
+        ),
       ),
       child: InkWell(
-        onTap: isOutOfStock
-            ? null
-            : () {
-                _addProductToCart(product);
-              },
+        onTap:
+            isOutOfStock
+                ? null
+                : () {
+                    _addProductToCart(
+                      product,
+                    );
+                  },
         child: Padding(
-          padding: EdgeInsets.all(r.isCompact ? 6 : 7),
+          padding:
+              EdgeInsets.all(
+            r.isCompact
+                ? 6
+                : 7,
+          ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+                CrossAxisAlignment
+                    .start,
             children: [
-              /*
-               * IMAGE
-               */
               Expanded(
                 flex: 4,
                 child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceSoft,
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                  width:
+                      double.infinity,
+                  decoration:
+                      BoxDecoration(
+                    color:
+                        AppColors
+                            .surfaceSoft,
+                    borderRadius:
+                        BorderRadius
+                            .circular(
+                      AppRadius.sm,
+                    ),
                   ),
                   child: Stack(
                     children: [
                       Positioned.fill(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                        child:
+                            ClipRRect(
+                          borderRadius:
+                              BorderRadius
+                                  .circular(
+                            AppRadius.sm,
+                          ),
                           child:
-                              product.imagePath != null &&
-                                  product.imagePath!.isNotEmpty
-                              ? Image.file(
-                                  File(product.imagePath!),
-                                  fit: BoxFit.contain,
-                                  errorBuilder: (_, __, ___) {
-                                    return const Center(
-                                      child: Icon(
-                                        Icons.image_not_supported_outlined,
-                                        size: 18,
-                                        color: AppColors.textMuted,
+                              product.imagePath !=
+                                          null &&
+                                      product
+                                          .imagePath!
+                                          .isNotEmpty
+                                  ? Image.file(
+                                      File(
+                                        product
+                                            .imagePath!,
                                       ),
-                                    );
-                                  },
-                                )
-                              : Center(
-                                  child: Icon(
-                                    Icons.inventory_2_outlined,
-                                    size: r.isCompact ? 21 : 24,
-                                    color: isOutOfStock
-                                        ? AppColors.textMuted
-                                        : AppColors.primary,
-                                  ),
-                                ),
+                                      fit:
+                                          BoxFit.contain,
+                                      errorBuilder:
+                                          (
+                                        _,
+                                        __,
+                                        ___,
+                                      ) {
+                                        return const Center(
+                                          child:
+                                              Icon(
+                                            Icons
+                                                .image_not_supported_outlined,
+                                            size:
+                                                18,
+                                            color:
+                                                AppColors.textMuted,
+                                          ),
+                                        );
+                                      },
+                                    )
+                                  : Center(
+                                      child:
+                                          Icon(
+                                        Icons
+                                            .inventory_2_outlined,
+                                        size:
+                                            r.isCompact
+                                                ? 21
+                                                : 24,
+                                        color:
+                                            isOutOfStock
+                                                ? AppColors.textMuted
+                                                : AppColors.primary,
+                                      ),
+                                    ),
                         ),
                       ),
-
                       Positioned(
                         top: 3,
                         right: 3,
-                        child: _buildStockBadge(stock),
+                        child:
+                            _buildStockBadge(
+                          stock,
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
-
-              const SizedBox(height: 4),
-
-              /*
-               * NAME
-               */
+              const SizedBox(
+                height: 4,
+              ),
               Text(
                 product.name,
                 maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.body.copyWith(
-                  fontSize: r.isCompact ? 9 : 10,
-                  fontWeight: FontWeight.w600,
+                overflow:
+                    TextOverflow.ellipsis,
+                style:
+                    AppTextStyles.body
+                        .copyWith(
+                  fontSize:
+                      r.isCompact
+                          ? 9
+                          : 10,
+                  fontWeight:
+                      FontWeight.w600,
                 ),
               ),
-
-              const SizedBox(height: 1),
-
-              /*
-               * PRICE
-               */
+              const SizedBox(
+                height: 1,
+              ),
               Text(
                 '₦${_formatMoney(product.sellingPrice)}',
                 maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.price.copyWith(
-                  fontSize: r.isCompact ? 10 : 11,
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w700,
+                overflow:
+                    TextOverflow.ellipsis,
+                style:
+                    AppTextStyles.price
+                        .copyWith(
+                  fontSize:
+                      r.isCompact
+                          ? 10
+                          : 11,
+                  color:
+                      AppColors.primary,
+                  fontWeight:
+                      FontWeight.w700,
                 ),
               ),
-
-              const SizedBox(height: 4),
-
-              /*
-               * QUANTITY
-               */
+              const SizedBox(
+                height: 4,
+              ),
               if (isOutOfStock)
                 _buildOutOfStockButton()
               else
-                _buildQuantityControls(product, qty, canAdd),
+                _buildQuantityControls(
+                  product,
+                  qty,
+                  canAdd,
+                ),
             ],
           ),
         ),
@@ -1510,65 +2242,131 @@ class _SalesScreenState extends State<SalesScreen> {
   // QUANTITY CONTROLS
   // ============================================================
 
-  Widget _buildQuantityControls(Product product, int qty, bool canAdd) {
-    final r = context.responsive;
+  Widget _buildQuantityControls(
+    Product product,
+    int qty,
+    bool canAdd,
+  ) {
+    final r =
+        context.responsive;
 
-    final controlHeight = r.isCompact ? 27.0 : 30.0;
+    final controlHeight =
+        r.isCompact
+            ? 27.0
+            : 30.0;
 
     return SizedBox(
       height: controlHeight,
-      width: double.infinity,
+      width:
+          double.infinity,
       child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surfaceSoft,
-          borderRadius: BorderRadius.circular(AppRadius.sm),
-          border: Border.all(color: AppColors.border),
+        decoration:
+            BoxDecoration(
+          color:
+              AppColors.surfaceSoft,
+          borderRadius:
+              BorderRadius.circular(
+            AppRadius.sm,
+          ),
+          border:
+              Border.all(
+            color:
+                AppColors.border,
+          ),
         ),
         child: Row(
           children: [
             SizedBox(
-              width: r.isCompact ? 28 : 32,
-              height: controlHeight,
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                iconSize: r.isCompact ? 12 : 14,
-                tooltip: 'Remove',
-                color: qty > 0 ? AppColors.danger : AppColors.textMuted,
-                onPressed: qty > 0
-                    ? () {
-                        _removeProductFromCart(product);
-                      }
-                    : null,
-                icon: const Icon(Icons.remove),
+              width:
+                  r.isCompact
+                      ? 28
+                      : 32,
+              height:
+                  controlHeight,
+              child:
+                  IconButton(
+                padding:
+                    EdgeInsets.zero,
+                iconSize:
+                    r.isCompact
+                        ? 12
+                        : 14,
+                tooltip:
+                    'Remove',
+                color:
+                    qty > 0
+                        ? AppColors
+                            .danger
+                        : AppColors
+                            .textMuted,
+                onPressed:
+                    qty > 0
+                        ? () {
+                            _removeProductFromCart(
+                              product,
+                            );
+                          }
+                        : null,
+                icon:
+                    const Icon(
+                  Icons.remove,
+                ),
               ),
             ),
-
             Expanded(
               child: Center(
                 child: Text(
                   '$qty',
-                  style: AppTextStyles.body.copyWith(
-                    fontSize: r.isCompact ? 9 : 10,
-                    fontWeight: FontWeight.w700,
+                  style:
+                      AppTextStyles.body
+                          .copyWith(
+                    fontSize:
+                        r.isCompact
+                            ? 9
+                            : 10,
+                    fontWeight:
+                        FontWeight.w700,
                   ),
                 ),
               ),
             ),
-
             SizedBox(
-              width: r.isCompact ? 28 : 32,
-              height: controlHeight,
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                iconSize: r.isCompact ? 12 : 14,
-                tooltip: canAdd ? 'Add' : 'Maximum stock reached',
-                color: canAdd ? AppColors.primary : AppColors.textMuted,
-                onPressed: canAdd
-                    ? () {
-                        _addProductToCart(product);
-                      }
-                    : null,
-                icon: const Icon(Icons.add),
+              width:
+                  r.isCompact
+                      ? 28
+                      : 32,
+              height:
+                  controlHeight,
+              child:
+                  IconButton(
+                padding:
+                    EdgeInsets.zero,
+                iconSize:
+                    r.isCompact
+                        ? 12
+                        : 14,
+                tooltip:
+                    canAdd
+                        ? 'Add'
+                        : 'Maximum stock reached',
+                color:
+                    canAdd
+                        ? AppColors
+                            .primary
+                        : AppColors
+                            .textMuted,
+                onPressed:
+                    canAdd
+                        ? () {
+                            _addProductToCart(
+                              product,
+                            );
+                          }
+                        : null,
+                icon:
+                    const Icon(
+                  Icons.add,
+                ),
               ),
             ),
           ],
@@ -1582,24 +2380,42 @@ class _SalesScreenState extends State<SalesScreen> {
   // ============================================================
 
   Widget _buildOutOfStockButton() {
-    final r = context.responsive;
+    final r =
+        context.responsive;
 
     return Container(
-      height: r.isCompact ? 27 : 30,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.dangerLight,
-        borderRadius: BorderRadius.circular(AppRadius.sm),
+      height:
+          r.isCompact
+              ? 27
+              : 30,
+      width:
+          double.infinity,
+      decoration:
+          BoxDecoration(
+        color:
+            AppColors.dangerLight,
+        borderRadius:
+            BorderRadius.circular(
+          AppRadius.sm,
+        ),
       ),
       child: Center(
         child: Text(
           'Out of stock',
           maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: AppTextStyles.small.copyWith(
-            color: AppColors.danger,
-            fontSize: r.isCompact ? 7 : 8,
-            fontWeight: FontWeight.w600,
+          overflow:
+              TextOverflow.ellipsis,
+          style:
+              AppTextStyles.small
+                  .copyWith(
+            color:
+                AppColors.danger,
+            fontSize:
+                r.isCompact
+                    ? 7
+                    : 8,
+            fontWeight:
+                FontWeight.w600,
           ),
         ),
       ),
@@ -1610,18 +2426,32 @@ class _SalesScreenState extends State<SalesScreen> {
   // CURRENT SALE PANEL
   // ============================================================
 
-  Widget _buildCurrentSalePanel({bool forceCompact = false}) {
-    final r = context.responsive;
+  Widget _buildCurrentSalePanel({
+    bool forceCompact = false,
+  }) {
+    final r =
+        context.responsive;
 
     return Container(
-      color: AppColors.surface,
+      color:
+          AppColors.surface,
       child: LayoutBuilder(
-        builder: (context, constraints) {
-          final height = constraints.maxHeight;
+        builder: (
+          context,
+          constraints,
+        ) {
+          final height =
+              constraints.maxHeight;
 
-          final compact = forceCompact || r.isCompact || height < 340;
+          final compact =
+              forceCompact ||
+              r.isCompact ||
+              height < 340;
 
-          final double headerHeight = compact ? 44.0 : 48.0;
+          final double headerHeight =
+              compact
+                  ? 44.0
+                  : 48.0;
 
           double paymentHeight;
 
@@ -1632,23 +2462,27 @@ class _SalesScreenState extends State<SalesScreen> {
           } else if (height < 480) {
             paymentHeight = 124.0;
           } else {
-            paymentHeight = compact ? 136.0 : 150.0;
+            paymentHeight =
+                compact
+                    ? 136.0
+                    : 150.0;
           }
 
-          /*
-           * Explicitly limit payment height.
-           *
-           * No clamp() is used.
-           */
+          double maximumPaymentHeight =
+              height -
+                  headerHeight -
+                  70;
 
-          double maximumPaymentHeight = height - headerHeight - 70;
-
-          if (maximumPaymentHeight < 80) {
-            maximumPaymentHeight = 80;
+          if (maximumPaymentHeight <
+              80) {
+            maximumPaymentHeight =
+                80;
           }
 
-          if (paymentHeight > maximumPaymentHeight) {
-            paymentHeight = maximumPaymentHeight;
+          if (paymentHeight >
+              maximumPaymentHeight) {
+            paymentHeight =
+                maximumPaymentHeight;
           }
 
           if (paymentHeight < 80) {
@@ -1659,51 +2493,100 @@ class _SalesScreenState extends State<SalesScreen> {
             children: [
               SizedBox(
                 height: headerHeight,
-                child: _buildCartHeader(compact: compact),
+                child:
+                    _buildCartHeader(
+                  compact:
+                      compact,
+                ),
+              ),
+              const Divider(
+                height: 1,
+                thickness: 1,
+                color:
+                    AppColors.border,
               ),
 
-              const Divider(height: 1, thickness: 1, color: AppColors.border),
+              // ==================================================
+              // CART
+              // ==================================================
 
-              /*
-               * CART
-               */
-              Expanded(child: _buildCartSummary(compact: compact)),
+              Expanded(
+                child:
+                    _buildCartSummary(
+                  compact:
+                      compact,
+                ),
+              ),
 
-              const Divider(height: 1, thickness: 1, color: AppColors.border),
+              const Divider(
+                height: 1,
+                thickness: 1,
+                color:
+                    AppColors.border,
+              ),
 
-              /*
-               * PAYMENT
-               */
+              // ==================================================
+              // PAYMENT
+              // ==================================================
+
               SizedBox(
-                height: paymentHeight,
+                height:
+                    paymentHeight,
                 child: ClipRect(
-                  child: SingleChildScrollView(
-                    physics: const ClampingScrollPhysics(),
-                    child: PaymentSelector(
-                      selectedMethod: paymentMethod,
+                  child:
+                      SingleChildScrollView(
+                    physics:
+                        const ClampingScrollPhysics(),
+                    child:
+                        PaymentSelector(
+                      selectedMethod:
+                          paymentMethod,
                       total: total,
-                      posSettings: _posSettings ?? const PosSettings(),
-                      onMethodSelected: (method) {
+                      posSettings:
+                          _posSettings ??
+                              const PosSettings(),
+
+                      onMethodSelected:
+                          (method) {
                         if (!mounted) {
                           return;
                         }
 
-                        final normalized = _normalizePaymentMethod(method);
+                        final normalized =
+                            _normalizePaymentMethod(
+                          method,
+                        );
 
-                        if (!_isPaymentMethodEnabled(normalized)) {
+                        if (normalized
+                            .isEmpty) {
+                          _showMessage(
+                            'Invalid payment method selected.',
+                            isError:
+                                true,
+                          );
+                          return;
+                        }
+
+                        if (!_isPaymentMethodEnabled(
+                          normalized,
+                        )) {
                           _showMessage(
                             '${_formatPaymentMethodName(normalized)} '
                             'is disabled in POS settings.',
-                            isError: true,
+                            isError:
+                                true,
                           );
                           return;
                         }
 
                         setState(() {
-                          paymentMethod = normalized;
+                          paymentMethod =
+                              normalized;
                         });
                       },
-                      onPaymentConfirmed: _completeSaleWithAmounts,
+
+                      onPaymentConfirmed:
+                          _completeSaleWithAmounts,
                     ),
                   ),
                 ),
@@ -1712,8 +2595,10 @@ class _SalesScreenState extends State<SalesScreen> {
               if (_processingSale)
                 const LinearProgressIndicator(
                   minHeight: 2,
-                  color: AppColors.success,
-                  backgroundColor: AppColors.successLight,
+                  color:
+                      AppColors.success,
+                  backgroundColor:
+                      AppColors.successLight,
                 ),
             ],
           );
@@ -1726,46 +2611,80 @@ class _SalesScreenState extends State<SalesScreen> {
   // CART HEADER
   // ============================================================
 
-  Widget _buildCartHeader({bool compact = false}) {
-    final r = context.responsive;
+  Widget _buildCartHeader({
+    bool compact = false,
+  }) {
+    final r =
+        context.responsive;
 
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: r.isCompact ? AppSpacing.sm : AppSpacing.md,
-        vertical: compact ? 3 : 4,
+      padding:
+          EdgeInsets.symmetric(
+        horizontal:
+            r.isCompact
+                ? AppSpacing.sm
+                : AppSpacing.md,
+        vertical:
+            compact
+                ? 3
+                : 4,
       ),
-      color: AppColors.surface,
+      color:
+          AppColors.surface,
       child: Row(
         children: [
           Container(
-            width: compact ? 29 : 32,
-            height: compact ? 29 : 32,
-            decoration: BoxDecoration(
-              color: AppColors.primaryLight,
-              borderRadius: BorderRadius.circular(AppRadius.sm),
+            width:
+                compact ? 29 : 32,
+            height:
+                compact ? 29 : 32,
+            decoration:
+                BoxDecoration(
+              color:
+                  AppColors.primaryLight,
+              borderRadius:
+                  BorderRadius.circular(
+                AppRadius.sm,
+              ),
             ),
             child: Icon(
-              Icons.shopping_cart_outlined,
-              size: compact ? 15 : 17,
-              color: AppColors.primary,
+              Icons
+                  .shopping_cart_outlined,
+              size:
+                  compact ? 15 : 17,
+              color:
+                  AppColors.primary,
             ),
           ),
-
-          const SizedBox(width: AppSpacing.sm),
-
+          const SizedBox(
+            width:
+                AppSpacing.sm,
+          ),
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment:
+                  CrossAxisAlignment
+                      .start,
+              mainAxisAlignment:
+                  MainAxisAlignment
+                      .center,
+              mainAxisSize:
+                  MainAxisSize.min,
               children: [
                 Text(
                   'Current Sale',
                   maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.body.copyWith(
-                    fontSize: compact ? 10 : 11,
-                    fontWeight: FontWeight.w700,
+                  overflow:
+                      TextOverflow.ellipsis,
+                  style:
+                      AppTextStyles.body
+                          .copyWith(
+                    fontSize:
+                        compact
+                            ? 10
+                            : 11,
+                    fontWeight:
+                        FontWeight.w700,
                   ),
                 ),
                 Text(
@@ -1773,28 +2692,47 @@ class _SalesScreenState extends State<SalesScreen> {
                       ? 'No items'
                       : '$totalItems item${totalItems == 1 ? '' : 's'}',
                   maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.small.copyWith(
-                    fontSize: compact ? 7 : 8,
+                  overflow:
+                      TextOverflow.ellipsis,
+                  style:
+                      AppTextStyles.small
+                          .copyWith(
+                    fontSize:
+                        compact
+                            ? 7
+                            : 8,
                   ),
                 ),
               ],
             ),
           ),
-
           if (totalItems > 0)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-              decoration: BoxDecoration(
-                color: AppColors.primaryLight,
-                borderRadius: BorderRadius.circular(AppRadius.round),
+              padding:
+                  const EdgeInsets
+                      .symmetric(
+                horizontal: 7,
+                vertical: 3,
+              ),
+              decoration:
+                  BoxDecoration(
+                color:
+                    AppColors.primaryLight,
+                borderRadius:
+                    BorderRadius.circular(
+                  AppRadius.round,
+                ),
               ),
               child: Text(
                 '$totalItems',
-                style: AppTextStyles.small.copyWith(
+                style:
+                    AppTextStyles.small
+                        .copyWith(
                   fontSize: 8,
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w700,
+                  color:
+                      AppColors.primary,
+                  fontWeight:
+                      FontWeight.w700,
                 ),
               ),
             ),
@@ -1807,48 +2745,80 @@ class _SalesScreenState extends State<SalesScreen> {
   // CART SUMMARY
   // ============================================================
 
-  Widget _buildCartSummary({bool compact = false}) {
-    final r = context.responsive;
+  Widget _buildCartSummary({
+    bool compact = false,
+  }) {
+    final r =
+        context.responsive;
 
     if (cart.isEmpty) {
       return Center(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(
-            compact ? AppSpacing.sm : r.horizontalPadding,
+        child:
+            SingleChildScrollView(
+          padding:
+              EdgeInsets.all(
+            compact
+                ? AppSpacing.sm
+                : r.horizontalPadding,
           ),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize:
+                MainAxisSize.min,
             children: [
               Container(
-                width: compact ? 40 : 44,
-                height: compact ? 40 : 44,
-                decoration: const BoxDecoration(
-                  color: AppColors.surfaceSoft,
-                  shape: BoxShape.circle,
+                width:
+                    compact ? 40 : 44,
+                height:
+                    compact ? 40 : 44,
+                decoration:
+                    const BoxDecoration(
+                  color:
+                      AppColors
+                          .surfaceSoft,
+                  shape:
+                      BoxShape.circle,
                 ),
                 child: Icon(
-                  Icons.shopping_cart_outlined,
-                  size: compact ? 19 : 21,
-                  color: AppColors.textMuted,
+                  Icons
+                      .shopping_cart_outlined,
+                  size:
+                      compact ? 19 : 21,
+                  color:
+                      AppColors.textMuted,
                 ),
               ),
-
-              const SizedBox(height: AppSpacing.sm),
-
+              const SizedBox(
+                height:
+                    AppSpacing.sm,
+              ),
               Text(
                 'Cart is empty',
-                style: AppTextStyles.body.copyWith(
-                  fontSize: compact ? 9 : 10,
-                  fontWeight: FontWeight.w600,
+                style:
+                    AppTextStyles.body
+                        .copyWith(
+                  fontSize:
+                      compact
+                          ? 9
+                          : 10,
+                  fontWeight:
+                      FontWeight.w600,
                 ),
               ),
-
-              const SizedBox(height: 2),
-
+              const SizedBox(
+                height: 2,
+              ),
               Text(
                 'Select products to begin',
-                textAlign: TextAlign.center,
-                style: AppTextStyles.small.copyWith(fontSize: compact ? 7 : 8),
+                textAlign:
+                    TextAlign.center,
+                style:
+                    AppTextStyles.small
+                        .copyWith(
+                  fontSize:
+                      compact
+                          ? 7
+                          : 8,
+                ),
               ),
             ],
           ),
@@ -1857,32 +2827,55 @@ class _SalesScreenState extends State<SalesScreen> {
     }
 
     return ListView.builder(
-      physics: const ClampingScrollPhysics(),
-      padding: EdgeInsets.fromLTRB(
+      physics:
+          const ClampingScrollPhysics(),
+      padding:
+          EdgeInsets.fromLTRB(
         compact ? 5 : 6,
         compact ? 4 : 6,
         compact ? 5 : 6,
         compact ? 4 : 6,
       ),
-      itemCount: cart.length + 1,
-      itemBuilder: (context, index) {
+      itemCount:
+          cart.length + 1,
+      itemBuilder:
+          (context, index) {
         if (index == cart.length) {
-          return _buildSubtotalCard(compact: compact);
+          return _buildSubtotalCard(
+            compact:
+                compact,
+          );
         }
 
-        final entry = cart.entries.elementAt(index);
+        final entry =
+            cart.entries.elementAt(
+          index,
+        );
 
-        final product = _findProduct(entry.key);
+        final product =
+            _findProduct(
+          entry.key,
+        );
 
         if (product == null) {
           return const SizedBox.shrink();
         }
 
-        final qty = entry.value;
+        final qty =
+            entry.value;
 
-        final lineTotal = qty * product.sellingPrice.toInt();
+        final lineTotal =
+            qty *
+                product.sellingPrice
+                    .toInt();
 
-        return _buildCartItem(product, qty, lineTotal, compact: compact);
+        return _buildCartItem(
+          product,
+          qty,
+          lineTotal,
+          compact:
+              compact,
+        );
       },
     );
   }
@@ -1897,133 +2890,236 @@ class _SalesScreenState extends State<SalesScreen> {
     int lineTotal, {
     bool compact = false,
   }) {
-    final itemHeight = compact ? 46.0 : 50.0;
+    final itemHeight =
+        compact ? 46.0 : 50.0;
 
-    final canAdd = qty < product.stock;
+    final canAdd =
+        qty < product.stock;
 
     return Container(
       height: itemHeight,
-      margin: const EdgeInsets.only(bottom: 3),
-      padding: EdgeInsets.symmetric(
-        horizontal: compact ? 4 : 6,
-        vertical: compact ? 2 : 3,
+      margin:
+          const EdgeInsets.only(
+        bottom: 3,
       ),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-        border: Border.all(color: AppColors.border),
+      padding:
+          EdgeInsets.symmetric(
+        horizontal:
+            compact ? 4 : 6,
+        vertical:
+            compact ? 2 : 3,
+      ),
+      decoration:
+          BoxDecoration(
+        color:
+            AppColors.background,
+        borderRadius:
+            BorderRadius.circular(
+          AppRadius.sm,
+        ),
+        border:
+            Border.all(
+          color:
+              AppColors.border,
+        ),
       ),
       child: Row(
         children: [
           Container(
-            width: compact ? 32 : 36,
-            height: compact ? 32 : 36,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceSoft,
-              borderRadius: BorderRadius.circular(AppRadius.sm),
+            width:
+                compact ? 32 : 36,
+            height:
+                compact ? 32 : 36,
+            decoration:
+                BoxDecoration(
+              color:
+                  AppColors.surfaceSoft,
+              borderRadius:
+                  BorderRadius.circular(
+                AppRadius.sm,
+              ),
             ),
-            child: product.imagePath != null && product.imagePath!.isNotEmpty
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                    child: Image.file(
-                      File(product.imagePath!),
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) {
-                        return const Icon(
-                          Icons.inventory_2_outlined,
-                          size: 16,
-                          color: AppColors.primary,
-                        );
-                      },
-                    ),
-                  )
-                : const Icon(
-                    Icons.inventory_2_outlined,
-                    size: 16,
-                    color: AppColors.primary,
-                  ),
+            child:
+                product.imagePath !=
+                            null &&
+                        product
+                            .imagePath!
+                            .isNotEmpty
+                    ? ClipRRect(
+                        borderRadius:
+                            BorderRadius.circular(
+                          AppRadius.sm,
+                        ),
+                        child:
+                            Image.file(
+                          File(
+                            product
+                                .imagePath!,
+                          ),
+                          fit:
+                              BoxFit.contain,
+                          errorBuilder:
+                              (
+                            _,
+                            __,
+                            ___,
+                          ) {
+                            return const Icon(
+                              Icons
+                                  .inventory_2_outlined,
+                              size: 16,
+                              color:
+                                  AppColors.primary,
+                            );
+                          },
+                        ),
+                      )
+                    : const Icon(
+                        Icons
+                            .inventory_2_outlined,
+                        size: 16,
+                        color:
+                            AppColors.primary,
+                      ),
           ),
-
-          const SizedBox(width: 5),
-
+          const SizedBox(
+            width: 5,
+          ),
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment:
+                  CrossAxisAlignment
+                      .start,
+              mainAxisAlignment:
+                  MainAxisAlignment
+                      .center,
+              mainAxisSize:
+                  MainAxisSize.min,
               children: [
                 Text(
                   product.name,
                   maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.body.copyWith(
-                    fontSize: compact ? 7 : 8,
-                    fontWeight: FontWeight.w600,
+                  overflow:
+                      TextOverflow.ellipsis,
+                  style:
+                      AppTextStyles.body
+                          .copyWith(
+                    fontSize:
+                        compact
+                            ? 7
+                            : 8,
+                    fontWeight:
+                        FontWeight.w600,
                   ),
                 ),
                 Text(
                   '₦${_formatMoney(product.sellingPrice)} × $qty',
                   maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.small.copyWith(
-                    fontSize: compact ? 6 : 7,
+                  overflow:
+                      TextOverflow.ellipsis,
+                  style:
+                      AppTextStyles.small
+                          .copyWith(
+                    fontSize:
+                        compact
+                            ? 6
+                            : 7,
                   ),
                 ),
               ],
             ),
           ),
-
-          const SizedBox(width: 2),
-
+          const SizedBox(
+            width: 2,
+          ),
           Text(
             '₦${_formatMoney(lineTotal)}',
-            style: AppTextStyles.body.copyWith(
-              fontSize: compact ? 7 : 8,
-              fontWeight: FontWeight.w700,
+            style:
+                AppTextStyles.body
+                    .copyWith(
+              fontSize:
+                  compact
+                      ? 7
+                      : 8,
+              fontWeight:
+                  FontWeight.w700,
             ),
           ),
-
           SizedBox(
-            width: compact ? 24 : 26,
-            height: compact ? 26 : 28,
+            width:
+                compact ? 24 : 26,
+            height:
+                compact ? 26 : 28,
             child: IconButton(
-              padding: EdgeInsets.zero,
-              iconSize: compact ? 12 : 13,
-              tooltip: 'Remove one',
-              color: AppColors.danger,
+              padding:
+                  EdgeInsets.zero,
+              iconSize:
+                  compact ? 12 : 13,
+              tooltip:
+                  'Remove one',
+              color:
+                  AppColors.danger,
               onPressed: () {
-                _removeProductFromCart(product);
+                _removeProductFromCart(
+                  product,
+                );
               },
-              icon: const Icon(Icons.remove_circle_outline),
+              icon:
+                  const Icon(
+                Icons
+                    .remove_circle_outline,
+              ),
             ),
           ),
-
           SizedBox(
             width: 15,
             child: Text(
               '$qty',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.body.copyWith(
-                fontSize: compact ? 7 : 8,
-                fontWeight: FontWeight.w700,
+              textAlign:
+                  TextAlign.center,
+              style:
+                  AppTextStyles.body
+                      .copyWith(
+                fontSize:
+                    compact
+                        ? 7
+                        : 8,
+                fontWeight:
+                    FontWeight.w700,
               ),
             ),
           ),
-
           SizedBox(
-            width: compact ? 24 : 26,
-            height: compact ? 26 : 28,
+            width:
+                compact ? 24 : 26,
+            height:
+                compact ? 26 : 28,
             child: IconButton(
-              padding: EdgeInsets.zero,
-              iconSize: compact ? 12 : 13,
-              tooltip: canAdd ? 'Add one' : 'Maximum stock reached',
-              color: canAdd ? AppColors.success : AppColors.textMuted,
-              onPressed: canAdd
-                  ? () {
-                      _addProductToCart(product);
-                    }
-                  : null,
-              icon: const Icon(Icons.add_circle_outline),
+              padding:
+                  EdgeInsets.zero,
+              iconSize:
+                  compact ? 12 : 13,
+              tooltip:
+                  canAdd
+                      ? 'Add one'
+                      : 'Maximum stock reached',
+              color:
+                  canAdd
+                      ? AppColors.success
+                      : AppColors.textMuted,
+              onPressed:
+                  canAdd
+                      ? () {
+                          _addProductToCart(
+                            product,
+                          );
+                        }
+                      : null,
+              icon:
+                  const Icon(
+                Icons
+                    .add_circle_outline,
+              ),
             ),
           ),
         ],
@@ -2035,35 +3131,60 @@ class _SalesScreenState extends State<SalesScreen> {
   // SUBTOTAL
   // ============================================================
 
-  Widget _buildSubtotalCard({bool compact = false}) {
+  Widget _buildSubtotalCard({
+    bool compact = false,
+  }) {
     return Container(
-      margin: const EdgeInsets.only(top: 2, bottom: 2),
-      padding: EdgeInsets.symmetric(
-        horizontal: compact ? 7 : AppSpacing.md,
-        vertical: compact ? 6 : AppSpacing.sm,
+      margin:
+          const EdgeInsets.only(
+        top: 2,
+        bottom: 2,
       ),
-      decoration: BoxDecoration(
-        color: AppColors.primaryLight,
-        borderRadius: BorderRadius.circular(AppRadius.sm),
+      padding:
+          EdgeInsets.symmetric(
+        horizontal:
+            compact
+                ? 7
+                : AppSpacing.md,
+        vertical:
+            compact
+                ? 6
+                : AppSpacing.sm,
+      ),
+      decoration:
+          BoxDecoration(
+        color:
+            AppColors.primaryLight,
+        borderRadius:
+            BorderRadius.circular(
+          AppRadius.sm,
+        ),
       ),
       child: Row(
         children: [
           Text(
             'Subtotal',
-            style: AppTextStyles.body.copyWith(
-              fontSize: compact ? 8 : 10,
-              fontWeight: FontWeight.w600,
+            style:
+                AppTextStyles.body
+                    .copyWith(
+              fontSize:
+                  compact ? 8 : 10,
+              fontWeight:
+                  FontWeight.w600,
             ),
           ),
-
           const Spacer(),
-
           Text(
             '₦${_formatMoney(total)}',
-            style: AppTextStyles.body.copyWith(
-              fontSize: compact ? 11 : 13,
-              fontWeight: FontWeight.w800,
-              color: AppColors.primary,
+            style:
+                AppTextStyles.body
+                    .copyWith(
+              fontSize:
+                  compact ? 11 : 13,
+              fontWeight:
+                  FontWeight.w800,
+              color:
+                  AppColors.primary,
             ),
           ),
         ],
@@ -2075,17 +3196,23 @@ class _SalesScreenState extends State<SalesScreen> {
   // ADD PRODUCT
   // ============================================================
 
-  void _addProductToCart(Product product) {
+  void _addProductToCart(
+    Product product,
+  ) {
     if (_processingSale) {
       return;
     }
 
     if (product.stock <= 0) {
-      _showMessage('${product.name} is out of stock.', isError: true);
+      _showMessage(
+        '${product.name} is out of stock.',
+        isError: true,
+      );
       return;
     }
 
-    final currentQty = cart[product.id] ?? 0;
+    final currentQty =
+        cart[product.id] ?? 0;
 
     if (currentQty >= product.stock) {
       _showMessage(
@@ -2097,7 +3224,8 @@ class _SalesScreenState extends State<SalesScreen> {
     }
 
     setState(() {
-      cart[product.id] = currentQty + 1;
+      cart[product.id] =
+          currentQty + 1;
     });
   }
 
@@ -2105,18 +3233,22 @@ class _SalesScreenState extends State<SalesScreen> {
   // REMOVE PRODUCT
   // ============================================================
 
-  void _removeProductFromCart(Product product) {
+  void _removeProductFromCart(
+    Product product,
+  ) {
     if (_processingSale) {
       return;
     }
 
-    final currentQty = cart[product.id] ?? 0;
+    final currentQty =
+        cart[product.id] ?? 0;
 
     setState(() {
       if (currentQty <= 1) {
         cart.remove(product.id);
       } else {
-        cart[product.id] = currentQty - 1;
+        cart[product.id] =
+            currentQty - 1;
       }
     });
   }
@@ -2125,22 +3257,42 @@ class _SalesScreenState extends State<SalesScreen> {
   // STOCK BADGE
   // ============================================================
 
-  Widget _buildStockBadge(int stock) {
-    final r = context.responsive;
+  Widget _buildStockBadge(
+    int stock,
+  ) {
+    final r =
+        context.responsive;
 
     if (stock <= 0) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-        decoration: BoxDecoration(
-          color: AppColors.dangerLight,
-          borderRadius: BorderRadius.circular(AppRadius.round),
+        padding:
+            const EdgeInsets
+                .symmetric(
+          horizontal: 4,
+          vertical: 2,
+        ),
+        decoration:
+            BoxDecoration(
+          color:
+              AppColors.dangerLight,
+          borderRadius:
+              BorderRadius.circular(
+            AppRadius.round,
+          ),
         ),
         child: Text(
           'OUT',
-          style: AppTextStyles.small.copyWith(
-            color: AppColors.danger,
-            fontSize: r.isCompact ? 6 : 7,
-            fontWeight: FontWeight.w700,
+          style:
+              AppTextStyles.small
+                  .copyWith(
+            color:
+                AppColors.danger,
+            fontSize:
+                r.isCompact
+                    ? 6
+                    : 7,
+            fontWeight:
+                FontWeight.w700,
           ),
         ),
       );
@@ -2148,34 +3300,68 @@ class _SalesScreenState extends State<SalesScreen> {
 
     if (stock <= 5) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-        decoration: BoxDecoration(
-          color: AppColors.warningLight,
-          borderRadius: BorderRadius.circular(AppRadius.round),
+        padding:
+            const EdgeInsets
+                .symmetric(
+          horizontal: 4,
+          vertical: 2,
+        ),
+        decoration:
+            BoxDecoration(
+          color:
+              AppColors.warningLight,
+          borderRadius:
+              BorderRadius.circular(
+            AppRadius.round,
+          ),
         ),
         child: Text(
           '$stock',
-          style: AppTextStyles.small.copyWith(
-            color: AppColors.warning,
-            fontSize: r.isCompact ? 6 : 7,
-            fontWeight: FontWeight.w700,
+          style:
+              AppTextStyles.small
+                  .copyWith(
+            color:
+                AppColors.warning,
+            fontSize:
+                r.isCompact
+                    ? 6
+                    : 7,
+            fontWeight:
+                FontWeight.w700,
           ),
         ),
       );
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-      decoration: BoxDecoration(
-        color: AppColors.successLight,
-        borderRadius: BorderRadius.circular(AppRadius.round),
+      padding:
+          const EdgeInsets
+              .symmetric(
+        horizontal: 4,
+        vertical: 2,
+      ),
+      decoration:
+          BoxDecoration(
+        color:
+            AppColors.successLight,
+        borderRadius:
+            BorderRadius.circular(
+          AppRadius.round,
+        ),
       ),
       child: Text(
         '$stock',
-        style: AppTextStyles.small.copyWith(
-          color: AppColors.success,
-          fontSize: r.isCompact ? 6 : 7,
-          fontWeight: FontWeight.w600,
+        style:
+            AppTextStyles.small
+                .copyWith(
+          color:
+              AppColors.success,
+          fontSize:
+              r.isCompact
+                  ? 6
+                  : 7,
+          fontWeight:
+              FontWeight.w600,
         ),
       ),
     );
@@ -2185,9 +3371,16 @@ class _SalesScreenState extends State<SalesScreen> {
   // MONEY
   // ============================================================
 
-  String _formatMoney(num value) {
+  String _formatMoney(
+    num value,
+  ) {
     return value
         .toStringAsFixed(0)
-        .replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (match) => ',');
+        .replaceAllMapped(
+          RegExp(
+            r'\B(?=(\d{3})+(?!\d))',
+          ),
+          (match) => ',',
+        );
   }
 }

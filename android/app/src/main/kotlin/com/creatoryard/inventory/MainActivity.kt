@@ -1,4 +1,4 @@
-package com.example.supermarket_inventory
+package com.creatoryard.inventory
 
 import io.flutter.embedding.android.FlutterActivity
 

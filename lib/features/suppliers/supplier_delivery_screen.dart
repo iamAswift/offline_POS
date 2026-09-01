@@ -241,7 +241,9 @@ class _SupplierDeliveriesScreenState
             onPressed: _loading ? null : _loadDeliveries,
             icon: const Icon(Icons.refresh),
           ),
-          SizedBox(width: responsive.isCompact ? 4 : 8),
+          SizedBox(
+            width: responsive.isCompact ? 4 : 8,
+          ),
         ],
       ),
 
@@ -253,7 +255,8 @@ class _SupplierDeliveriesScreenState
               onRefresh: _loadDeliveries,
 
               child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
+                physics:
+                    const AlwaysScrollableScrollPhysics(),
 
                 slivers: [
                   // ========================================================
@@ -267,6 +270,7 @@ class _SupplierDeliveriesScreenState
                       responsive.horizontalPadding,
                       8,
                     ),
+
                     sliver: SliverToBoxAdapter(
                       child: _buildHeader(),
                     ),
@@ -283,6 +287,7 @@ class _SupplierDeliveriesScreenState
                       responsive.horizontalPadding,
                       8,
                     ),
+
                     sliver: SliverToBoxAdapter(
                       child: _buildSearch(),
                     ),
@@ -293,10 +298,24 @@ class _SupplierDeliveriesScreenState
                   // ========================================================
 
                   if (_filteredDeliveries.isEmpty)
+
+                    // ------------------------------------------------------
+                    // IMPORTANT:
+                    //
+                    // hasScrollBody is true here because the empty state
+                    // can be taller than the remaining viewport on the
+                    // CM8800plus.
+                    //
+                    // This prevents:
+                    //
+                    // RenderFlex overflowed by X pixels on the bottom.
+                    // ------------------------------------------------------
+
                     SliverFillRemaining(
-                      hasScrollBody: false,
+                      hasScrollBody: true,
                       child: _buildEmptyState(),
                     )
+
                   else
                     SliverPadding(
                       padding: EdgeInsets.fromLTRB(
@@ -305,6 +324,7 @@ class _SupplierDeliveriesScreenState
                         responsive.horizontalPadding,
                         110,
                       ),
+
                       sliver: SliverLayoutBuilder(
                         builder: (
                           context,
@@ -377,7 +397,8 @@ class _SupplierDeliveriesScreenState
                               crossAxisCount: columns,
                               crossAxisSpacing: 14,
                               mainAxisSpacing: 14,
-                              childAspectRatio: aspectRatio,
+                              childAspectRatio:
+                                  aspectRatio,
                             ),
                           );
                         },
@@ -434,48 +455,73 @@ class _SupplierDeliveriesScreenState
       ),
 
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
 
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment:
+                CrossAxisAlignment.center,
+
             children: [
               Container(
-                width: responsive.isCompact ? 50 : 56,
-                height: responsive.isCompact ? 50 : 56,
+                width:
+                    responsive.isCompact
+                        ? 50
+                        : 56,
+
+                height:
+                    responsive.isCompact
+                        ? 50
+                        : 56,
 
                 decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(15),
+                  color:
+                      AppColors.primaryLight,
+                  borderRadius:
+                      BorderRadius.circular(15),
                 ),
 
                 child: Icon(
                   Icons.local_shipping_outlined,
-                  color: AppColors.primary,
-                  size: responsive.isCompact ? 26 : 29,
+                  color:
+                      AppColors.primary,
+                  size:
+                      responsive.isCompact
+                          ? 26
+                          : 29,
                 ),
               ),
 
               SizedBox(
-                width: responsive.isCompact ? 11 : 14,
+                width:
+                    responsive.isCompact
+                        ? 11
+                        : 14,
               ),
 
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+
                   children: [
                     Text(
                       widget.supplier.name,
                       maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.heading,
+                      overflow:
+                          TextOverflow.ellipsis,
+                      style:
+                          AppTextStyles.heading,
                     ),
 
                     const SizedBox(height: 4),
 
                     const Text(
                       'Supplier delivery history',
-                      style: AppTextStyles.bodySecondary,
+                      style:
+                          AppTextStyles
+                              .bodySecondary,
                     ),
                   ],
                 ),
@@ -484,7 +530,10 @@ class _SupplierDeliveriesScreenState
           ),
 
           SizedBox(
-            height: responsive.isCompact ? 16 : 20,
+            height:
+                responsive.isCompact
+                    ? 16
+                    : 20,
           ),
 
           LayoutBuilder(
@@ -499,18 +548,29 @@ class _SupplierDeliveriesScreenState
                 return Column(
                   children: [
                     _buildMetric(
-                      icon: Icons.local_shipping_outlined,
-                      label: 'Deliveries',
-                      value: '${_deliveries.length}',
+                      icon:
+                          Icons
+                              .local_shipping_outlined,
+                      label:
+                          'Deliveries',
+                      value:
+                          '${_deliveries.length}',
                     ),
 
-                    const SizedBox(height: 10),
+                    const SizedBox(
+                      height: 10,
+                    ),
 
                     _buildMetric(
                       icon:
-                          Icons.account_balance_wallet_outlined,
-                      label: 'Purchase Value',
-                      value: _money(_totalPurchases),
+                          Icons
+                              .account_balance_wallet_outlined,
+                      label:
+                          'Purchase Value',
+                      value:
+                          _money(
+                        _totalPurchases,
+                      ),
                     ),
                   ],
                 );
@@ -521,20 +581,30 @@ class _SupplierDeliveriesScreenState
                   Expanded(
                     child: _buildMetric(
                       icon:
-                          Icons.local_shipping_outlined,
-                      label: 'Deliveries',
-                      value: '${_deliveries.length}',
+                          Icons
+                              .local_shipping_outlined,
+                      label:
+                          'Deliveries',
+                      value:
+                          '${_deliveries.length}',
                     ),
                   ),
 
-                  const SizedBox(width: 12),
+                  const SizedBox(
+                    width: 12,
+                  ),
 
                   Expanded(
                     child: _buildMetric(
                       icon:
-                          Icons.account_balance_wallet_outlined,
-                      label: 'Purchase Value',
-                      value: _money(_totalPurchases),
+                          Icons
+                              .account_balance_wallet_outlined,
+                      label:
+                          'Purchase Value',
+                      value:
+                          _money(
+                        _totalPurchases,
+                      ),
                     ),
                   ),
                 ],
@@ -553,13 +623,19 @@ class _SupplierDeliveriesScreenState
   }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
 
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(13),
+      padding:
+          const EdgeInsets.all(14),
+
+      decoration:
+          BoxDecoration(
+        color:
+            AppColors.background,
+        borderRadius:
+            BorderRadius.circular(13),
         border: Border.all(
-          color: AppColors.border,
+          color:
+              AppColors.border,
         ),
       ),
 
@@ -569,14 +645,20 @@ class _SupplierDeliveriesScreenState
             width: 40,
             height: 40,
 
-            decoration: BoxDecoration(
-              color: AppColors.primaryLight,
-              borderRadius: BorderRadius.circular(10),
+            decoration:
+                BoxDecoration(
+              color:
+                  AppColors.primaryLight,
+              borderRadius:
+                  BorderRadius.circular(
+                10,
+              ),
             ),
 
             child: Icon(
               icon,
-              color: AppColors.primary,
+              color:
+                  AppColors.primary,
               size: 20,
             ),
           ),
@@ -585,11 +667,14 @@ class _SupplierDeliveriesScreenState
 
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+
               children: [
                 Text(
                   label,
-                  style: AppTextStyles.small,
+                  style:
+                      AppTextStyles.small,
                 ),
 
                 const SizedBox(height: 2),
@@ -597,8 +682,10 @@ class _SupplierDeliveriesScreenState
                 Text(
                   value,
                   maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.price,
+                  overflow:
+                      TextOverflow.ellipsis,
+                  style:
+                      AppTextStyles.price,
                 ),
               ],
             ),
@@ -624,50 +711,67 @@ class _SupplierDeliveriesScreenState
         hintText:
             'Search invoice, delivery number or notes...',
 
-        prefixIcon: const Icon(
-          Icons.search,
-        ),
+        prefixIcon:
+            const Icon(Icons.search),
 
-        suffixIcon: _searchQuery.isEmpty
-            ? null
-            : IconButton(
-                tooltip: 'Clear search',
-                onPressed: () {
-                  setState(() {
-                    _searchQuery = '';
-                  });
-                },
-                icon: const Icon(
-                  Icons.clear,
-                ),
-              ),
+        suffixIcon:
+            _searchQuery.isEmpty
+                ? null
+                : IconButton(
+                    tooltip:
+                        'Clear search',
+                    onPressed: () {
+                      setState(() {
+                        _searchQuery =
+                            '';
+                      });
+                    },
+                    icon:
+                        const Icon(
+                      Icons.clear,
+                    ),
+                  ),
 
         filled: true,
-        fillColor: AppColors.surface,
+        fillColor:
+            AppColors.surface,
 
-        contentPadding: const EdgeInsets.symmetric(
+        contentPadding:
+            const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 14,
         ),
 
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(13),
-          borderSide: const BorderSide(
-            color: AppColors.border,
+        border:
+            OutlineInputBorder(
+          borderRadius:
+              BorderRadius.circular(13),
+          borderSide:
+              const BorderSide(
+            color:
+                AppColors.border,
           ),
         ),
 
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(13),
-          borderSide: const BorderSide(
-            color: AppColors.border,
+        enabledBorder:
+            OutlineInputBorder(
+          borderRadius:
+              BorderRadius.circular(13),
+          borderSide:
+              const BorderSide(
+            color:
+                AppColors.border,
           ),
         ),
 
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(13),
-          borderSide: const BorderSide(
-            color: AppColors.primary,
+        focusedBorder:
+            OutlineInputBorder(
+          borderRadius:
+              BorderRadius.circular(13),
+          borderSide:
+              const BorderSide(
+            color:
+                AppColors.primary,
             width: 1.5,
           ),
         ),
@@ -683,72 +787,165 @@ class _SupplierDeliveriesScreenState
     final searching =
         _searchQuery.trim().isNotEmpty;
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
+    return LayoutBuilder(
+      builder: (
+        context,
+        constraints,
+      ) {
+        return SingleChildScrollView(
+          physics:
+              const AlwaysScrollableScrollPhysics(),
 
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxWidth: 430,
+          padding:
+              const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 16,
           ),
 
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          child: ConstrainedBox(
+            constraints:
+                BoxConstraints(
+              minHeight:
+                  constraints.maxHeight,
+            ),
 
-            children: [
-              Container(
-                width: 76,
-                height: 76,
-
-                decoration: const BoxDecoration(
-                  color: AppColors.primaryLight,
-                  shape: BoxShape.circle,
+            child: Center(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(
+                  vertical: 8,
                 ),
 
-                child: Icon(
-                  searching
-                      ? Icons.search_off
-                      : Icons.local_shipping_outlined,
-                  size: 36,
-                  color: AppColors.primary,
-                ),
-              ),
+                child: ConstrainedBox(
+                  constraints:
+                      const BoxConstraints(
+                    maxWidth: 430,
+                  ),
 
-              const SizedBox(height: 18),
+                  child: Column(
+                    mainAxisSize:
+                        MainAxisSize.min,
 
-              Text(
-                searching
-                    ? 'No deliveries found'
-                    : 'No deliveries yet',
-                textAlign: TextAlign.center,
-                style: AppTextStyles.title,
-              ),
+                    children: [
+                      // ==================================================
+                      // ICON
+                      // ==================================================
 
-              const SizedBox(height: 7),
+                      Container(
+                        width: 76,
+                        height: 76,
 
-              Text(
-                searching
-                    ? 'Try a different invoice number, delivery number or note.'
-                    : 'Receive your first supplier delivery to begin tracking purchases and stock.',
-                textAlign: TextAlign.center,
-                style: AppTextStyles.bodySecondary,
-              ),
+                        decoration:
+                            const BoxDecoration(
+                          color:
+                              AppColors
+                                  .primaryLight,
+                          shape:
+                              BoxShape.circle,
+                        ),
 
-              if (!searching) ...[
-                const SizedBox(height: 20),
+                        child: Icon(
+                          searching
+                              ? Icons.search_off
+                              : Icons
+                                  .local_shipping_outlined,
 
-                ElevatedButton.icon(
-                  onPressed: _showAddDeliveryDialog,
-                  icon: const Icon(Icons.add),
-                  label: const Text(
-                    'Receive Delivery',
+                          size: 36,
+
+                          color:
+                              AppColors.primary,
+                        ),
+                      ),
+
+                      const SizedBox(
+                        height: 18,
+                      ),
+
+                      // ==================================================
+                      // TITLE
+                      // ==================================================
+
+                      Text(
+                        searching
+                            ? 'No deliveries found'
+                            : 'No deliveries yet',
+
+                        textAlign:
+                            TextAlign.center,
+
+                        style:
+                            AppTextStyles.title,
+                      ),
+
+                      const SizedBox(
+                        height: 7,
+                      ),
+
+                      // ==================================================
+                      // DESCRIPTION
+                      // ==================================================
+
+                      Padding(
+                        padding:
+                            const EdgeInsets
+                                .symmetric(
+                          horizontal: 8,
+                        ),
+
+                        child: Text(
+                          searching
+                              ? 'Try a different invoice number, delivery number or note.'
+                              : 'Receive your first supplier delivery to begin tracking purchases and stock.',
+
+                          textAlign:
+                              TextAlign.center,
+
+                          style:
+                              AppTextStyles
+                                  .bodySecondary,
+                        ),
+                      ),
+
+                      // ==================================================
+                      // BUTTON
+                      // ==================================================
+
+                      if (!searching) ...[
+                        const SizedBox(
+                          height: 20,
+                        ),
+
+                        ElevatedButton.icon(
+                          onPressed:
+                              _showAddDeliveryDialog,
+
+                          icon:
+                              const Icon(
+                            Icons.add,
+                          ),
+
+                          label:
+                              const Text(
+                            'Receive Delivery',
+                          ),
+                        ),
+                      ],
+
+                      // ==================================================
+                      // BOTTOM BREATHING ROOM
+                      // ==================================================
+
+                      const SizedBox(
+                        height: 8,
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -760,23 +957,32 @@ class _SupplierDeliveriesScreenState
     return '₦${amount.toStringAsFixed(2)}';
   }
 
-  void _showMessage(String message) {
+  void _showMessage(
+    String message,
+  ) {
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
       SnackBar(
-        content: Text(message),
+        content:
+            Text(message),
       ),
     );
   }
 
-  void _showError(String message) {
+  void _showError(
+    String message,
+  ) {
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.danger,
+        content:
+            Text(message),
+        backgroundColor:
+            AppColors.danger,
       ),
     );
   }
@@ -786,7 +992,8 @@ class _SupplierDeliveriesScreenState
 // ADD DELIVERY DIALOG
 // ============================================================================
 
-class _AddDeliveryDialog extends StatefulWidget {
+class _AddDeliveryDialog
+    extends StatefulWidget {
   final Supplier supplier;
   final SupplierDeliveryDao deliveryDao;
 
@@ -804,7 +1011,8 @@ class _AddDeliveryDialogState
     extends State<_AddDeliveryDialog> {
   late final ProductDao _productDao;
 
-  final _formKey = GlobalKey<FormState>();
+  final _formKey =
+      GlobalKey<FormState>();
 
   final _invoiceController =
       TextEditingController();
@@ -825,13 +1033,15 @@ class _AddDeliveryDialogState
 
   Product? _selectedProduct;
 
-  DateTime _deliveryDate = DateTime.now();
+  DateTime _deliveryDate =
+      DateTime.now();
 
   @override
   void initState() {
     super.initState();
 
-    _productDao = getProductDao();
+    _productDao =
+        getProductDao();
 
     _loadProducts();
   }
@@ -843,13 +1053,16 @@ class _AddDeliveryDialogState
   Future<void> _loadProducts() async {
     try {
       final products =
-          await _productDao.getAllProducts();
+          await _productDao
+              .getAllProducts();
 
       if (!mounted) return;
 
       setState(() {
-        _products = products;
-        _loadingProducts = false;
+        _products =
+            products;
+        _loadingProducts =
+            false;
       });
     } catch (e) {
       debugPrint(
@@ -859,7 +1072,8 @@ class _AddDeliveryDialogState
       if (!mounted) return;
 
       setState(() {
-        _loadingProducts = false;
+        _loadingProducts =
+            false;
       });
 
       _showError(
@@ -877,11 +1091,13 @@ class _AddDeliveryDialogState
       return;
     }
 
-    if (!_formKey.currentState!.validate()) {
+    if (!_formKey.currentState!
+        .validate()) {
       return;
     }
 
-    final product = _selectedProduct;
+    final product =
+        _selectedProduct;
 
     if (product == null) {
       _showError(
@@ -892,13 +1108,15 @@ class _AddDeliveryDialogState
 
     final quantity =
         int.tryParse(
-              _quantityController.text.trim(),
+              _quantityController.text
+                  .trim(),
             ) ??
             0;
 
     final unitCost =
         double.tryParse(
-              _unitCostController.text.trim(),
+              _unitCostController.text
+                  .trim(),
             ) ??
             0;
 
@@ -926,48 +1144,65 @@ class _AddDeliveryDialogState
     try {
       final delivery =
           SupplierDeliveriesCompanion(
-        supplierId: Value(
+        supplierId:
+            Value(
           widget.supplier.id,
         ),
 
-        deliveryDate: Value(
+        deliveryDate:
+            Value(
           _deliveryDate,
         ),
 
         invoiceNumber:
-            _invoiceController.text.trim().isEmpty
+            _invoiceController
+                    .text
+                    .trim()
+                    .isEmpty
                 ? const Value.absent()
                 : Value(
-                    _invoiceController.text.trim(),
+                    _invoiceController
+                        .text
+                        .trim(),
                   ),
 
-        totalAmount: Value(
+        totalAmount:
+            Value(
           totalCost,
         ),
 
         notes:
-            _notesController.text.trim().isEmpty
+            _notesController
+                    .text
+                    .trim()
+                    .isEmpty
                 ? const Value.absent()
                 : Value(
-                    _notesController.text.trim(),
+                    _notesController
+                        .text
+                        .trim(),
                   ),
       );
 
       final item =
           SupplierDeliveryItemsCompanion(
-        productId: Value(
+        productId:
+            Value(
           product.id,
         ),
 
-        quantity: Value(
+        quantity:
+            Value(
           quantity,
         ),
 
-        unitCost: Value(
+        unitCost:
+            Value(
           unitCost,
         ),
 
-        totalCost: Value(
+        totalCost:
+            Value(
           totalCost,
         ),
 
@@ -975,8 +1210,10 @@ class _AddDeliveryDialogState
             const Value.absent(),
       );
 
-      await widget.deliveryDao.receiveDelivery(
-        delivery: delivery,
+      await widget.deliveryDao
+          .receiveDelivery(
+        delivery:
+            delivery,
         items: [
           item,
         ],
@@ -986,7 +1223,8 @@ class _AddDeliveryDialogState
         return;
       }
 
-      Navigator.of(context).pop(true);
+      Navigator.of(context)
+          .pop(true);
     } catch (e) {
       debugPrint(
         'Receive delivery error: $e',
@@ -1012,40 +1250,39 @@ class _AddDeliveryDialogState
 
   @override
   Widget build(BuildContext context) {
-    final responsive = context.responsive;
+    final responsive =
+        context.responsive;
 
     final width =
-        MediaQuery.sizeOf(context).width;
+        MediaQuery.sizeOf(context)
+            .width;
 
     final screenHeight =
-        MediaQuery.sizeOf(context).height;
+        MediaQuery.sizeOf(context)
+            .height;
 
-    // ------------------------------------------------------------
-    // For CM8800plus:
-    //
-    // logical width ≈ 516
-    //
-    // Dialog width becomes roughly 484, which is appropriate.
-    // Keep a little extra breathing room on compact devices.
-    // ------------------------------------------------------------
-
-    final dialogWidth = responsive.isCompact
-        ? width - 24
-        : width >= 900
-            ? 650.0
-            : width >= 600
-                ? 580.0
-                : width - 32;
+    final dialogWidth =
+        responsive.isCompact
+            ? width - 24
+            : width >= 900
+                ? 650.0
+                : width >= 600
+                    ? 580.0
+                    : width - 32;
 
     final quantity =
         int.tryParse(
-              _quantityController.text.trim(),
+              _quantityController
+                  .text
+                  .trim(),
             ) ??
             0;
 
     final unitCost =
         double.tryParse(
-              _unitCostController.text.trim(),
+              _unitCostController
+                  .text
+                  .trim(),
             ) ??
             0;
 
@@ -1053,30 +1290,48 @@ class _AddDeliveryDialogState
         quantity * unitCost;
 
     return AlertDialog(
-      insetPadding: EdgeInsets.symmetric(
+      insetPadding:
+          EdgeInsets.symmetric(
         horizontal:
-            responsive.isCompact ? 12 : 16,
+            responsive.isCompact
+                ? 12
+                : 16,
         vertical: 20,
       ),
 
-      titlePadding: EdgeInsets.fromLTRB(
-        responsive.isCompact ? 18 : 24,
+      titlePadding:
+          EdgeInsets.fromLTRB(
+        responsive.isCompact
+            ? 18
+            : 24,
         18,
-        responsive.isCompact ? 18 : 24,
+        responsive.isCompact
+            ? 18
+            : 24,
         8,
       ),
 
-      contentPadding: EdgeInsets.fromLTRB(
-        responsive.isCompact ? 18 : 24,
+      contentPadding:
+          EdgeInsets.fromLTRB(
+        responsive.isCompact
+            ? 18
+            : 24,
         10,
-        responsive.isCompact ? 18 : 24,
+        responsive.isCompact
+            ? 18
+            : 24,
         8,
       ),
 
-      actionsPadding: EdgeInsets.fromLTRB(
-        responsive.isCompact ? 12 : 16,
+      actionsPadding:
+          EdgeInsets.fromLTRB(
+        responsive.isCompact
+            ? 12
+            : 16,
         4,
-        responsive.isCompact ? 12 : 16,
+        responsive.isCompact
+            ? 12
+            : 16,
         12,
       ),
 
@@ -1086,53 +1341,71 @@ class _AddDeliveryDialogState
             width: 42,
             height: 42,
 
-            decoration: BoxDecoration(
-              color: AppColors.primaryLight,
+            decoration:
+                BoxDecoration(
+              color:
+                  AppColors
+                      .primaryLight,
               borderRadius:
-                  BorderRadius.circular(11),
+                  BorderRadius.circular(
+                11,
+              ),
             ),
 
-            child: const Icon(
-              Icons.local_shipping_outlined,
-              color: AppColors.primary,
+            child:
+                const Icon(
+              Icons
+                  .local_shipping_outlined,
+              color:
+                  AppColors.primary,
             ),
           ),
 
-          const SizedBox(width: 12),
+          const SizedBox(
+            width: 12,
+          ),
 
           const Expanded(
             child: Text(
               'Receive Supplier Delivery',
-              style: AppTextStyles.title,
+              style:
+                  AppTextStyles.title,
             ),
           ),
         ],
       ),
 
       content: SizedBox(
-        width: dialogWidth,
+        width:
+            dialogWidth,
 
-        // ----------------------------------------------------------
-        // Limit the form height so the dialog remains usable when
-        // the CM8800plus keyboard appears.
-        // ----------------------------------------------------------
-
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxHeight: screenHeight * 0.68,
+        child:
+            ConstrainedBox(
+          constraints:
+              BoxConstraints(
+            maxHeight:
+                screenHeight *
+                    0.68,
           ),
 
-          child: SingleChildScrollView(
+          child:
+              SingleChildScrollView(
             keyboardDismissBehavior:
-                ScrollViewKeyboardDismissBehavior.onDrag,
+                ScrollViewKeyboardDismissBehavior
+                    .onDrag,
 
             child: Form(
-              key: _formKey,
+              key:
+                  _formKey,
 
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+              child:
+                  Column(
+                mainAxisSize:
+                    MainAxisSize.min,
+
                 crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                    CrossAxisAlignment
+                        .start,
 
                 children: [
                   // ========================================================
@@ -1147,17 +1420,21 @@ class _AddDeliveryDialogState
                         const InputDecoration(
                       labelText:
                           'Invoice / Delivery Note',
-                      hintText: 'Optional',
+                      hintText:
+                          'Optional',
                       border:
                           OutlineInputBorder(),
-                      prefixIcon: Icon(
+                      prefixIcon:
+                          Icon(
                         Icons
                             .receipt_long_outlined,
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 14),
+                  const SizedBox(
+                    height: 14,
+                  ),
 
                   // ========================================================
                   // DATE
@@ -1165,37 +1442,46 @@ class _AddDeliveryDialogState
 
                   InkWell(
                     borderRadius:
-                        BorderRadius.circular(8),
+                        BorderRadius
+                            .circular(
+                      8,
+                    ),
 
                     onTap:
                         _saving
                             ? null
                             : _selectDeliveryDate,
 
-                    child: InputDecorator(
+                    child:
+                        InputDecorator(
                       decoration:
                           const InputDecoration(
                         labelText:
                             'Delivery Date',
                         border:
                             OutlineInputBorder(),
-                        prefixIcon: Icon(
+                        prefixIcon:
+                            Icon(
                           Icons
                               .calendar_today_outlined,
                         ),
                       ),
 
-                      child: Text(
+                      child:
+                          Text(
                         _formatDate(
                           _deliveryDate,
                         ),
                         style:
-                            AppTextStyles.body,
+                            AppTextStyles
+                                .body,
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(
+                    height: 20,
+                  ),
 
                   // ========================================================
                   // SECTION TITLE
@@ -1207,7 +1493,9 @@ class _AddDeliveryDialogState
                         AppTextStyles.title,
                   ),
 
-                  const SizedBox(height: 10),
+                  const SizedBox(
+                    height: 10,
+                  ),
 
                   // ========================================================
                   // PRODUCT
@@ -1215,7 +1503,9 @@ class _AddDeliveryDialogState
 
                   _buildProductSelector(),
 
-                  const SizedBox(height: 14),
+                  const SizedBox(
+                    height: 14,
+                  ),
 
                   // ========================================================
                   // QUANTITY / COST
@@ -1227,7 +1517,9 @@ class _AddDeliveryDialogState
                       constraints,
                     ) {
                       final compact =
-                          constraints.maxWidth < 420;
+                          constraints
+                                  .maxWidth <
+                              420;
 
                       if (compact) {
                         return Column(
@@ -1237,39 +1529,49 @@ class _AddDeliveryDialogState
                                   _quantityController,
 
                               keyboardType:
-                                  TextInputType.number,
+                                  TextInputType
+                                      .number,
 
                               decoration:
                                   const InputDecoration(
                                 labelText:
                                     'Quantity',
-                                hintText: '0',
+                                hintText:
+                                    '0',
                                 border:
                                     OutlineInputBorder(),
                               ),
 
-                              validator: (value) {
+                              validator:
+                                  (value) {
                                 final quantity =
                                     int.tryParse(
-                                  value?.trim() ??
+                                  value
+                                          ?.trim() ??
                                       '',
                                 );
 
                                 if (quantity ==
                                         null ||
-                                    quantity <= 0) {
+                                    quantity <=
+                                        0) {
                                   return 'Enter quantity';
                                 }
 
                                 return null;
                               },
 
-                              onChanged: (_) {
-                                setState(() {});
+                              onChanged:
+                                  (_) {
+                                setState(
+                                  () {},
+                                );
                               },
                             ),
 
-                            const SizedBox(height: 14),
+                            const SizedBox(
+                              height: 14,
+                            ),
 
                             TextFormField(
                               controller:
@@ -1278,35 +1580,44 @@ class _AddDeliveryDialogState
                               keyboardType:
                                   const TextInputType
                                       .numberWithOptions(
-                                decimal: true,
+                                decimal:
+                                    true,
                               ),
 
                               decoration:
                                   const InputDecoration(
                                 labelText:
                                     'Unit Cost',
-                                hintText: '0.00',
+                                hintText:
+                                    '0.00',
                                 border:
                                     OutlineInputBorder(),
                               ),
 
-                              validator: (value) {
+                              validator:
+                                  (value) {
                                 final cost =
                                     double.tryParse(
-                                  value?.trim() ??
+                                  value
+                                          ?.trim() ??
                                       '',
                                 );
 
-                                if (cost == null ||
-                                    cost < 0) {
+                                if (cost ==
+                                        null ||
+                                    cost <
+                                        0) {
                                   return 'Enter valid cost';
                                 }
 
                                 return null;
                               },
 
-                              onChanged: (_) {
-                                setState(() {});
+                              onChanged:
+                                  (_) {
+                                setState(
+                                  () {},
+                                );
                               },
                             ),
                           ],
@@ -1315,87 +1626,109 @@ class _AddDeliveryDialogState
 
                       return Row(
                         crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                            CrossAxisAlignment
+                                .start,
 
                         children: [
                           Expanded(
-                            child: TextFormField(
+                            child:
+                                TextFormField(
                               controller:
                                   _quantityController,
 
                               keyboardType:
-                                  TextInputType.number,
+                                  TextInputType
+                                      .number,
 
                               decoration:
                                   const InputDecoration(
                                 labelText:
                                     'Quantity',
-                                hintText: '0',
+                                hintText:
+                                    '0',
                                 border:
                                     OutlineInputBorder(),
                               ),
 
-                              validator: (value) {
+                              validator:
+                                  (value) {
                                 final quantity =
                                     int.tryParse(
-                                  value?.trim() ??
+                                  value
+                                          ?.trim() ??
                                       '',
                                 );
 
                                 if (quantity ==
                                         null ||
-                                    quantity <= 0) {
+                                    quantity <=
+                                        0) {
                                   return 'Enter quantity';
                                 }
 
                                 return null;
                               },
 
-                              onChanged: (_) {
-                                setState(() {});
+                              onChanged:
+                                  (_) {
+                                setState(
+                                  () {},
+                                );
                               },
                             ),
                           ),
 
-                          const SizedBox(width: 12),
+                          const SizedBox(
+                            width: 12,
+                          ),
 
                           Expanded(
-                            child: TextFormField(
+                            child:
+                                TextFormField(
                               controller:
                                   _unitCostController,
 
                               keyboardType:
                                   const TextInputType
                                       .numberWithOptions(
-                                decimal: true,
+                                decimal:
+                                    true,
                               ),
 
                               decoration:
                                   const InputDecoration(
                                 labelText:
                                     'Unit Cost',
-                                hintText: '0.00',
+                                hintText:
+                                    '0.00',
                                 border:
                                     OutlineInputBorder(),
                               ),
 
-                              validator: (value) {
+                              validator:
+                                  (value) {
                                 final cost =
                                     double.tryParse(
-                                  value?.trim() ??
+                                  value
+                                          ?.trim() ??
                                       '',
                                 );
 
-                                if (cost == null ||
-                                    cost < 0) {
+                                if (cost ==
+                                        null ||
+                                    cost <
+                                        0) {
                                   return 'Enter valid cost';
                                 }
 
                                 return null;
                               },
 
-                              onChanged: (_) {
-                                setState(() {});
+                              onChanged:
+                                  (_) {
+                                setState(
+                                  () {},
+                                );
                               },
                             ),
                           ),
@@ -1404,29 +1737,41 @@ class _AddDeliveryDialogState
                     },
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(
+                    height: 16,
+                  ),
 
                   // ========================================================
                   // TOTAL
                   // ========================================================
 
                   Container(
-                    width: double.infinity,
+                    width:
+                        double.infinity,
+
                     padding:
-                        const EdgeInsets.all(15),
+                        const EdgeInsets
+                            .all(
+                      15,
+                    ),
 
                     decoration:
                         BoxDecoration(
                       color:
-                          AppColors.primaryLight,
+                          AppColors
+                              .primaryLight,
                       borderRadius:
-                          BorderRadius.circular(
+                          BorderRadius
+                              .circular(
                         12,
                       ),
-                      border: Border.all(
-                        color: AppColors.primary
+                      border:
+                          Border.all(
+                        color: AppColors
+                            .primary
                             .withValues(
-                          alpha: 0.12,
+                          alpha:
+                              0.12,
                         ),
                       ),
                     ),
@@ -1440,37 +1785,47 @@ class _AddDeliveryDialogState
                           decoration:
                               BoxDecoration(
                             color:
-                                AppColors.surface,
+                                AppColors
+                                    .surface,
                             borderRadius:
-                                BorderRadius.circular(
+                                BorderRadius
+                                    .circular(
                               9,
                             ),
                           ),
 
-                          child: const Icon(
+                          child:
+                              const Icon(
                             Icons
                                 .calculate_outlined,
                             color:
-                                AppColors.primary,
+                                AppColors
+                                    .primary,
                             size: 20,
                           ),
                         ),
 
-                        const SizedBox(width: 10),
+                        const SizedBox(
+                          width: 10,
+                        ),
 
                         const Expanded(
                           child: Column(
                             crossAxisAlignment:
                                 CrossAxisAlignment
                                     .start,
+
                             children: [
                               Text(
                                 'Delivery Total',
                                 style:
-                                    AppTextStyles.small,
+                                    AppTextStyles
+                                        .small,
                               ),
 
-                              SizedBox(height: 2),
+                              SizedBox(
+                                height: 2,
+                              ),
 
                               Text(
                                 'Purchase value',
@@ -1483,22 +1838,35 @@ class _AddDeliveryDialogState
                         ),
 
                         Flexible(
-                          child: Text(
-                            _money(total),
-                            maxLines: 1,
+                          child:
+                              Text(
+                            _money(
+                              total,
+                            ),
+
+                            maxLines:
+                                1,
+
                             overflow:
-                                TextOverflow.ellipsis,
+                                TextOverflow
+                                    .ellipsis,
+
                             textAlign:
-                                TextAlign.end,
+                                TextAlign
+                                    .end,
+
                             style:
-                                AppTextStyles.price,
+                                AppTextStyles
+                                    .price,
                           ),
                         ),
                       ],
                     ),
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(
+                    height: 16,
+                  ),
 
                   // ========================================================
                   // NOTES
@@ -1512,25 +1880,34 @@ class _AddDeliveryDialogState
 
                     decoration:
                         const InputDecoration(
-                      labelText: 'Notes',
+                      labelText:
+                          'Notes',
                       hintText:
                           'Optional delivery notes...',
                       border:
                           OutlineInputBorder(),
-                      alignLabelWithHint: true,
-                      prefixIcon: Padding(
+                      alignLabelWithHint:
+                          true,
+
+                      prefixIcon:
+                          Padding(
                         padding:
                             EdgeInsets.only(
                           bottom: 42,
                         ),
-                        child: Icon(
-                          Icons.notes_outlined,
+
+                        child:
+                            Icon(
+                          Icons
+                              .notes_outlined,
                         ),
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 14),
+                  const SizedBox(
+                    height: 14,
+                  ),
 
                   // ========================================================
                   // INFORMATION
@@ -1538,43 +1915,58 @@ class _AddDeliveryDialogState
 
                   Container(
                     padding:
-                        const EdgeInsets.all(12),
+                        const EdgeInsets
+                            .all(
+                      12,
+                    ),
 
                     decoration:
                         BoxDecoration(
                       color:
-                          AppColors.warningLight,
+                          AppColors
+                              .warningLight,
                       borderRadius:
-                          BorderRadius.circular(
+                          BorderRadius
+                              .circular(
                         11,
                       ),
-                      border: Border.all(
-                        color: AppColors.warning
-                            .withValues(
-                          alpha: 0.25,
+                      border:
+                          Border.all(
+                        color:
+                            AppColors
+                                .warning
+                                .withValues(
+                          alpha:
+                              0.25,
                         ),
                       ),
                     ),
 
                     child: const Row(
                       crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                          CrossAxisAlignment
+                              .start,
 
                       children: [
                         Icon(
-                          Icons.info_outline,
+                          Icons
+                              .info_outline,
                           size: 19,
                           color:
-                              AppColors.warning,
+                              AppColors
+                                  .warning,
                         ),
 
-                        SizedBox(width: 8),
+                        SizedBox(
+                          width: 8,
+                        ),
 
                         Expanded(
                           child: Text(
                             'Receiving this delivery will increase product stock and create the corresponding purchase stock movement.',
                             style:
-                                AppTextStyles.small,
+                                AppTextStyles
+                                    .small,
                           ),
                         ),
                       ],
@@ -1589,33 +1981,47 @@ class _AddDeliveryDialogState
 
       actions: [
         TextButton(
-          onPressed: _saving
-              ? null
-              : () {
-                  Navigator.of(context)
-                      .pop(false);
-                },
+          onPressed:
+              _saving
+                  ? null
+                  : () {
+                      Navigator.of(
+                        context,
+                      ).pop(false);
+                    },
 
-          child: const Text('Cancel'),
+          child:
+              const Text(
+            'Cancel',
+          ),
         ),
 
         ElevatedButton.icon(
           onPressed:
-              _saving ? null : _saveDelivery,
+              _saving
+                  ? null
+                  : _saveDelivery,
 
-          icon: _saving
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child:
-                      CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : const Icon(Icons.check),
+          icon:
+              _saving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
 
-          label: Text(
+                      child:
+                          CircularProgressIndicator(
+                        strokeWidth:
+                            2,
+                        color:
+                            Colors.white,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.check,
+                    ),
+
+          label:
+              Text(
             _saving
                 ? 'Receiving...'
                 : 'Receive Delivery',
@@ -1632,9 +2038,12 @@ class _AddDeliveryDialogState
   Widget _buildProductSelector() {
     if (_loadingProducts) {
       return const InputDecorator(
-        decoration: InputDecoration(
-          labelText: 'Product',
-          border: OutlineInputBorder(),
+        decoration:
+            InputDecoration(
+          labelText:
+              'Product',
+          border:
+              OutlineInputBorder(),
         ),
 
         child: Row(
@@ -1642,14 +2051,21 @@ class _AddDeliveryDialogState
             SizedBox(
               width: 18,
               height: 18,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
+
+              child:
+                  CircularProgressIndicator(
+                strokeWidth:
+                    2,
               ),
             ),
 
-            SizedBox(width: 10),
+            SizedBox(
+              width: 10,
+            ),
 
-            Text('Loading products...'),
+            Text(
+              'Loading products...',
+            ),
           ],
         ),
       );
@@ -1657,27 +2073,46 @@ class _AddDeliveryDialogState
 
     if (_products.isEmpty) {
       return Container(
-        width: double.infinity,
-        padding:
-            const EdgeInsets.all(14),
+        width:
+            double.infinity,
 
-        decoration: BoxDecoration(
-          color: AppColors.warningLight,
+        padding:
+            const EdgeInsets
+                .all(
+          14,
+        ),
+
+        decoration:
+            BoxDecoration(
+          color:
+              AppColors
+                  .warningLight,
           borderRadius:
-              BorderRadius.circular(11),
-          border: Border.all(
-            color: AppColors.warning,
+              BorderRadius
+                  .circular(
+            11,
+          ),
+          border:
+              Border.all(
+            color:
+                AppColors
+                    .warning,
           ),
         ),
 
         child: const Row(
           children: [
             Icon(
-              Icons.warning_amber_outlined,
-              color: AppColors.warning,
+              Icons
+                  .warning_amber_outlined,
+              color:
+                  AppColors
+                      .warning,
             ),
 
-            SizedBox(width: 10),
+            SizedBox(
+              width: 10,
+            ),
 
             Expanded(
               child: Text(
@@ -1693,54 +2128,70 @@ class _AddDeliveryDialogState
       initialValue:
           _selectedProduct?.id,
 
-      isExpanded: true,
+      isExpanded:
+          true,
 
       decoration:
           const InputDecoration(
-        labelText: 'Product',
-        hintText: 'Select a product',
+        labelText:
+            'Product',
+        hintText:
+            'Select a product',
         border:
             OutlineInputBorder(),
-        prefixIcon: Icon(
-          Icons.inventory_2_outlined,
+        prefixIcon:
+            Icon(
+          Icons
+              .inventory_2_outlined,
         ),
       ),
 
-      items: _products.map(
+      items:
+          _products.map(
         (product) {
           return DropdownMenuItem<int>(
-            value: product.id,
+            value:
+                product.id,
 
-            child: Text(
+            child:
+                Text(
               product.name,
-              maxLines: 1,
+              maxLines:
+                  1,
               overflow:
-                  TextOverflow.ellipsis,
+                  TextOverflow
+                      .ellipsis,
             ),
           );
         },
       ).toList(),
 
-      onChanged: _saving
-          ? null
-          : (productId) {
-              if (productId == null) {
-                return;
-              }
+      onChanged:
+          _saving
+              ? null
+              : (productId) {
+                  if (productId ==
+                      null) {
+                    return;
+                  }
 
-              final product =
-                  _products.firstWhere(
-                (p) => p.id == productId,
-              );
+                  final product =
+                      _products.firstWhere(
+                    (p) =>
+                        p.id ==
+                        productId,
+                  );
 
-              setState(() {
-                _selectedProduct =
-                    product;
-              });
-            },
+                  setState(() {
+                    _selectedProduct =
+                        product;
+                  });
+                },
 
-      validator: (value) {
-        if (value == null) {
+      validator:
+          (value) {
+        if (value ==
+            null) {
           return 'Select a product';
         }
 
@@ -1753,21 +2204,32 @@ class _AddDeliveryDialogState
   // DATE
   // ============================================================
 
-  Future<void> _selectDeliveryDate() async {
+  Future<void>
+      _selectDeliveryDate() async {
     final selected =
         await showDatePicker(
-      context: context,
-      initialDate: _deliveryDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
+      context:
+          context,
+
+      initialDate:
+          _deliveryDate,
+
+      firstDate:
+          DateTime(2020),
+
+      lastDate:
+          DateTime(2100),
     );
 
-    if (selected == null || !mounted) {
+    if (selected ==
+            null ||
+        !mounted) {
       return;
     }
 
     setState(() {
-      _deliveryDate = selected;
+      _deliveryDate =
+          selected;
     });
   }
 
@@ -1775,41 +2237,65 @@ class _AddDeliveryDialogState
   // HELPERS
   // ============================================================
 
-  String _money(double amount) {
+  String _money(
+    double amount,
+  ) {
     return '₦${amount.toStringAsFixed(2)}';
   }
 
-  String _formatDate(DateTime date) {
-    final day = date.day
-        .toString()
-        .padLeft(2, '0');
+  String _formatDate(
+    DateTime date,
+  ) {
+    final day =
+        date.day
+            .toString()
+            .padLeft(
+              2,
+              '0',
+            );
 
-    final month = date.month
-        .toString()
-        .padLeft(2, '0');
+    final month =
+        date.month
+            .toString()
+            .padLeft(
+              2,
+              '0',
+            );
 
     return '$day/$month/${date.year}';
   }
 
-  void _showError(String message) {
+  void _showError(
+    String message,
+  ) {
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content:
+            Text(message),
         backgroundColor:
-            AppColors.danger,
+            AppColors
+                .danger,
       ),
     );
   }
 
   @override
   void dispose() {
-    _invoiceController.dispose();
-    _notesController.dispose();
-    _quantityController.dispose();
-    _unitCostController.dispose();
+    _invoiceController
+        .dispose();
+
+    _notesController
+        .dispose();
+
+    _quantityController
+        .dispose();
+
+    _unitCostController
+        .dispose();
 
     super.dispose();
   }
@@ -1819,7 +2305,8 @@ class _AddDeliveryDialogState
 // DELIVERY CARD
 // ============================================================================
 
-class _DeliveryCard extends StatefulWidget {
+class _DeliveryCard
+    extends StatefulWidget {
   final SupplierDelivery delivery;
   final SupplierDeliveryDao deliveryDao;
   final VoidCallback onTap;
@@ -1840,7 +2327,9 @@ class _DeliveryCard extends StatefulWidget {
 class _DeliveryCardState
     extends State<_DeliveryCard> {
   int _itemCount = 0;
-  bool _loadingCount = true;
+
+  bool _loadingCount =
+      true;
 
   @override
   void initState() {
@@ -1849,10 +2338,12 @@ class _DeliveryCardState
     _loadItemCount();
   }
 
-  Future<void> _loadItemCount() async {
+  Future<void>
+      _loadItemCount() async {
     try {
       final count =
-          await widget.deliveryDao
+          await widget
+              .deliveryDao
               .getDeliveryItemCount(
         widget.delivery.id,
       );
@@ -1860,54 +2351,75 @@ class _DeliveryCardState
       if (!mounted) return;
 
       setState(() {
-        _itemCount = count;
-        _loadingCount = false;
+        _itemCount =
+            count;
+
+        _loadingCount =
+            false;
       });
     } catch (_) {
       if (!mounted) return;
 
       setState(() {
-        _loadingCount = false;
+        _loadingCount =
+            false;
       });
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    final delivery = widget.delivery;
+  Widget build(
+    BuildContext context,
+  ) {
+    final delivery =
+        widget.delivery;
 
     final invoice =
         delivery.invoiceNumber;
 
     return Material(
-      color: AppColors.surface,
+      color:
+          AppColors.surface,
 
       borderRadius:
-          BorderRadius.circular(16),
+          BorderRadius.circular(
+        16,
+      ),
 
       child: InkWell(
-        onTap: widget.onTap,
+        onTap:
+            widget.onTap,
 
         borderRadius:
-            BorderRadius.circular(16),
+            BorderRadius.circular(
+          16,
+        ),
 
         child: Container(
           padding:
-              const EdgeInsets.all(16),
+              const EdgeInsets
+                  .all(
+            16,
+          ),
 
           decoration:
               BoxDecoration(
             borderRadius:
-                BorderRadius.circular(16),
+                BorderRadius.circular(
+              16,
+            ),
 
-            border: Border.all(
-              color: AppColors.border,
+            border:
+                Border.all(
+              color:
+                  AppColors.border,
             ),
           ),
 
           child: Column(
             crossAxisAlignment:
-                CrossAxisAlignment.start,
+                CrossAxisAlignment
+                    .start,
 
             children: [
               // ========================================================
@@ -1916,7 +2428,8 @@ class _DeliveryCardState
 
               Row(
                 crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                    CrossAxisAlignment
+                        .start,
 
                 children: [
                   Container(
@@ -1926,28 +2439,36 @@ class _DeliveryCardState
                     decoration:
                         BoxDecoration(
                       color:
-                          AppColors.primaryLight,
+                          AppColors
+                              .primaryLight,
                       borderRadius:
-                          BorderRadius.circular(
+                          BorderRadius
+                              .circular(
                         11,
                       ),
                     ),
 
-                    child: const Icon(
+                    child:
+                        const Icon(
                       Icons
                           .local_shipping_outlined,
                       color:
-                          AppColors.primary,
+                          AppColors
+                              .primary,
                       size: 21,
                     ),
                   ),
 
-                  const SizedBox(width: 10),
+                  const SizedBox(
+                    width: 10,
+                  ),
 
                   Expanded(
-                    child: Column(
+                    child:
+                        Column(
                       crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                          CrossAxisAlignment
+                              .start,
 
                       children: [
                         Text(
@@ -1956,29 +2477,37 @@ class _DeliveryCardState
                               ? invoice!
                               : 'Delivery #${delivery.id}',
 
-                          maxLines: 1,
+                          maxLines:
+                              1,
 
                           overflow:
-                              TextOverflow.ellipsis,
+                              TextOverflow
+                                  .ellipsis,
 
                           style:
-                              AppTextStyles.title,
+                              AppTextStyles
+                                  .title,
                         ),
 
-                        const SizedBox(height: 4),
+                        const SizedBox(
+                          height: 4,
+                        ),
 
                         Row(
                           children: [
                             const Icon(
                               Icons
                                   .calendar_today_outlined,
-                              size: 13,
+                              size:
+                                  13,
                               color:
                                   AppColors
                                       .textSecondary,
                             ),
 
-                            const SizedBox(width: 5),
+                            const SizedBox(
+                              width: 5,
+                            ),
 
                             Text(
                               _formatDate(
@@ -1986,7 +2515,8 @@ class _DeliveryCardState
                                     .deliveryDate,
                               ),
                               style:
-                                  AppTextStyles.small,
+                                  AppTextStyles
+                                      .small,
                             ),
                           ],
                         ),
@@ -1994,18 +2524,22 @@ class _DeliveryCardState
                     ),
                   ),
 
-                  PopupMenuButton<String>(
+                  PopupMenuButton<
+                      String>(
                     padding:
                         EdgeInsets.zero,
 
-                    icon: const Icon(
+                    icon:
+                        const Icon(
                       Icons.more_vert,
                     ),
 
-                    onSelected: (value) {
+                    onSelected:
+                        (value) {
                       if (value ==
                           'delete') {
-                        widget.onDelete();
+                        widget
+                            .onDelete();
                       }
                     },
 
@@ -2013,9 +2547,11 @@ class _DeliveryCardState
                         (context) =>
                             const [
                       PopupMenuItem(
-                        value: 'delete',
+                        value:
+                            'delete',
 
-                        child: Row(
+                        child:
+                            Row(
                           children: [
                             Icon(
                               Icons
@@ -2025,9 +2561,13 @@ class _DeliveryCardState
                                       .danger,
                             ),
 
-                            SizedBox(width: 8),
+                            SizedBox(
+                              width: 8,
+                            ),
 
-                            Text('Delete'),
+                            Text(
+                              'Delete',
+                            ),
                           ],
                         ),
                       ),
@@ -2044,11 +2584,13 @@ class _DeliveryCardState
 
               Row(
                 crossAxisAlignment:
-                    CrossAxisAlignment.end,
+                    CrossAxisAlignment
+                        .end,
 
                 children: [
                   Expanded(
-                    child: Wrap(
+                    child:
+                        Wrap(
                       spacing: 7,
                       runSpacing: 6,
 
@@ -2056,6 +2598,7 @@ class _DeliveryCardState
                         _infoChip(
                           icon: Icons
                               .inventory_2_outlined,
+
                           text:
                               _loadingCount
                                   ? '...'
@@ -2069,33 +2612,42 @@ class _DeliveryCardState
                           const _InfoIconChip(
                             icon: Icons
                                 .notes_outlined,
-                            text: 'Notes',
+                            text:
+                                'Notes',
                           ),
                       ],
                     ),
                   ),
 
-                  const SizedBox(width: 8),
+                  const SizedBox(
+                    width: 8,
+                  ),
 
                   Flexible(
-                    child: Text(
+                    child:
+                        Text(
                       _money(
                         delivery
                             .totalAmount,
                       ),
 
-                      maxLines: 1,
+                      maxLines:
+                          1,
 
                       overflow:
-                          TextOverflow.ellipsis,
+                          TextOverflow
+                              .ellipsis,
 
                       textAlign:
-                          TextAlign.end,
+                          TextAlign
+                              .end,
 
                       style:
-                          AppTextStyles.price
+                          AppTextStyles
+                              .price
                               .copyWith(
-                        fontSize: 17,
+                        fontSize:
+                            17,
                       ),
                     ),
                   ),
@@ -2114,16 +2666,21 @@ class _DeliveryCardState
   }) {
     return Container(
       padding:
-          const EdgeInsets.symmetric(
+          const EdgeInsets
+              .symmetric(
         horizontal: 9,
         vertical: 6,
       ),
 
       decoration:
           BoxDecoration(
-        color: AppColors.background,
+        color:
+            AppColors
+                .background,
         borderRadius:
-            BorderRadius.circular(8),
+            BorderRadius.circular(
+          8,
+        ),
       ),
 
       child: Row(
@@ -2135,33 +2692,49 @@ class _DeliveryCardState
             icon,
             size: 15,
             color:
-                AppColors.textSecondary,
+                AppColors
+                    .textSecondary,
           ),
 
-          const SizedBox(width: 5),
+          const SizedBox(
+            width: 5,
+          ),
 
           Text(
             text,
             style:
-                AppTextStyles.small,
+                AppTextStyles
+                    .small,
           ),
         ],
       ),
     );
   }
 
-  String _money(double amount) {
+  String _money(
+    double amount,
+  ) {
     return '₦${amount.toStringAsFixed(2)}';
   }
 
-  String _formatDate(DateTime date) {
-    final day = date.day
-        .toString()
-        .padLeft(2, '0');
+  String _formatDate(
+    DateTime date,
+  ) {
+    final day =
+        date.day
+            .toString()
+            .padLeft(
+              2,
+              '0',
+            );
 
-    final month = date.month
-        .toString()
-        .padLeft(2, '0');
+    final month =
+        date.month
+            .toString()
+            .padLeft(
+              2,
+              '0',
+            );
 
     return '$day/$month/${date.year}';
   }
@@ -2182,19 +2755,26 @@ class _InfoIconChip
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+    BuildContext context,
+  ) {
     return Container(
       padding:
-          const EdgeInsets.symmetric(
+          const EdgeInsets
+              .symmetric(
         horizontal: 9,
         vertical: 6,
       ),
 
       decoration:
           BoxDecoration(
-        color: AppColors.background,
+        color:
+            AppColors
+                .background,
         borderRadius:
-            BorderRadius.circular(8),
+            BorderRadius.circular(
+          8,
+        ),
       ),
 
       child: Row(
@@ -2206,15 +2786,19 @@ class _InfoIconChip
             icon,
             size: 15,
             color:
-                AppColors.textSecondary,
+                AppColors
+                    .textSecondary,
           ),
 
-          const SizedBox(width: 5),
+          const SizedBox(
+            width: 5,
+          ),
 
           Text(
             text,
             style:
-                AppTextStyles.small,
+                AppTextStyles
+                    .small,
           ),
         ],
       ),
@@ -2258,7 +2842,8 @@ class _DeliveryDetailsSheetState
   Future<void> _loadItems() async {
     try {
       final items =
-          await widget.deliveryDao
+          await widget
+              .deliveryDao
               .getDeliveryItemsWithProducts(
         widget.delivery.id,
       );
@@ -2266,8 +2851,11 @@ class _DeliveryDetailsSheetState
       if (!mounted) return;
 
       setState(() {
-        _items = items;
-        _loading = false;
+        _items =
+            items;
+
+        _loading =
+            false;
       });
     } catch (e) {
       debugPrint(
@@ -2277,17 +2865,23 @@ class _DeliveryDetailsSheetState
       if (!mounted) return;
 
       setState(() {
-        _loading = false;
+        _loading =
+            false;
       });
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    final delivery = widget.delivery;
+  Widget build(
+    BuildContext context,
+  ) {
+    final delivery =
+        widget.delivery;
 
     final size =
-        MediaQuery.sizeOf(context);
+        MediaQuery.sizeOf(
+      context,
+    );
 
     final isCompact =
         size.width < 600;
@@ -2300,21 +2894,28 @@ class _DeliveryDetailsSheetState
 
     return SafeArea(
       child: Container(
-        height: sheetHeight,
+        height:
+            sheetHeight,
 
         decoration:
             const BoxDecoration(
-          color: AppColors.surface,
+          color:
+              AppColors.surface,
 
           borderRadius:
               BorderRadius.vertical(
-            top: Radius.circular(24),
+            top:
+                Radius.circular(
+              24,
+            ),
           ),
         ),
 
         child: Column(
           children: [
-            const SizedBox(height: 10),
+            const SizedBox(
+              height: 10,
+            ),
 
             Container(
               width: 42,
@@ -2322,9 +2923,14 @@ class _DeliveryDetailsSheetState
 
               decoration:
                   BoxDecoration(
-                color: AppColors.border,
+                color:
+                    AppColors
+                        .border,
                 borderRadius:
-                    BorderRadius.circular(10),
+                    BorderRadius
+                        .circular(
+                  10,
+                ),
               ),
             ),
 
@@ -2335,7 +2941,9 @@ class _DeliveryDetailsSheetState
             Padding(
               padding:
                   EdgeInsets.fromLTRB(
-                isCompact ? 16 : 20,
+                isCompact
+                    ? 16
+                    : 20,
                 16,
                 8,
                 14,
@@ -2350,36 +2958,47 @@ class _DeliveryDetailsSheetState
                     decoration:
                         BoxDecoration(
                       color:
-                          AppColors.primaryLight,
+                          AppColors
+                              .primaryLight,
                       borderRadius:
-                          BorderRadius.circular(
+                          BorderRadius
+                              .circular(
                         11,
                       ),
                     ),
 
-                    child: const Icon(
+                    child:
+                        const Icon(
                       Icons
                           .local_shipping_outlined,
                       color:
-                          AppColors.primary,
+                          AppColors
+                              .primary,
                     ),
                   ),
 
-                  const SizedBox(width: 11),
+                  const SizedBox(
+                    width: 11,
+                  ),
 
                   Expanded(
-                    child: Column(
+                    child:
+                        Column(
                       crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                          CrossAxisAlignment
+                              .start,
 
                       children: [
                         const Text(
                           'Delivery Details',
                           style:
-                              AppTextStyles.heading,
+                              AppTextStyles
+                                  .heading,
                         ),
 
-                        const SizedBox(height: 3),
+                        const SizedBox(
+                          height: 3,
+                        ),
 
                         Text(
                           delivery
@@ -2389,24 +3008,35 @@ class _DeliveryDetailsSheetState
                               ? delivery
                                   .invoiceNumber!
                               : 'Delivery #${delivery.id}',
-                          maxLines: 1,
+
+                          maxLines:
+                              1,
+
                           overflow:
-                              TextOverflow.ellipsis,
+                              TextOverflow
+                                  .ellipsis,
+
                           style:
-                              AppTextStyles.bodySecondary,
+                              AppTextStyles
+                                  .bodySecondary,
                         ),
                       ],
                     ),
                   ),
 
                   IconButton(
-                    tooltip: 'Close',
-                    onPressed: () {
+                    tooltip:
+                        'Close',
+
+                    onPressed:
+                        () {
                       Navigator.pop(
                         context,
                       );
                     },
-                    icon: const Icon(
+
+                    icon:
+                        const Icon(
                       Icons.close,
                     ),
                   ),
@@ -2414,69 +3044,76 @@ class _DeliveryDetailsSheetState
               ),
             ),
 
-            const Divider(height: 1),
+            const Divider(
+              height: 1,
+            ),
 
             // ========================================================
             // CONTENT
             // ========================================================
 
             Expanded(
-              child: _loading
-                  ? const Center(
-                      child:
-                          CircularProgressIndicator(),
-                    )
-                  : ListView(
-                      physics:
-                          const AlwaysScrollableScrollPhysics(),
+              child:
+                  _loading
+                      ? const Center(
+                          child:
+                              CircularProgressIndicator(),
+                        )
+                      : ListView(
+                          physics:
+                              const AlwaysScrollableScrollPhysics(),
 
-                      padding:
-                          EdgeInsets.all(
-                        isCompact
-                            ? 16
-                            : 20,
-                      ),
-
-                      children: [
-                        _buildSummary(
-                          delivery,
-                        ),
-
-                        const SizedBox(
-                          height: 20,
-                        ),
-
-                        const Text(
-                          'Items Received',
-                          style:
-                              AppTextStyles.title,
-                        ),
-
-                        const SizedBox(
-                          height: 10,
-                        ),
-
-                        if (_items.isEmpty)
-                          _emptyItems()
-                        else
-                          ..._items.map(
-                            _buildItem,
+                          padding:
+                              EdgeInsets.all(
+                            isCompact
+                                ? 16
+                                : 20,
                           ),
 
-                        if ((delivery
-                                    .notes ??
-                                '')
-                            .isNotEmpty) ...[
-                          const SizedBox(
-                            height: 20,
-                          ),
+                          children: [
+                            _buildSummary(
+                              delivery,
+                            ),
 
-                          _buildNotes(
-                            delivery.notes!,
-                          ),
-                        ],
-                      ],
-                    ),
+                            const SizedBox(
+                              height: 20,
+                            ),
+
+                            const Text(
+                              'Items Received',
+                              style:
+                                  AppTextStyles
+                                      .title,
+                            ),
+
+                            const SizedBox(
+                              height: 10,
+                            ),
+
+                            if (_items
+                                .isEmpty)
+                              _emptyItems()
+                            else
+                              ..._items
+                                  .map(
+                                _buildItem,
+                              ),
+
+                            if ((delivery
+                                        .notes ??
+                                    '')
+                                .isNotEmpty) ...[
+                              const SizedBox(
+                                height: 20,
+                              ),
+
+                              _buildNotes(
+                                delivery
+                                    .notes!,
+                              ),
+                            ],
+                          ],
+                        ),
             ),
           ],
         ),
@@ -2493,33 +3130,51 @@ class _DeliveryDetailsSheetState
   ) {
     return Container(
       padding:
-          const EdgeInsets.all(16),
+          const EdgeInsets
+              .all(
+        16,
+      ),
 
-      decoration: BoxDecoration(
+      decoration:
+          BoxDecoration(
         color:
-            AppColors.primaryLight,
+            AppColors
+                .primaryLight,
+
         borderRadius:
-            BorderRadius.circular(14),
-        border: Border.all(
-          color: AppColors.primary
-              .withValues(
-            alpha: 0.10,
+            BorderRadius.circular(
+          14,
+        ),
+
+        border:
+            Border.all(
+          color:
+              AppColors
+                  .primary
+                  .withValues(
+            alpha:
+                0.10,
           ),
         ),
       ),
 
-      child: LayoutBuilder(
+      child:
+          LayoutBuilder(
         builder: (
           context,
           constraints,
         ) {
           final compact =
-              constraints.maxWidth < 380;
+              constraints
+                      .maxWidth <
+                  380;
 
           if (compact) {
             return Column(
               crossAxisAlignment:
-                  CrossAxisAlignment.start,
+                  CrossAxisAlignment
+                      .start,
+
               children: [
                 _summaryValue(
                   'Delivery Date',
@@ -2529,7 +3184,9 @@ class _DeliveryDetailsSheetState
                   ),
                 ),
 
-                const SizedBox(height: 14),
+                const SizedBox(
+                  height: 14,
+                ),
 
                 _summaryValue(
                   'Purchase Total',
@@ -2537,7 +3194,8 @@ class _DeliveryDetailsSheetState
                     delivery
                         .totalAmount,
                   ),
-                  price: true,
+                  price:
+                      true,
                 ),
               ],
             );
@@ -2546,7 +3204,8 @@ class _DeliveryDetailsSheetState
           return Row(
             children: [
               Expanded(
-                child: _summaryValue(
+                child:
+                    _summaryValue(
                   'Delivery Date',
                   _formatDate(
                     delivery
@@ -2558,24 +3217,34 @@ class _DeliveryDetailsSheetState
               Container(
                 width: 1,
                 height: 45,
+
                 color:
-                    AppColors.border,
+                    AppColors
+                        .border,
               ),
 
-              const SizedBox(width: 16),
+              const SizedBox(
+                width: 16,
+              ),
 
               Expanded(
-                child: Align(
+                child:
+                    Align(
                   alignment:
-                      Alignment.centerRight,
-                  child: _summaryValue(
+                      Alignment
+                          .centerRight,
+
+                  child:
+                      _summaryValue(
                     'Purchase Total',
                     _money(
                       delivery
                           .totalAmount,
                     ),
-                    price: true,
-                    alignEnd: true,
+                    price:
+                        true,
+                    alignEnd:
+                        true,
                   ),
                 ),
               ),
@@ -2595,23 +3264,31 @@ class _DeliveryDetailsSheetState
     return Column(
       crossAxisAlignment:
           alignEnd
-              ? CrossAxisAlignment.end
-              : CrossAxisAlignment.start,
+              ? CrossAxisAlignment
+                  .end
+              : CrossAxisAlignment
+                  .start,
 
       children: [
         Text(
           label,
           style:
-              AppTextStyles.small,
+              AppTextStyles
+                  .small,
         ),
 
-        const SizedBox(height: 4),
+        const SizedBox(
+          height: 4,
+        ),
 
         Text(
           value,
-          style: price
-              ? AppTextStyles.price
-              : AppTextStyles.body,
+          style:
+              price
+                  ? AppTextStyles
+                      .price
+                  : AppTextStyles
+                      .body,
         ),
       ],
     );
@@ -2622,10 +3299,14 @@ class _DeliveryDetailsSheetState
   // ============================================================
 
   Widget _buildItem(
-    SupplierDeliveryItemWithProduct entry,
+    SupplierDeliveryItemWithProduct
+        entry,
   ) {
-    final item = entry.item;
-    final product = entry.product;
+    final item =
+        entry.item;
+
+    final product =
+        entry.product;
 
     return Container(
       margin:
@@ -2634,17 +3315,27 @@ class _DeliveryDetailsSheetState
       ),
 
       padding:
-          const EdgeInsets.all(14),
+          const EdgeInsets
+              .all(
+        14,
+      ),
 
       decoration:
           BoxDecoration(
         color:
-            AppColors.background,
+            AppColors
+                .background,
+
         borderRadius:
-            BorderRadius.circular(12),
-        border: Border.all(
+            BorderRadius.circular(
+          12,
+        ),
+
+        border:
+            Border.all(
           color:
-              AppColors.border,
+              AppColors
+                  .border,
         ),
       ),
 
@@ -2657,68 +3348,102 @@ class _DeliveryDetailsSheetState
             decoration:
                 BoxDecoration(
               color:
-                  AppColors.surface,
+                  AppColors
+                      .surface,
               borderRadius:
-                  BorderRadius.circular(
+                  BorderRadius
+                      .circular(
                 10,
               ),
             ),
 
-            child: const Icon(
+            child:
+                const Icon(
               Icons
                   .inventory_2_outlined,
               color:
-                  AppColors.primary,
+                  AppColors
+                      .primary,
             ),
           ),
 
-          const SizedBox(width: 12),
+          const SizedBox(
+            width: 12,
+          ),
 
           Expanded(
-            child: Column(
+            child:
+                Column(
               crossAxisAlignment:
-                  CrossAxisAlignment.start,
+                  CrossAxisAlignment
+                      .start,
 
               children: [
                 Text(
                   product.name,
-                  maxLines: 1,
+
+                  maxLines:
+                      1,
+
                   overflow:
-                      TextOverflow.ellipsis,
+                      TextOverflow
+                          .ellipsis,
+
                   style:
-                      AppTextStyles.body,
+                      AppTextStyles
+                          .body,
                 ),
 
-                const SizedBox(height: 4),
+                const SizedBox(
+                  height: 4,
+                ),
 
                 Text(
                   '${item.quantity} × ${_money(item.unitCost)}',
-                  maxLines: 1,
+
+                  maxLines:
+                      1,
+
                   overflow:
-                      TextOverflow.ellipsis,
+                      TextOverflow
+                          .ellipsis,
+
                   style:
-                      AppTextStyles.small,
+                      AppTextStyles
+                          .small,
                 ),
               ],
             ),
           ),
 
-          const SizedBox(width: 10),
+          const SizedBox(
+            width: 10,
+          ),
 
           Flexible(
-            child: Text(
+            child:
+                Text(
               _money(
                 item.totalCost,
               ),
-              maxLines: 1,
+
+              maxLines:
+                  1,
+
               overflow:
-                  TextOverflow.ellipsis,
+                  TextOverflow
+                      .ellipsis,
+
               textAlign:
-                  TextAlign.end,
+                  TextAlign
+                      .end,
+
               style:
-                  AppTextStyles.price
+                  AppTextStyles
+                      .price
                       .copyWith(
-                fontSize: 16,
+                fontSize:
+                    16,
               ),
             ),
           ),
@@ -2736,49 +3461,70 @@ class _DeliveryDetailsSheetState
   ) {
     return Container(
       padding:
-          const EdgeInsets.all(14),
+          const EdgeInsets
+              .all(
+        14,
+      ),
 
-      decoration: BoxDecoration(
+      decoration:
+          BoxDecoration(
         color:
-            AppColors.background,
+            AppColors
+                .background,
+
         borderRadius:
-            BorderRadius.circular(12),
-        border: Border.all(
+            BorderRadius.circular(
+          12,
+        ),
+
+        border:
+            Border.all(
           color:
-              AppColors.border,
+              AppColors
+                  .border,
         ),
       ),
 
-      child: Column(
+      child:
+          Column(
         crossAxisAlignment:
-            CrossAxisAlignment.start,
+            CrossAxisAlignment
+                .start,
 
         children: [
           Row(
             children: [
               const Icon(
-                Icons.notes_outlined,
+                Icons
+                    .notes_outlined,
                 size: 19,
                 color:
-                    AppColors.primary,
+                    AppColors
+                        .primary,
               ),
 
-              const SizedBox(width: 7),
+              const SizedBox(
+                width: 7,
+              ),
 
               const Text(
                 'Notes',
                 style:
-                    AppTextStyles.title,
+                    AppTextStyles
+                        .title,
               ),
             ],
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(
+            height: 8,
+          ),
 
           Text(
             notes,
             style:
-                AppTextStyles.body,
+                AppTextStyles
+                    .body,
           ),
         ],
       ),
@@ -2788,37 +3534,53 @@ class _DeliveryDetailsSheetState
   Widget _emptyItems() {
     return Container(
       padding:
-          const EdgeInsets.all(22),
+          const EdgeInsets
+              .all(
+        22,
+      ),
 
       decoration:
           BoxDecoration(
         color:
-            AppColors.background,
+            AppColors
+                .background,
+
         borderRadius:
-            BorderRadius.circular(12),
-        border: Border.all(
+            BorderRadius.circular(
+          12,
+        ),
+
+        border:
+            Border.all(
           color:
-              AppColors.border,
+              AppColors
+                  .border,
         ),
       ),
 
-      child: Column(
+      child:
+          Column(
         children: [
           const Icon(
-            Icons.inventory_2_outlined,
+            Icons
+                .inventory_2_outlined,
             size: 32,
             color:
-                AppColors.textSecondary,
+                AppColors
+                    .textSecondary,
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(
+            height: 8,
+          ),
 
           Text(
             'No delivery items found.',
             textAlign:
                 TextAlign.center,
             style:
-                AppTextStyles.bodySecondary,
+                AppTextStyles
+                    .bodySecondary,
           ),
         ],
       ),
@@ -2829,21 +3591,32 @@ class _DeliveryDetailsSheetState
   // HELPERS
   // ============================================================
 
-  String _money(double amount) {
+  String _money(
+    double amount,
+  ) {
     return '₦${amount.toStringAsFixed(2)}';
   }
 
   String _formatDate(
     DateTime date,
   ) {
-    final day = date.day
-        .toString()
-        .padLeft(2, '0');
+    final day =
+        date.day
+            .toString()
+            .padLeft(
+              2,
+              '0',
+            );
 
-    final month = date.month
-        .toString()
-        .padLeft(2, '0');
+    final month =
+        date.month
+            .toString()
+            .padLeft(
+              2,
+              '0',
+            );
 
     return '$day/$month/${date.year}';
   }
 }
+

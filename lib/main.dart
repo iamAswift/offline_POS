@@ -1,6 +1,7 @@
 // lib/main.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'core/router/app_router.dart';
 import 'core/theme/theme.dart';
@@ -10,6 +11,18 @@ import 'database/daos/settings_dao.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // ------------------------------------------------------------
+  // DEDICATED INVENTORY TERMINAL
+  // ------------------------------------------------------------
+  //
+  // Keep the tablet focused on the inventory application.
+  //
+  // Android will additionally need Lock Task / kiosk mode
+  // configuration at the native Android level.
+  //
+
+  await _configureDedicatedTerminal();
 
   // ------------------------------------------------------------
   // INITIALIZE DATABASE
@@ -44,6 +57,42 @@ Future<void> main() async {
       settingsDao: SettingsDao(db),
     ),
   );
+}
+
+// ============================================================
+// DEDICATED TERMINAL CONFIGURATION
+// ============================================================
+
+Future<void> _configureDedicatedTerminal() async {
+  try {
+    // ----------------------------------------------------------
+    // Keep screen awake while the inventory terminal is active.
+    // ----------------------------------------------------------
+
+    await SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.immersiveSticky,
+    );
+
+    // ----------------------------------------------------------
+    // Force portrait orientation.
+    //
+    // If your supermarket tablet should operate in landscape,
+    // change this to landscapeLeft / landscapeRight.
+    // ----------------------------------------------------------
+
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+
+    debugPrint(
+      'Dedicated inventory terminal configured',
+    );
+  } catch (e) {
+    debugPrint(
+      'Failed to configure dedicated terminal: $e',
+    );
+  }
 }
 
 // ============================================================
