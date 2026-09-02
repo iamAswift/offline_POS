@@ -17,8 +17,7 @@ class AttendanceScreen extends StatefulWidget {
       _AttendanceScreenState();
 }
 
-class _AttendanceScreenState
-    extends State<AttendanceScreen> {
+class _AttendanceScreenState extends State<AttendanceScreen> {
   // ============================================================
   // STATE
   // ============================================================
@@ -29,8 +28,7 @@ class _AttendanceScreenState
 
   AttendanceData? _selectedUserOpenAttendance;
 
-  List<AttendanceData>
-      _selectedUserTodayAttendance = [];
+  List<AttendanceData> _selectedUserTodayAttendance = [];
 
   bool _isLoading = true;
 
@@ -70,8 +68,7 @@ class _AttendanceScreenState
     try {
       final userDao = getUserDao();
 
-      final users =
-          await userDao.getAllUsers();
+      final users = await userDao.getAllUsers();
 
       if (!mounted) return;
 
@@ -88,16 +85,12 @@ class _AttendanceScreenState
 
       if (_selectedUser != null) {
         final stillExists = _users.any(
-          (user) =>
-              user.id == _selectedUser!.id,
+          (user) => user.id == _selectedUser!.id,
         );
 
         if (stillExists) {
-          final refreshedUser =
-              _users.firstWhere(
-            (user) =>
-                user.id ==
-                _selectedUser!.id,
+          final refreshedUser = _users.firstWhere(
+            (user) => user.id == _selectedUser!.id,
           );
 
           await _selectUser(
@@ -107,10 +100,8 @@ class _AttendanceScreenState
         } else {
           setState(() {
             _selectedUser = null;
-            _selectedUserOpenAttendance =
-                null;
-            _selectedUserTodayAttendance =
-                [];
+            _selectedUserOpenAttendance = null;
+            _selectedUserTodayAttendance = [];
           });
         }
       }
@@ -147,8 +138,7 @@ class _AttendanceScreenState
     }
 
     try {
-      final attendanceDao =
-          getAttendanceDao();
+      final attendanceDao = getAttendanceDao();
 
       final results = await Future.wait([
         attendanceDao.getOpenAttendance(
@@ -165,12 +155,10 @@ class _AttendanceScreenState
         _selectedUser = user;
 
         _selectedUserOpenAttendance =
-            results[0]
-                as AttendanceData?;
+            results[0] as AttendanceData?;
 
         _selectedUserTodayAttendance =
-            results[1]
-                as List<AttendanceData>;
+            results[1] as List<AttendanceData>;
 
         _isProcessing = false;
       });
@@ -193,8 +181,7 @@ class _AttendanceScreenState
   // CLOCK IN / OUT
   // ============================================================
 
-  Future<void>
-      _handleAttendanceAction() async {
+  Future<void> _handleAttendanceAction() async {
     final user = _selectedUser;
 
     if (user == null) {
@@ -210,11 +197,9 @@ class _AttendanceScreenState
     }
 
     final isCurrentlyWorking =
-        _selectedUserOpenAttendance !=
-            null;
+        _selectedUserOpenAttendance != null;
 
-    final password =
-        await _showPasswordDialog(user);
+    final password = await _showPasswordDialog(user);
 
     if (password == null || !mounted) {
       return;
@@ -264,8 +249,7 @@ class _AttendanceScreenState
       // ========================================================
 
       if (isCurrentlyWorking) {
-        final attendanceDao =
-            getAttendanceDao();
+        final attendanceDao = getAttendanceDao();
 
         final success =
             await attendanceDao.clockOut(
@@ -298,8 +282,7 @@ class _AttendanceScreenState
       // CLOCK IN
       // ========================================================
 
-      final attendanceDao =
-          getAttendanceDao();
+      final attendanceDao = getAttendanceDao();
 
       await attendanceDao.clockIn(
         user.id,
@@ -321,8 +304,7 @@ class _AttendanceScreenState
 
       if (!mounted) return;
 
-      final message =
-          e.toString().toLowerCase();
+      final message = e.toString().toLowerCase();
 
       if (message.contains(
         'already clocked in',
@@ -350,16 +332,14 @@ class _AttendanceScreenState
   // REFRESH SELECTED EMPLOYEE
   // ============================================================
 
-  Future<void>
-      _refreshSelectedEmployee() async {
+  Future<void> _refreshSelectedEmployee() async {
     final user = _selectedUser;
 
     if (user == null) {
       return;
     }
 
-    final attendanceDao =
-        getAttendanceDao();
+    final attendanceDao = getAttendanceDao();
 
     final results = await Future.wait([
       attendanceDao.getOpenAttendance(
@@ -374,284 +354,35 @@ class _AttendanceScreenState
 
     setState(() {
       _selectedUserOpenAttendance =
-          results[0]
-              as AttendanceData?;
+          results[0] as AttendanceData?;
 
       _selectedUserTodayAttendance =
-          results[1]
-              as List<AttendanceData>;
+          results[1] as List<AttendanceData>;
     });
   }
 
   // ============================================================
   // PASSWORD DIALOG
   // ============================================================
+  //
+  // IMPORTANT:
+  // The password controller is owned by the Stateful dialog.
+  // This prevents Flutter from using a controller after it has
+  // already been disposed during dialog closing/rebuilding.
+  //
 
   Future<String?> _showPasswordDialog(
     User user,
   ) async {
-    final controller =
-        TextEditingController();
-
-    bool obscurePassword = true;
-
-    final result =
-        await showDialog<String>(
+    return showDialog<String>(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (
-            context,
-            setDialogState,
-          ) {
-            return AlertDialog(
-              title: Text(
-                'Verify Employee',
-                style: AppTextStyles.heading
-                    .copyWith(
-                  fontSize: 20,
-                  fontWeight:
-                      FontWeight.w700,
-                ),
-              ),
-              content: ConstrainedBox(
-                constraints:
-                    const BoxConstraints(
-                  maxWidth:
-                      AppSizes.maxFormWidth,
-                ),
-                child: Column(
-                  mainAxisSize:
-                      MainAxisSize.min,
-                  crossAxisAlignment:
-                      CrossAxisAlignment
-                          .start,
-                  children: [
-                    Container(
-                      padding:
-                          const EdgeInsets
-                              .all(
-                        AppSpacing.md,
-                      ),
-                      decoration:
-                          BoxDecoration(
-                        color: AppColors
-                            .primaryLight,
-                        borderRadius:
-                            BorderRadius
-                                .circular(
-                          AppRadius.md,
-                        ),
-                        border:
-                            Border.all(
-                          color: AppColors
-                              .primary
-                              .withValues(
-                            alpha: 0.08,
-                          ),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 21,
-                            backgroundColor:
-                                AppColors
-                                    .primary
-                                    .withValues(
-                              alpha: 0.10,
-                            ),
-                            child: Text(
-                              user.name
-                                      .isNotEmpty
-                                  ? user
-                                      .name[0]
-                                      .toUpperCase()
-                                  : '?',
-                              style:
-                                  AppTextStyles
-                                      .body
-                                      .copyWith(
-                                color: AppColors
-                                    .primary,
-                                fontWeight:
-                                    FontWeight
-                                        .w700,
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(
-                            width:
-                                AppSpacing.md,
-                          ),
-
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment
-                                      .start,
-                              children: [
-                                Text(
-                                  user.name,
-                                  style:
-                                      AppTextStyles
-                                          .body
-                                          .copyWith(
-                                    fontWeight:
-                                        FontWeight
-                                            .w600,
-                                  ),
-                                ),
-
-                                const SizedBox(
-                                  height: 3,
-                                ),
-
-                                Text(
-                                  user.loginId ??
-                                      'No Login ID',
-                                  style:
-                                      AppTextStyles
-                                          .small,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height:
-                          AppSpacing.lg,
-                    ),
-
-                    const Text(
-                      'Enter this employee\'s password to continue.',
-                      style: AppTextStyles
-                          .bodySecondary,
-                    ),
-
-                    const SizedBox(
-                      height:
-                          AppSpacing.md,
-                    ),
-
-                    TextField(
-                      controller:
-                          controller,
-                      obscureText:
-                          obscurePassword,
-                      autofocus: true,
-                      decoration:
-                          InputDecoration(
-                        labelText:
-                            'Password',
-                        prefixIcon:
-                            const Icon(
-                          Icons
-                              .lock_outline,
-                        ),
-                        suffixIcon:
-                            IconButton(
-                          onPressed: () {
-                            setDialogState(
-                              () {
-                                obscurePassword =
-                                    !obscurePassword;
-                              },
-                            );
-                          },
-                          icon: Icon(
-                            obscurePassword
-                                ? Icons
-                                    .visibility_outlined
-                                : Icons
-                                    .visibility_off_outlined,
-                          ),
-                        ),
-                        border:
-                            OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius
-                                  .circular(
-                            AppRadius.md,
-                          ),
-                        ),
-                      ),
-                      onSubmitted: (_) {
-                        final password =
-                            controller.text
-                                .trim();
-
-                        if (password.isEmpty) {
-                          return;
-                        }
-
-                        Navigator.of(
-                          dialogContext,
-                        ).pop(password);
-                      },
-                    ),
-
-                    const SizedBox(
-                      height:
-                          AppSpacing.sm,
-                    ),
-
-                    Text(
-                      'Only ${user.name} can authorize this attendance action.',
-                      style: AppTextStyles
-                          .small
-                          .copyWith(
-                        color: AppColors
-                            .textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(
-                      dialogContext,
-                    ).pop();
-                  },
-                  child: const Text(
-                    'Cancel',
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    final password =
-                        controller.text
-                            .trim();
-
-                    if (password.isEmpty) {
-                      return;
-                    }
-
-                    Navigator.of(
-                      dialogContext,
-                    ).pop(password);
-                  },
-                  child: const Text(
-                    'Verify',
-                  ),
-                ),
-              ],
-            );
-          },
+      builder: (_) {
+        return _AttendancePasswordDialog(
+          user: user,
         );
       },
     );
-
-    controller.dispose();
-
-    return result;
   }
 
   // ============================================================
@@ -667,15 +398,12 @@ class _AttendanceScreenState
     }
 
     return _users.where((user) {
-      final name =
-          user.name.toLowerCase();
+      final name = user.name.toLowerCase();
 
       final loginId =
-          (user.loginId ?? '')
-              .toLowerCase();
+          (user.loginId ?? '').toLowerCase();
 
-      final role =
-          user.role.toLowerCase();
+      final role = user.role.toLowerCase();
 
       return name.contains(query) ||
           loginId.contains(query) ||
@@ -693,19 +421,16 @@ class _AttendanceScreenState
   }) {
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           message,
           style: AppTextStyles.body.copyWith(
             color: AppColors.surface,
-            fontWeight:
-                FontWeight.w600,
+            fontWeight: FontWeight.w600,
           ),
         ),
-        behavior:
-            SnackBarBehavior.floating,
+        behavior: SnackBarBehavior.floating,
         backgroundColor: isError
             ? AppColors.danger
             : AppColors.success,
@@ -771,8 +496,7 @@ class _AttendanceScreenState
     AttendanceData record,
   ) {
     final duration =
-        getAttendanceDao()
-            .calculateWorkedDuration(
+        getAttendanceDao().calculateWorkedDuration(
       record,
     );
 
@@ -780,12 +504,10 @@ class _AttendanceScreenState
       return 'Currently working';
     }
 
-    final hours =
-        duration.inHours;
+    final hours = duration.inHours;
 
     final minutes =
-        duration.inMinutes
-            .remainder(60);
+        duration.inMinutes.remainder(60);
 
     if (hours == 0) {
       return '$minutes min';
@@ -830,20 +552,16 @@ class _AttendanceScreenState
 
       title: Text(
         'Staff Attendance',
-        style: AppTextStyles.heading
-            .copyWith(
-          fontWeight:
-              FontWeight.w700,
+        style: AppTextStyles.heading.copyWith(
+          fontWeight: FontWeight.w700,
         ),
       ),
 
       actions: [
         IconButton(
-          tooltip:
-              'Attendance History',
+          tooltip: 'Attendance History',
           onPressed: () {
-            Navigator.of(context)
-                .push(
+            Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) =>
                     const AttendanceHistoryScreen(),
@@ -857,9 +575,8 @@ class _AttendanceScreenState
 
         IconButton(
           tooltip: 'Refresh',
-          onPressed: _isLoading
-              ? null
-              : _loadAttendance,
+          onPressed:
+              _isLoading ? null : _loadAttendance,
           icon: const Icon(
             Icons.refresh_outlined,
           ),
@@ -879,8 +596,7 @@ class _AttendanceScreenState
   Widget _buildBody() {
     if (_isLoading) {
       return const Center(
-        child:
-            CircularProgressIndicator(),
+        child: CircularProgressIndicator(),
       );
     }
 
@@ -888,8 +604,7 @@ class _AttendanceScreenState
       return _buildErrorState();
     }
 
-    final responsive =
-        context.responsive;
+    final responsive = context.responsive;
 
     return SingleChildScrollView(
       padding: EdgeInsets.symmetric(
@@ -900,8 +615,7 @@ class _AttendanceScreenState
       ),
       child: Center(
         child: ConstrainedBox(
-          constraints:
-              BoxConstraints(
+          constraints: BoxConstraints(
             maxWidth:
                 responsive.contentMaxWidth,
           ),
@@ -936,8 +650,7 @@ class _AttendanceScreenState
         ),
 
         Expanded(
-          child:
-              _buildEmployeeDetails(),
+          child: _buildEmployeeDetails(),
         ),
       ],
     );
@@ -990,8 +703,7 @@ class _AttendanceScreenState
   Widget _buildEmployeeList({
     bool constrainHeight = false,
   }) {
-    final users =
-        _filteredUsers;
+    final users = _filteredUsers;
 
     Widget content = Column(
       crossAxisAlignment:
@@ -1004,12 +716,10 @@ class _AttendanceScreenState
         ),
 
         TextField(
-          decoration:
-              InputDecoration(
+          decoration: InputDecoration(
             hintText:
                 'Search employee...',
-            prefixIcon:
-                const Icon(
+            prefixIcon: const Icon(
               Icons.search,
               size: 20,
             ),
@@ -1017,8 +727,7 @@ class _AttendanceScreenState
             filled: true,
             fillColor:
                 AppColors.background,
-            border:
-                OutlineInputBorder(
+            border: OutlineInputBorder(
               borderRadius:
                   BorderRadius.circular(
                 AppRadius.md,
@@ -1029,8 +738,7 @@ class _AttendanceScreenState
           ),
           onChanged: (value) {
             setState(() {
-              _searchQuery =
-                  value;
+              _searchQuery = value;
             });
           },
         ),
@@ -1048,9 +756,10 @@ class _AttendanceScreenState
             child: Center(
               child: Text(
                 'No employees found.',
-                style: AppTextStyles
-                    .bodySecondary
-                    .copyWith(
+                style:
+                    AppTextStyles
+                        .bodySecondary
+                        .copyWith(
                   color: AppColors
                       .textSecondary,
                 ),
@@ -1070,8 +779,7 @@ class _AttendanceScreenState
             const BoxConstraints(
           maxHeight: 720,
         ),
-        child:
-            SingleChildScrollView(
+        child: SingleChildScrollView(
           child: content,
         ),
       );
@@ -1098,10 +806,9 @@ class _AttendanceScreenState
         Container(
           width: 42,
           height: 42,
-          decoration:
-              BoxDecoration(
-            color: AppColors.primary
-                .withValues(
+          decoration: BoxDecoration(
+            color:
+                AppColors.primary.withValues(
               alpha: 0.08,
             ),
             borderRadius:
@@ -1150,8 +857,7 @@ class _AttendanceScreenState
 
         Container(
           padding:
-              const EdgeInsets
-                  .symmetric(
+              const EdgeInsets.symmetric(
             horizontal: 9,
             vertical: 6,
           ),
@@ -1166,12 +872,13 @@ class _AttendanceScreenState
           ),
           child: Text(
             '${_users.length}',
-            style: AppTextStyles.small
-                .copyWith(
+            style:
+                AppTextStyles.small
+                    .copyWith(
               fontWeight:
                   FontWeight.w700,
-              color: AppColors
-                  .textPrimary,
+              color:
+                  AppColors.textPrimary,
             ),
           ),
         ),
@@ -1211,8 +918,7 @@ class _AttendanceScreenState
               : () => _selectUser(
                     user,
                   ),
-          child:
-              AnimatedContainer(
+          child: AnimatedContainer(
             duration:
                 const Duration(
               milliseconds: 160,
@@ -1224,8 +930,7 @@ class _AttendanceScreenState
             decoration:
                 BoxDecoration(
               color: selected
-                  ? AppColors
-                      .primary
+                  ? AppColors.primary
                       .withValues(
                       alpha: 0.07,
                     )
@@ -1250,13 +955,11 @@ class _AttendanceScreenState
                   radius: 21,
                   backgroundColor:
                       selected
-                          ? AppColors
-                              .primary
+                          ? AppColors.primary
                               .withValues(
                               alpha: 0.12,
                             )
-                          : AppColors
-                              .border
+                          : AppColors.border
                               .withValues(
                               alpha: 0.45,
                             ),
@@ -1265,12 +968,11 @@ class _AttendanceScreenState
                         ? user.name[0]
                             .toUpperCase()
                         : '?',
-                    style: AppTextStyles
-                        .body
-                        .copyWith(
+                    style:
+                        AppTextStyles.body
+                            .copyWith(
                       color: selected
-                          ? AppColors
-                              .primary
+                          ? AppColors.primary
                           : AppColors
                               .textSecondary,
                       fontWeight:
@@ -1280,8 +982,7 @@ class _AttendanceScreenState
                 ),
 
                 const SizedBox(
-                  width:
-                      AppSpacing.sm,
+                  width: AppSpacing.sm,
                 ),
 
                 Expanded(
@@ -1352,16 +1053,14 @@ class _AttendanceScreenState
   // ============================================================
 
   Widget _buildEmployeeDetails() {
-    final user =
-        _selectedUser;
+    final user = _selectedUser;
 
     if (user == null) {
       return _buildEmptySelection();
     }
 
     final isWorking =
-        _selectedUserOpenAttendance !=
-            null;
+        _selectedUserOpenAttendance != null;
 
     return Column(
       crossAxisAlignment:
@@ -1424,8 +1123,7 @@ class _AttendanceScreenState
                     BoxShape.circle,
               ),
               child: const Icon(
-                Icons
-                    .person_search_outlined,
+                Icons.person_search_outlined,
                 size: 36,
                 color:
                     AppColors.primary,
@@ -1518,15 +1216,13 @@ class _AttendanceScreenState
             Expanded(
               child: Column(
                 crossAxisAlignment:
-                    CrossAxisAlignment
-                        .start,
+                    CrossAxisAlignment.start,
                 children: [
                   Text(
                     user.name,
                     maxLines: 1,
                     overflow:
-                        TextOverflow
-                            .ellipsis,
+                        TextOverflow.ellipsis,
                     style:
                         AppTextStyles
                             .heading
@@ -1545,8 +1241,7 @@ class _AttendanceScreenState
                     '${user.role.toUpperCase()}',
                     maxLines: 1,
                     overflow:
-                        TextOverflow
-                            .ellipsis,
+                        TextOverflow.ellipsis,
                     style:
                         AppTextStyles
                             .small
@@ -1589,8 +1284,7 @@ class _AttendanceScreenState
   ) {
     return _buildCard(
       borderColor: isWorking
-          ? AppColors.success
-              .withValues(
+          ? AppColors.success.withValues(
               alpha: 0.25,
             )
           : null,
@@ -1607,13 +1301,11 @@ class _AttendanceScreenState
               decoration:
                   BoxDecoration(
                 color: isWorking
-                    ? AppColors
-                        .success
+                    ? AppColors.success
                         .withValues(
                         alpha: 0.10,
                       )
-                    : AppColors
-                        .primary
+                    : AppColors.primary
                         .withValues(
                         alpha: 0.10,
                       ),
@@ -1622,10 +1314,8 @@ class _AttendanceScreenState
               ),
               child: Icon(
                 isWorking
-                    ? Icons
-                        .work_history_outlined
-                    : Icons
-                        .access_time_outlined,
+                    ? Icons.work_history_outlined
+                    : Icons.access_time_outlined,
                 size: 38,
                 color: isWorking
                     ? AppColors.success
@@ -1651,8 +1341,7 @@ class _AttendanceScreenState
                     FontWeight.w700,
                 color: isWorking
                     ? AppColors.success
-                    : AppColors
-                        .textPrimary,
+                    : AppColors.textPrimary,
               ),
             ),
 
@@ -1691,17 +1380,13 @@ class _AttendanceScreenState
             ),
 
             SizedBox(
-              width:
-                  double.infinity,
+              width: double.infinity,
               height:
-                  context.responsive
-                      .buttonHeight,
-              child:
-                  ElevatedButton.icon(
-                onPressed:
-                    _isProcessing
-                        ? null
-                        : _handleAttendanceAction,
+                  context.responsive.buttonHeight,
+              child: ElevatedButton.icon(
+                onPressed: _isProcessing
+                    ? null
+                    : _handleAttendanceAction,
                 icon: _isProcessing
                     ? const SizedBox(
                         width: 20,
@@ -1709,16 +1394,14 @@ class _AttendanceScreenState
                         child:
                             CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: AppColors
-                              .surface,
+                          color:
+                              AppColors.surface,
                         ),
                       )
                     : Icon(
                         isWorking
-                            ? Icons
-                                .logout_outlined
-                            : Icons
-                                .login_outlined,
+                            ? Icons.logout_outlined
+                            : Icons.login_outlined,
                       ),
                 label: Text(
                   _isProcessing
@@ -1728,13 +1411,12 @@ class _AttendanceScreenState
                           : 'Clock In ${user.name}',
                   maxLines: 1,
                   overflow:
-                      TextOverflow
-                          .ellipsis,
+                      TextOverflow.ellipsis,
                   style: AppTextStyles
                       .body
                       .copyWith(
-                    color: AppColors
-                        .surface,
+                    color:
+                        AppColors.surface,
                     fontWeight:
                         FontWeight.w700,
                   ),
@@ -1743,10 +1425,8 @@ class _AttendanceScreenState
                     ElevatedButton.styleFrom(
                   backgroundColor:
                       isWorking
-                          ? AppColors
-                              .danger
-                          : AppColors
-                              .primary,
+                          ? AppColors.danger
+                          : AppColors.primary,
                   foregroundColor:
                       AppColors.surface,
                   disabledBackgroundColor:
@@ -1754,8 +1434,7 @@ class _AttendanceScreenState
                   shape:
                       RoundedRectangleBorder(
                     borderRadius:
-                        BorderRadius
-                            .circular(
+                        BorderRadius.circular(
                       AppRadius.md,
                     ),
                   ),
@@ -1769,27 +1448,31 @@ class _AttendanceScreenState
 
             Row(
               mainAxisAlignment:
-                  MainAxisAlignment
-                      .center,
+                  MainAxisAlignment.center,
               children: [
                 const Icon(
                   Icons.lock_outline,
                   size: 13,
-                  color: AppColors
-                      .textSecondary,
+                  color:
+                      AppColors.textSecondary,
                 ),
 
                 const SizedBox(
                   width: 5,
                 ),
 
-                Text(
-                  'Employee password required',
-                  style: AppTextStyles
-                      .small
-                      .copyWith(
-                    color: AppColors
-                        .textSecondary,
+                Flexible(
+                  child: Text(
+                    'Employee password required',
+                    maxLines: 1,
+                    overflow:
+                        TextOverflow.ellipsis,
+                    style: AppTextStyles
+                        .small
+                        .copyWith(
+                      color: AppColors
+                          .textSecondary,
+                    ),
                   ),
                 ),
               ],
@@ -1809,8 +1492,7 @@ class _AttendanceScreenState
         _selectedUserTodayAttendance
             .where(
               (record) =>
-                  record.clockOut !=
-                  null,
+                  record.clockOut != null,
             )
             .toList();
 
@@ -1857,8 +1539,8 @@ class _AttendanceScreenState
       children: [
         Expanded(
           child: _summaryCard(
-            icon: Icons
-                .event_available_outlined,
+            icon:
+                Icons.event_available_outlined,
             label: 'Sessions Today',
             value:
                 _selectedUserTodayAttendance
@@ -1929,15 +1611,13 @@ class _AttendanceScreenState
             Expanded(
               child: Column(
                 crossAxisAlignment:
-                    CrossAxisAlignment
-                        .start,
+                    CrossAxisAlignment.start,
                 children: [
                   Text(
                     value,
                     maxLines: 1,
                     overflow:
-                        TextOverflow
-                            .ellipsis,
+                        TextOverflow.ellipsis,
                     style:
                         AppTextStyles
                             .title
@@ -1957,8 +1637,7 @@ class _AttendanceScreenState
                     label,
                     maxLines: 1,
                     overflow:
-                        TextOverflow
-                            .ellipsis,
+                        TextOverflow.ellipsis,
                     style:
                         AppTextStyles.small
                             .copyWith(
@@ -1980,8 +1659,7 @@ class _AttendanceScreenState
   // ============================================================
 
   Widget _buildTodayHistory() {
-    final now =
-        DateTime.now();
+    final now = DateTime.now();
 
     return _buildCard(
       child: Column(
@@ -2006,16 +1684,14 @@ class _AttendanceScreenState
                       alpha: 0.08,
                     ),
                     borderRadius:
-                        BorderRadius
-                            .circular(
+                        BorderRadius.circular(
                       AppRadius.md,
                     ),
                   ),
                   child: const Icon(
-                    Icons
-                        .history_outlined,
-                    color: AppColors
-                        .primary,
+                    Icons.history_outlined,
+                    color:
+                        AppColors.primary,
                   ),
                 ),
 
@@ -2036,8 +1712,7 @@ class _AttendanceScreenState
                                 .title
                                 .copyWith(
                           fontWeight:
-                              FontWeight
-                                  .w600,
+                              FontWeight.w600,
                         ),
                       ),
 
@@ -2072,16 +1747,14 @@ class _AttendanceScreenState
               .isEmpty)
             Padding(
               padding:
-                  const EdgeInsets
-                      .all(
+                  const EdgeInsets.all(
                 AppSpacing.xl,
               ),
               child: Center(
                 child: Column(
                   children: [
                     const Icon(
-                      Icons
-                          .event_busy_outlined,
+                      Icons.event_busy_outlined,
                       size: 42,
                       color: AppColors
                           .textSecondary,
@@ -2094,6 +1767,8 @@ class _AttendanceScreenState
 
                     Text(
                       'No attendance recorded today.',
+                      textAlign:
+                          TextAlign.center,
                       style: AppTextStyles
                           .bodySecondary
                           .copyWith(
@@ -2115,8 +1790,7 @@ class _AttendanceScreenState
                     entry.value;
 
                 final isOpen =
-                    record.clockOut ==
-                        null;
+                    record.clockOut == null;
 
                 return _buildAttendanceRow(
                   record,
@@ -2146,8 +1820,7 @@ class _AttendanceScreenState
       children: [
         Padding(
           padding:
-              const EdgeInsets
-                  .symmetric(
+              const EdgeInsets.symmetric(
             horizontal:
                 AppSpacing.lg,
             vertical:
@@ -2172,36 +1845,29 @@ class _AttendanceScreenState
                           alpha: 0.08,
                         ),
                   borderRadius:
-                      BorderRadius
-                          .circular(
+                      BorderRadius.circular(
                     AppRadius.md,
                   ),
                 ),
                 child: Icon(
                   isOpen
-                      ? Icons
-                          .play_circle_outline
-                      : Icons
-                          .check_circle_outline,
+                      ? Icons.play_circle_outline
+                      : Icons.check_circle_outline,
                   color: isOpen
-                      ? AppColors
-                          .success
-                      : AppColors
-                          .primary,
+                      ? AppColors.success
+                      : AppColors.primary,
                   size: 22,
                 ),
               ),
 
               const SizedBox(
-                width:
-                    AppSpacing.md,
+                width: AppSpacing.md,
               ),
 
               Expanded(
                 child: Column(
                   crossAxisAlignment:
-                      CrossAxisAlignment
-                          .start,
+                      CrossAxisAlignment.start,
                   children: [
                     Text(
                       isOpen
@@ -2214,8 +1880,7 @@ class _AttendanceScreenState
                         color: AppColors
                             .textPrimary,
                         fontWeight:
-                            FontWeight
-                                .w600,
+                            FontWeight.w600,
                       ),
                     ),
 
@@ -2257,52 +1922,57 @@ class _AttendanceScreenState
               ),
 
               const SizedBox(
-                width:
-                    AppSpacing.sm,
+                width: AppSpacing.sm,
               ),
 
-              Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment
-                        .end,
-                children: [
-                  Text(
-                    isOpen
-                        ? 'ACTIVE'
-                        : _formatDuration(
-                            record,
-                          ),
-                    style:
-                        AppTextStyles
-                            .small
-                            .copyWith(
-                      color: isOpen
-                          ? AppColors
-                              .success
-                          : AppColors
-                              .textPrimary,
-                      fontWeight:
-                          FontWeight
-                              .w700,
-                    ),
-                  ),
-
-                  if (isOpen) ...[
-                    const SizedBox(
-                      height: 4,
-                    ),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.end,
+                  children: [
                     Text(
-                      'Working',
+                      isOpen
+                          ? 'ACTIVE'
+                          : _formatDuration(
+                              record,
+                            ),
+                      maxLines: 1,
+                      overflow:
+                          TextOverflow.ellipsis,
                       style:
                           AppTextStyles
                               .small
                               .copyWith(
-                        color: AppColors
-                            .textSecondary,
+                        color: isOpen
+                            ? AppColors
+                                .success
+                            : AppColors
+                                .textPrimary,
+                        fontWeight:
+                            FontWeight.w700,
                       ),
                     ),
+
+                    if (isOpen) ...[
+                      const SizedBox(
+                        height: 4,
+                      ),
+                      Text(
+                        'Working',
+                        maxLines: 1,
+                        overflow:
+                            TextOverflow.ellipsis,
+                        style:
+                            AppTextStyles
+                                .small
+                                .copyWith(
+                          color: AppColors
+                              .textSecondary,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ],
           ),
@@ -2435,8 +2105,7 @@ class _AttendanceScreenState
   }) {
     return Container(
       padding:
-          const EdgeInsets
-              .symmetric(
+          const EdgeInsets.symmetric(
         horizontal: 9,
         vertical: 6,
       ),
@@ -2452,8 +2121,8 @@ class _AttendanceScreenState
       ),
       child: Text(
         label,
-        style: AppTextStyles.small
-            .copyWith(
+        style:
+            AppTextStyles.small.copyWith(
           fontSize: 9,
           fontWeight:
               FontWeight.w700,
@@ -2463,3 +2132,369 @@ class _AttendanceScreenState
     );
   }
 }
+
+// ============================================================================
+// ATTENDANCE PASSWORD DIALOG
+// ============================================================================
+//
+// The TextEditingController belongs to this widget.
+//
+// It is created in initState() and disposed in dispose().
+// The parent AttendanceScreen never disposes this controller.
+//
+// This prevents:
+//   "A TextEditingController was used after being disposed"
+//   "_dependents.isEmpty"
+//   "Tried to build dirty widget in the wrong build scope"
+//
+
+class _AttendancePasswordDialog
+    extends StatefulWidget {
+  final User user;
+
+  const _AttendancePasswordDialog({
+    required this.user,
+  });
+
+  @override
+  State<_AttendancePasswordDialog> createState() =>
+      _AttendancePasswordDialogState();
+}
+
+class _AttendancePasswordDialogState
+    extends State<_AttendancePasswordDialog> {
+  // ============================================================
+  // STATE
+  // ============================================================
+
+  late final TextEditingController _controller;
+
+  bool _obscurePassword = true;
+
+  // ============================================================
+  // INIT
+  // ============================================================
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = TextEditingController();
+
+    _controller.addListener(
+      _onPasswordChanged,
+    );
+  }
+
+  // ============================================================
+  // PASSWORD CHANGE
+  // ============================================================
+
+  void _onPasswordChanged() {
+    if (!mounted) return;
+
+    setState(() {});
+  }
+
+  // ============================================================
+  // DISPOSE
+  // ============================================================
+
+  @override
+  void dispose() {
+    _controller.removeListener(
+      _onPasswordChanged,
+    );
+
+    _controller.dispose();
+
+    super.dispose();
+  }
+
+  // ============================================================
+  // SUBMIT
+  // ============================================================
+
+  void _submit() {
+    final password =
+        _controller.text.trim();
+
+    if (password.isEmpty) {
+      return;
+    }
+
+    Navigator.of(context).pop(
+      password,
+    );
+  }
+
+  // ============================================================
+  // BUILD
+  // ============================================================
+
+  @override
+  Widget build(
+    BuildContext context,
+  ) {
+    final user = widget.user;
+
+    final hasPassword =
+        _controller.text.trim().isNotEmpty;
+
+    return AlertDialog(
+      title: Text(
+        'Verify Employee',
+        style:
+            AppTextStyles.heading.copyWith(
+          fontSize: 20,
+          fontWeight:
+              FontWeight.w700,
+        ),
+      ),
+
+      // ========================================================
+      // SCROLLABLE
+      // ========================================================
+      //
+      // Prevents the dialog content from overflowing on smaller
+      // logical screens / shorter available heights.
+      //
+
+      scrollable: true,
+
+      content: ConstrainedBox(
+        constraints:
+            const BoxConstraints(
+          maxWidth:
+              AppSizes.maxFormWidth,
+        ),
+        child: Column(
+          mainAxisSize:
+              MainAxisSize.min,
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
+          children: [
+            // ====================================================
+            // EMPLOYEE INFORMATION
+            // ====================================================
+
+            Container(
+              padding:
+                  const EdgeInsets.all(
+                AppSpacing.md,
+              ),
+              decoration:
+                  BoxDecoration(
+                color:
+                    AppColors.primaryLight,
+                borderRadius:
+                    BorderRadius.circular(
+                  AppRadius.md,
+                ),
+                border:
+                    Border.all(
+                  color: AppColors.primary
+                      .withValues(
+                    alpha: 0.08,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 21,
+                    backgroundColor:
+                        AppColors.primary
+                            .withValues(
+                      alpha: 0.10,
+                    ),
+                    child: Text(
+                      user.name.isNotEmpty
+                          ? user.name[0]
+                              .toUpperCase()
+                          : '?',
+                      style:
+                          AppTextStyles.body
+                              .copyWith(
+                        color:
+                            AppColors.primary,
+                        fontWeight:
+                            FontWeight.w700,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(
+                    width:
+                        AppSpacing.md,
+                  ),
+
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment
+                              .start,
+                      children: [
+                        Text(
+                          user.name,
+                          maxLines: 1,
+                          overflow:
+                              TextOverflow
+                                  .ellipsis,
+                          style:
+                              AppTextStyles
+                                  .body
+                                  .copyWith(
+                            fontWeight:
+                                FontWeight.w600,
+                          ),
+                        ),
+
+                        const SizedBox(
+                          height: 3,
+                        ),
+
+                        Text(
+                          user.loginId ??
+                              'No Login ID',
+                          maxLines: 1,
+                          overflow:
+                              TextOverflow
+                                  .ellipsis,
+                          style:
+                              AppTextStyles
+                                  .small,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(
+              height:
+                  AppSpacing.lg,
+            ),
+
+            // ====================================================
+            // INSTRUCTION
+            // ====================================================
+
+            const Text(
+              'Enter this employee\'s password to continue.',
+              style:
+                  AppTextStyles.bodySecondary,
+            ),
+
+            const SizedBox(
+              height:
+                  AppSpacing.md,
+            ),
+
+            // ====================================================
+            // PASSWORD FIELD
+            // ====================================================
+
+            TextField(
+              controller:
+                  _controller,
+              obscureText:
+                  _obscurePassword,
+              autofocus: true,
+              textInputAction:
+                  TextInputAction.done,
+              decoration:
+                  InputDecoration(
+                labelText:
+                    'Password',
+
+                prefixIcon:
+                    const Icon(
+                  Icons.lock_outline,
+                ),
+
+                suffixIcon:
+                    IconButton(
+                  tooltip:
+                      _obscurePassword
+                          ? 'Show password'
+                          : 'Hide password',
+                  onPressed: () {
+                    if (!mounted) return;
+
+                    setState(() {
+                      _obscurePassword =
+                          !_obscurePassword;
+                    });
+                  },
+                  icon: Icon(
+                    _obscurePassword
+                        ? Icons
+                            .visibility_outlined
+                        : Icons
+                            .visibility_off_outlined,
+                  ),
+                ),
+
+                border:
+                    OutlineInputBorder(
+                  borderRadius:
+                      BorderRadius.circular(
+                    AppRadius.md,
+                  ),
+                ),
+              ),
+
+              onSubmitted: (_) {
+                _submit();
+              },
+            ),
+
+            const SizedBox(
+              height:
+                  AppSpacing.sm,
+            ),
+
+            // ====================================================
+            // SECURITY MESSAGE
+            // ====================================================
+
+            Text(
+              'Only ${user.name} can authorize this attendance action.',
+              style:
+                  AppTextStyles.small.copyWith(
+                color:
+                    AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+
+      // ========================================================
+      // ACTIONS
+      // ========================================================
+
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+          child:
+              const Text('Cancel'),
+        ),
+
+        ElevatedButton(
+          onPressed:
+              hasPassword
+                  ? _submit
+                  : null,
+          child:
+              const Text('Verify'),
+        ),
+      ],
+    );
+  }
+}
+

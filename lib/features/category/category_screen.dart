@@ -17,10 +17,12 @@ class CategoryScreen extends StatefulWidget {
   const CategoryScreen({super.key});
 
   @override
-  State<CategoryScreen> createState() => _CategoryScreenState();
+  State<CategoryScreen> createState() =>
+      _CategoryScreenState();
 }
 
-class _CategoryScreenState extends State<CategoryScreen> {
+class _CategoryScreenState
+    extends State<CategoryScreen> {
   // ============================================================
   // DAO
   // ============================================================
@@ -43,272 +45,49 @@ class _CategoryScreenState extends State<CategoryScreen> {
   // ============================================================
 
   Future<void> _addCategoryDialog() async {
-    final nameController = TextEditingController();
-
-    String? selectedImage;
-
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text(
-            'Add Category',
-            style: AppTextStyles.title,
-          ),
-
-          content: StatefulBuilder(
-            builder: (
-              dialogContentContext,
-              setDialogState,
-            ) {
-              return ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: AppSizes.maxFormWidth,
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextField(
-                        controller: nameController,
-                        decoration: InputDecoration(
-                          labelText: 'Category name',
-                          hintText: 'e.g. Beverages',
-                          prefixIcon: const Icon(
-                            Icons.category_outlined,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(
-                              AppRadius.md,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(
-                        height: AppSpacing.lg,
-                      ),
-
-                      CategoryImagePicker(
-                        onImageSelected: (path) {
-                          setDialogState(() {
-                            selectedImage = path;
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-              },
-              child: const Text('Cancel'),
-            ),
-
-            ElevatedButton.icon(
-              onPressed: () async {
-                final name = nameController.text.trim();
-
-                if (name.isEmpty) {
-                  if (!dialogContext.mounted) {
-                    return;
-                  }
-
-                  ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Category name cannot be empty.',
-                      ),
-                    ),
-                  );
-
-                  return;
-                }
-
-                await _categoryDao.insertCategory(
-                  CategoriesCompanion(
-                    name: Value(name),
-                    imagePath: selectedImage == null
-                        ? const Value.absent()
-                        : Value(selectedImage!),
-                  ),
-                );
-
-                if (!dialogContext.mounted) {
-                  return;
-                }
-
-                Navigator.of(dialogContext).pop();
-
-                if (!mounted) {
-                  return;
-                }
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      '$name category created successfully.',
-                    ),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('Create Category'),
-            ),
-          ],
+        return _AddCategoryDialog(
+          categoryDao: _categoryDao,
         );
       },
     );
 
-    nameController.dispose();
+    if (!mounted) {
+      return;
+    }
   }
 
   // ============================================================
   // EDIT CATEGORY
   // ============================================================
 
-  Future<void> _editCategoryDialog(Category category) async {
-    final nameController = TextEditingController(
-      text: category.name,
-    );
-
-    String? updatedImage = category.imagePath;
-
+  Future<void> _editCategoryDialog(
+    Category category,
+  ) async {
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text(
-            'Edit Category',
-            style: AppTextStyles.title,
-          ),
-
-          content: StatefulBuilder(
-            builder: (
-              dialogContentContext,
-              setDialogState,
-            ) {
-              return ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: AppSizes.maxFormWidth,
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextField(
-                        controller: nameController,
-                        decoration: InputDecoration(
-                          labelText: 'Category name',
-                          prefixIcon: const Icon(
-                            Icons.category_outlined,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(
-                              AppRadius.md,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(
-                        height: AppSpacing.lg,
-                      ),
-
-                      CategoryImagePicker(
-                        onImageSelected: (path) {
-                          setDialogState(() {
-                            updatedImage = path;
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-              },
-              child: const Text('Cancel'),
-            ),
-
-            ElevatedButton.icon(
-              onPressed: () async {
-                final name = nameController.text.trim();
-
-                if (name.isEmpty) {
-                  if (!dialogContext.mounted) {
-                    return;
-                  }
-
-                  ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Category name cannot be empty.',
-                      ),
-                    ),
-                  );
-
-                  return;
-                }
-
-                await _categoryDao.updateCategory(
-                  Category(
-                    id: category.id,
-                    name: name,
-                    imagePath: updatedImage,
-                  ),
-                );
-
-                if (!dialogContext.mounted) {
-                  return;
-                }
-
-                Navigator.of(dialogContext).pop();
-
-                if (!mounted) {
-                  return;
-                }
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Category updated successfully.',
-                    ),
-                  ),
-                );
-              },
-              icon: const Icon(
-                Icons.save_outlined,
-              ),
-              label: const Text(
-                'Save Changes',
-              ),
-            ),
-          ],
+        return _EditCategoryDialog(
+          category: category,
+          categoryDao: _categoryDao,
         );
       },
     );
 
-    nameController.dispose();
+    if (!mounted) {
+      return;
+    }
   }
 
   // ============================================================
   // DELETE CATEGORY
   // ============================================================
 
-  Future<void> _deleteCategory(Category category) async {
+  Future<void> _deleteCategory(
+    Category category,
+  ) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
@@ -317,12 +96,10 @@ class _CategoryScreenState extends State<CategoryScreen> {
             'Delete Category',
             style: AppTextStyles.title,
           ),
-
           content: Text(
             'Are you sure you want to delete "${category.name}"?',
             style: AppTextStyles.bodySecondary,
           ),
-
           actions: [
             TextButton(
               onPressed: () {
@@ -330,7 +107,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
               },
               child: const Text('Cancel'),
             ),
-
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.danger,
@@ -380,18 +156,13 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
       appBar: AppBar(
         leading: const CentralBackButton(),
-
         title: const Text(
           'Categories',
           style: AppTextStyles.heading,
         ),
-
         backgroundColor: AppColors.primary,
-
         foregroundColor: AppColors.surface,
-
         elevation: 0,
-
         centerTitle: false,
       ),
 
@@ -410,7 +181,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
             return _buildErrorState();
           }
 
-          final categories = snapshot.data ?? [];
+          final categories =
+              snapshot.data ?? [];
 
           if (categories.isEmpty) {
             return _buildEmptyState();
@@ -423,7 +195,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
         },
       ),
 
-      floatingActionButton: _buildFloatingActionButton(
+      floatingActionButton:
+          _buildFloatingActionButton(
         responsive,
       ),
     );
@@ -439,18 +212,19 @@ class _CategoryScreenState extends State<CategoryScreen> {
   ) {
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxWidth: AppSizes.maxContentWidth,
+        constraints: BoxConstraints(
+          maxWidth: responsive.contentMaxWidth,
         ),
-
         child: Padding(
           padding: EdgeInsets.symmetric(
-            horizontal: responsive.horizontalPadding,
-            vertical: responsive.verticalPadding,
+            horizontal:
+                responsive.horizontalPadding,
+            vertical:
+                responsive.verticalPadding,
           ),
-
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
             children: [
               const InventorySectionTitle(
                 title: 'Product Categories',
@@ -463,56 +237,41 @@ class _CategoryScreenState extends State<CategoryScreen> {
               ),
 
               Expanded(
-                child: LayoutBuilder(
-                  builder: (
+                child: GridView.builder(
+                  padding: EdgeInsets.only(
+                    bottom: responsive.isCompact
+                        ? 80
+                        : AppSpacing.xl,
+                  ),
+
+                  gridDelegate:
+                      SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount:
+                        responsive.gridColumns,
+
+                    crossAxisSpacing:
+                        AppSpacing.md,
+
+                    mainAxisSpacing:
+                        AppSpacing.md,
+
+                    childAspectRatio:
+                        responsive.isCompact
+                            ? 1.45
+                            : responsive.isTablet
+                                ? 1.55
+                                : 1.65,
+                  ),
+
+                  itemCount: categories.length,
+
+                  itemBuilder: (
                     context,
-                    constraints,
+                    index,
                   ) {
-                    return GridView.builder(
-                      padding: EdgeInsets.only(
-                        bottom: responsive.isCompact
-                            ? 80
-                            : AppSpacing.xl,
-                      ),
-
-                      gridDelegate:
-                          SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent:
-                            responsive.isCompact
-                                ? 190
-                                : responsive.isTablet
-                                    ? 230
-                                    : 260,
-
-                        crossAxisSpacing:
-                            AppSpacing.md,
-
-                        mainAxisSpacing:
-                            AppSpacing.md,
-
-                        // Compact cards.
-                        //
-                        // The image is intentionally small so
-                        // many categories can remain visible.
-                        childAspectRatio:
-                            responsive.isCompact
-                                ? 1.45
-                                : responsive.isTablet
-                                    ? 1.55
-                                    : 1.65,
-                      ),
-
-                      itemCount: categories.length,
-
-                      itemBuilder: (
-                        context,
-                        index,
-                      ) {
-                        return _buildCategoryCard(
-                          categories[index],
-                          responsive,
-                        );
-                      },
+                    return _buildCategoryCard(
+                      categories[index],
+                      responsive,
                     );
                   },
                 ),
@@ -532,24 +291,29 @@ class _CategoryScreenState extends State<CategoryScreen> {
     Category category,
     Responsive responsive,
   ) {
-    final imageFile = category.imagePath == null
-        ? null
-        : File(category.imagePath!);
+    final imageFile =
+        category.imagePath == null
+            ? null
+            : File(category.imagePath!);
 
     final hasImage =
-        imageFile != null && imageFile.existsSync();
+        imageFile != null &&
+        imageFile.existsSync();
 
     return InventoryCard(
       padding: EdgeInsets.zero,
 
       child: Material(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(
+
+        borderRadius:
+            BorderRadius.circular(
           AppRadius.lg,
         ),
 
         child: InkWell(
-          borderRadius: BorderRadius.circular(
+          borderRadius:
+              BorderRadius.circular(
             AppRadius.lg,
           ),
 
@@ -562,25 +326,20 @@ class _CategoryScreenState extends State<CategoryScreen> {
                 CrossAxisAlignment.stretch,
 
             children: [
-              // ==================================================
-              // COMPACT IMAGE
-              // ==================================================
-
               _buildCategoryImage(
                 imageFile: imageFile,
                 hasImage: hasImage,
                 responsive: responsive,
               ),
 
-              // ==================================================
-              // CATEGORY DETAILS
-              // ==================================================
-
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
+                  padding:
+                      const EdgeInsets.symmetric(
+                    horizontal:
+                        AppSpacing.md,
+                    vertical:
+                        AppSpacing.sm,
                   ),
 
                   child: Row(
@@ -595,7 +354,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
                           overflow:
                               TextOverflow.ellipsis,
                           style:
-                              AppTextStyles.small.copyWith(
+                              AppTextStyles.small
+                                  .copyWith(
                             fontWeight:
                                 FontWeight.w600,
                           ),
@@ -629,18 +389,20 @@ class _CategoryScreenState extends State<CategoryScreen> {
     required bool hasImage,
     required Responsive responsive,
   }) {
-    final imageHeight = responsive.isCompact
-        ? 64.0
-        : responsive.isTablet
-            ? 72.0
-            : 78.0;
+    final imageHeight =
+        responsive.isCompact
+            ? 64.0
+            : responsive.isTablet
+                ? 80.0
+                : 90.0;
 
     return SizedBox(
       height: imageHeight,
       width: double.infinity,
 
       child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(
+        borderRadius:
+            const BorderRadius.vertical(
           top: Radius.circular(
             AppRadius.lg,
           ),
@@ -688,9 +450,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
   ) {
     return PopupMenuButton<String>(
       tooltip: 'Category options',
-
       padding: EdgeInsets.zero,
-
       iconSize: 20,
 
       icon: const Icon(
@@ -713,7 +473,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
           value: 'edit',
           child: Text('Edit'),
         ),
-
         PopupMenuItem<String>(
           value: 'delete',
           child: Text('Delete'),
@@ -775,10 +534,14 @@ class _CategoryScreenState extends State<CategoryScreen> {
       ),
 
       child: FloatingActionButton.extended(
-        backgroundColor: AppColors.accent,
-        foregroundColor: AppColors.surface,
+        backgroundColor:
+            AppColors.accent,
 
-        onPressed: _addCategoryDialog,
+        foregroundColor:
+            AppColors.surface,
+
+        onPressed:
+            _addCategoryDialog,
 
         icon: const Icon(
           Icons.add,
@@ -787,10 +550,497 @@ class _CategoryScreenState extends State<CategoryScreen> {
         label: const Text(
           'Add Category',
           style: TextStyle(
-            fontWeight: FontWeight.w700,
+            fontWeight:
+                FontWeight.w700,
           ),
         ),
       ),
+    );
+  }
+}
+
+// ============================================================================
+// ADD CATEGORY DIALOG
+// ============================================================================
+
+class _AddCategoryDialog
+    extends StatefulWidget {
+  final CategoryDao categoryDao;
+
+  const _AddCategoryDialog({
+    required this.categoryDao,
+  });
+
+  @override
+  State<_AddCategoryDialog> createState() =>
+      _AddCategoryDialogState();
+}
+
+class _AddCategoryDialogState
+    extends State<_AddCategoryDialog> {
+  late final TextEditingController
+      _nameController;
+
+  String? _selectedImage;
+
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _nameController =
+        TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+
+    super.dispose();
+  }
+
+  // ============================================================
+  // CREATE
+  // ============================================================
+
+  Future<void> _createCategory() async {
+    if (_saving) {
+      return;
+    }
+
+    final name =
+        _nameController.text.trim();
+
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Category name cannot be empty.',
+          ),
+        ),
+      );
+
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+    });
+
+    try {
+      await widget.categoryDao
+          .insertCategory(
+        CategoriesCompanion(
+          name: Value(name),
+          imagePath:
+              _selectedImage == null
+                  ? const Value.absent()
+                  : Value(
+                      _selectedImage!,
+                    ),
+        ),
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.of(context).pop();
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(
+        SnackBar(
+          content: Text(
+            '$name category created successfully.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _saving = false;
+      });
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Unable to create category.',
+          ),
+        ),
+      );
+    }
+  }
+
+  // ============================================================
+  // BUILD
+  // ============================================================
+
+  @override
+  Widget build(BuildContext context) {
+    final responsive =
+        context.responsive;
+
+    return AlertDialog(
+      title: const Text(
+        'Add Category',
+        style: AppTextStyles.title,
+      ),
+
+      content: ConstrainedBox(
+        constraints:
+            const BoxConstraints(
+          maxWidth:
+              AppSizes.maxFormWidth,
+        ),
+
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize:
+                MainAxisSize.min,
+
+            children: [
+              TextField(
+                controller:
+                    _nameController,
+
+                enabled: !_saving,
+
+                textInputAction:
+                    TextInputAction.done,
+
+                decoration:
+                    InputDecoration(
+                  labelText:
+                      'Category name',
+                  hintText:
+                      'e.g. Beverages',
+                  prefixIcon:
+                      const Icon(
+                    Icons
+                        .category_outlined,
+                  ),
+                  border:
+                      OutlineInputBorder(
+                    borderRadius:
+                        BorderRadius
+                            .circular(
+                      AppRadius.md,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(
+                height:
+                    AppSpacing.lg,
+              ),
+
+              CategoryImagePicker(
+                onImageSelected:
+                    (path) {
+                  if (!mounted) {
+                    return;
+                  }
+
+                  setState(() {
+                    _selectedImage =
+                        path;
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+
+      actions: [
+        TextButton(
+          onPressed: _saving
+              ? null
+              : () {
+                  Navigator.of(
+                    context,
+                  ).pop();
+                },
+          child:
+              const Text('Cancel'),
+        ),
+
+        ElevatedButton.icon(
+          onPressed:
+              _saving
+                  ? null
+                  : _createCategory,
+
+          icon: _saving
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child:
+                      CircularProgressIndicator(
+                    strokeWidth: 2,
+                  ),
+                )
+              : const Icon(
+                  Icons.add,
+                ),
+
+          label: Text(
+            _saving
+                ? 'Creating...'
+                : 'Create Category',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ============================================================================
+// EDIT CATEGORY DIALOG
+// ============================================================================
+
+class _EditCategoryDialog
+    extends StatefulWidget {
+  final Category category;
+  final CategoryDao categoryDao;
+
+  const _EditCategoryDialog({
+    required this.category,
+    required this.categoryDao,
+  });
+
+  @override
+  State<_EditCategoryDialog> createState() =>
+      _EditCategoryDialogState();
+}
+
+class _EditCategoryDialogState
+    extends State<_EditCategoryDialog> {
+  late final TextEditingController
+      _nameController;
+
+  String? _updatedImage;
+
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _nameController =
+        TextEditingController(
+      text: widget.category.name,
+    );
+
+    _updatedImage =
+        widget.category.imagePath;
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+
+    super.dispose();
+  }
+
+  // ============================================================
+  // SAVE
+  // ============================================================
+
+  Future<void> _saveChanges() async {
+    if (_saving) {
+      return;
+    }
+
+    final name =
+        _nameController.text.trim();
+
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Category name cannot be empty.',
+          ),
+        ),
+      );
+
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+    });
+
+    try {
+      await widget.categoryDao
+          .updateCategory(
+        Category(
+          id: widget.category.id,
+          name: name,
+          imagePath: _updatedImage,
+        ),
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.of(context).pop();
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Category updated successfully.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _saving = false;
+      });
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Unable to update category.',
+          ),
+        ),
+      );
+    }
+  }
+
+  // ============================================================
+  // BUILD
+  // ============================================================
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text(
+        'Edit Category',
+        style: AppTextStyles.title,
+      ),
+
+      content: ConstrainedBox(
+        constraints:
+            const BoxConstraints(
+          maxWidth:
+              AppSizes.maxFormWidth,
+        ),
+
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize:
+                MainAxisSize.min,
+
+            children: [
+              TextField(
+                controller:
+                    _nameController,
+
+                enabled: !_saving,
+
+                textInputAction:
+                    TextInputAction.done,
+
+                decoration:
+                    InputDecoration(
+                  labelText:
+                      'Category name',
+                  prefixIcon:
+                      const Icon(
+                    Icons
+                        .category_outlined,
+                  ),
+                  border:
+                      OutlineInputBorder(
+                    borderRadius:
+                        BorderRadius
+                            .circular(
+                      AppRadius.md,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(
+                height:
+                    AppSpacing.lg,
+              ),
+
+              CategoryImagePicker(
+                onImageSelected:
+                    (path) {
+                  if (!mounted) {
+                    return;
+                  }
+
+                  setState(() {
+                    _updatedImage =
+                        path;
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+
+      actions: [
+        TextButton(
+          onPressed: _saving
+              ? null
+              : () {
+                  Navigator.of(
+                    context,
+                  ).pop();
+                },
+          child:
+              const Text('Cancel'),
+        ),
+
+        ElevatedButton.icon(
+          onPressed:
+              _saving
+                  ? null
+                  : _saveChanges,
+
+          icon: _saving
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child:
+                      CircularProgressIndicator(
+                    strokeWidth: 2,
+                  ),
+                )
+              : const Icon(
+                  Icons.save_outlined,
+                ),
+
+          label: Text(
+            _saving
+                ? 'Saving...'
+                : 'Save Changes',
+          ),
+        ),
+      ],
     );
   }
 }

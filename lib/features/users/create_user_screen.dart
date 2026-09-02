@@ -158,6 +158,10 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
 
   // ============================================================
   // ACCOUNT CREATED DIALOG
+  
+
+  // ============================================================
+  // ACCOUNT CREATED DIALOG
   // ============================================================
 
   Future<void> _showAccountCreatedDialog({
@@ -168,41 +172,66 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
-        final responsive = context.responsive;
+      builder: (dialogContext) {
+        final responsive = dialogContext.responsive;
+        final mediaQuery = MediaQuery.of(dialogContext);
 
-        final dialogWidth = responsive.isCompact ? double.infinity : 440.0;
+        // Keep the dialog comfortably inside the available screen.
+        final maxDialogHeight = mediaQuery.size.height * 0.82;
+
+        final dialogWidth = responsive.isCompact
+            ? mediaQuery.size.width - (AppSpacing.xl * 2)
+            : 440.0;
 
         return AlertDialog(
+          scrollable: false,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.xl),
           ),
+
           titlePadding: EdgeInsets.fromLTRB(
-            responsive.isCompact ? AppSpacing.xl : AppSpacing.xxl,
-            responsive.isCompact ? AppSpacing.xl : AppSpacing.xxl,
-            responsive.isCompact ? AppSpacing.xl : AppSpacing.xxl,
+            responsive.isCompact
+                ? AppSpacing.lg
+                : AppSpacing.xxl,
+            responsive.isCompact
+                ? AppSpacing.lg
+                : AppSpacing.xxl,
+            responsive.isCompact
+                ? AppSpacing.lg
+                : AppSpacing.xxl,
             0,
           ),
-          contentPadding: EdgeInsets.fromLTRB(
-            responsive.isCompact ? AppSpacing.xl : AppSpacing.xxl,
-            AppSpacing.lg,
-            responsive.isCompact ? AppSpacing.xl : AppSpacing.xxl,
-            AppSpacing.sm,
-          ),
+
+          contentPadding: EdgeInsets.zero,
+
           actionsPadding: EdgeInsets.fromLTRB(
-            responsive.isCompact ? AppSpacing.xl : AppSpacing.xxl,
+            responsive.isCompact
+                ? AppSpacing.lg
+                : AppSpacing.xxl,
             AppSpacing.sm,
-            responsive.isCompact ? AppSpacing.xl : AppSpacing.xxl,
-            responsive.isCompact ? AppSpacing.xl : AppSpacing.xxl,
+            responsive.isCompact
+                ? AppSpacing.lg
+                : AppSpacing.xxl,
+            responsive.isCompact
+                ? AppSpacing.lg
+                : AppSpacing.xxl,
           ),
+
+          // ======================================================
+          // TITLE
+          // ======================================================
+
           title: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
                   color: AppColors.successLight,
-                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  borderRadius: BorderRadius.circular(
+                    AppRadius.md,
+                  ),
                 ),
                 child: const Icon(
                   Icons.check_circle_outline,
@@ -210,144 +239,220 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                   size: 24,
                 ),
               ),
+
               const SizedBox(width: AppSpacing.md),
+
               const Expanded(
-                child: Text('Account Created', style: AppTextStyles.title),
+                child: Text(
+                  'Account Created',
+                  style: AppTextStyles.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
+
+          // ======================================================
+          // CONTENT
+          // ======================================================
+
           content: SizedBox(
             width: dialogWidth,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$name has been added successfully.',
-                  style: AppTextStyles.body,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: maxDialogHeight,
+              ),
+              child: SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(
+                  responsive.isCompact
+                      ? AppSpacing.lg
+                      : AppSpacing.xxl,
+                  AppSpacing.lg,
+                  responsive.isCompact
+                      ? AppSpacing.lg
+                      : AppSpacing.xxl,
+                  AppSpacing.md,
                 ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ==================================================
+                    // SUCCESS MESSAGE
+                    // ==================================================
 
-                const SizedBox(height: AppSpacing.xxl),
-
-                // ------------------------------------------------
-                // LOGIN ID
-                // ------------------------------------------------
-                const Text(
-                  'Login ID',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-
-                const SizedBox(height: AppSpacing.xs),
-
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.md,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.12),
+                    Text(
+                      '$name has been added successfully.',
+                      style: AppTextStyles.body,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  child: SelectableText(
-                    loginId,
-                    style: const TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
 
-                const SizedBox(height: AppSpacing.lg),
+                    const SizedBox(height: AppSpacing.xxl),
 
-                // ------------------------------------------------
-                // TEMPORARY PASSWORD
-                // ------------------------------------------------
-                const Text(
-                  'Temporary Password',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
+                    // ==================================================
+                    // LOGIN ID LABEL
+                    // ==================================================
 
-                const SizedBox(height: AppSpacing.xs),
-
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.md,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceSoft,
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: SelectableText(
-                    password,
-                    style: const TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: AppSpacing.md),
-
-                Container(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  decoration: BoxDecoration(
-                    color: AppColors.warningLight,
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(
-                        Icons.info_outline,
-                        size: 18,
-                        color: AppColors.warning,
+                    const Text(
+                      'Login ID',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
                       ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          'Give these login details to the '
-                          'employee securely.',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 12,
-                            height: 1.4,
-                            color: AppColors.warning.withValues(alpha: 0.90),
+                    ),
+
+                    const SizedBox(height: AppSpacing.xs),
+
+                    // ==================================================
+                    // LOGIN ID
+                    // ==================================================
+
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.md,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(
+                          AppRadius.md,
+                        ),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(
+                            alpha: 0.12,
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                      child: SelectableText(
+                        loginId,
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: responsive.isCompact ? 20 : 24,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: AppSpacing.lg),
+
+                    // ==================================================
+                    // PASSWORD LABEL
+                    // ==================================================
+
+                    const Text(
+                      'Temporary Password',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+
+                    const SizedBox(height: AppSpacing.xs),
+
+                    // ==================================================
+                    // PASSWORD
+                    // ==================================================
+
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.md,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceSoft,
+                        borderRadius: BorderRadius.circular(
+                          AppRadius.md,
+                        ),
+                        border: Border.all(
+                          color: AppColors.border,
+                        ),
+                      ),
+                      child: SelectableText(
+                        password,
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: responsive.isCompact ? 16 : 18,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: AppSpacing.md),
+
+                    // ==================================================
+                    // SECURITY MESSAGE
+                    // ==================================================
+
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(
+                        AppSpacing.md,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.warningLight,
+                        borderRadius: BorderRadius.circular(
+                          AppRadius.md,
+                        ),
+                      ),
+                      child: const Row(
+                        crossAxisAlignment:
+                            CrossAxisAlignment.start,
+                        children: [
+                           Icon(
+                            Icons.info_outline,
+                            size: 18,
+                            color: AppColors.warning,
+                          ),
+
+                           SizedBox(
+                            width: AppSpacing.sm,
+                          ),
+
+                           Expanded(
+                            child: Text(
+                              'Give these login details to the '
+                              'employee securely. The employee '
+                              'will use the Login ID and password '
+                              'to access the system.',
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 12,
+                                height: 1.4,
+                                color: AppColors.warning,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
+
+          // ========================================================
+          // DONE BUTTON
+          // ========================================================
+
           actions: [
             SizedBox(
-              height: AppSizes.buttonHeight,
+              width: double.infinity,
+              height: responsive.buttonHeight,
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.of(context).pop();
+                  Navigator.of(dialogContext).pop();
                 },
                 child: const Text('Done'),
               ),
@@ -357,6 +462,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
       },
     );
   }
+
 
   // ============================================================
   // MESSAGE

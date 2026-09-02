@@ -53,6 +53,7 @@ dev_dependencies:
   # Lints
   flutter_lints: ^3.0.0
   flutter_gen_runner: ^5.4.0
+  flutter_launcher_icons: ^0.14.4
 
 
 
