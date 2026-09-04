@@ -1,31 +1,50 @@
 import 'package:flutter/material.dart';
 
+import '../responsive/responsive.dart';
 import '../theme/styles.dart';
 
 class InventoryCard extends StatelessWidget {
   final Widget child;
-  final EdgeInsetsGeometry padding;
+  final EdgeInsetsGeometry? padding;
   final VoidCallback? onTap;
 
   const InventoryCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(16),
+    this.padding,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final responsive = context.responsive;
+
+    final cardPadding =
+        padding ??
+        EdgeInsets.all(
+          responsive.value(
+            compact: AppSpacing.md,
+            tablet: AppSpacing.lg,
+            desktop: AppSpacing.lg,
+          ),
+        );
+
+    final radius = responsive.value(
+      compact: AppRadius.md,
+      tablet: AppRadius.lg,
+      desktop: AppRadius.lg,
+    );
+
     final card = Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(radius),
         border: Border.all(
           color: AppColors.border,
         ),
       ),
       child: Padding(
-        padding: padding,
+        padding: cardPadding,
         child: child,
       ),
     );
@@ -38,7 +57,7 @@ class InventoryCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(radius),
         child: card,
       ),
     );
@@ -61,14 +80,46 @@ class InventoryStatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final responsive = context.responsive;
+
+    final horizontalPadding = responsive.value(
+      compact: AppSpacing.sm,
+      tablet: AppSpacing.md,
+      desktop: AppSpacing.md,
+    );
+
+    final verticalPadding = responsive.value(
+      compact: 5.0,
+      tablet: 6.0,
+      desktop: 6.0,
+    );
+
+    final iconSize = responsive.value(
+      compact: 13.0,
+      tablet: 14.0,
+      desktop: 14.0,
+    );
+
+    final spacing = responsive.value(
+      compact: 5.0,
+      tablet: 6.0,
+      desktop: 6.0,
+    );
+
+    final radius = responsive.value(
+      compact: AppRadius.sm,
+      tablet: AppRadius.md,
+      desktop: AppRadius.md,
+    );
+
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 9,
-        vertical: 5,
+      padding: EdgeInsets.symmetric(
+        horizontal: horizontalPadding,
+        vertical: verticalPadding,
       ),
       decoration: BoxDecoration(
         color: backgroundColor ?? color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(radius),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -76,10 +127,10 @@ class InventoryStatusChip extends StatelessWidget {
           if (icon != null) ...[
             Icon(
               icon,
-              size: 13,
+              size: iconSize,
               color: color,
             ),
-            const SizedBox(width: 5),
+            SizedBox(width: spacing),
           ],
           Text(
             label,
@@ -108,6 +159,26 @@ class InventorySectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final responsive = context.responsive;
+
+    final titleStyle = responsive.value(
+      compact: AppTextStyles.title,
+      tablet: AppTextStyles.title,
+      desktop: AppTextStyles.heading,
+    );
+
+    final subtitleSpacing = responsive.value(
+      compact: 3.0,
+      tablet: AppSpacing.xs,
+      desktop: AppSpacing.xs,
+    );
+
+    final columnSpacing = responsive.value(
+      compact: AppSpacing.sm,
+      tablet: AppSpacing.md,
+      desktop: AppSpacing.md,
+    );
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -117,10 +188,10 @@ class InventorySectionTitle extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: AppTextStyles.title,
+                style: titleStyle,
               ),
               if (subtitle != null) ...[
-                const SizedBox(height: 3),
+                SizedBox(height: subtitleSpacing),
                 Text(
                   subtitle!,
                   style: AppTextStyles.bodySecondary,
@@ -129,7 +200,10 @@ class InventorySectionTitle extends StatelessWidget {
             ],
           ),
         ),
-        if (trailing != null) trailing!,
+        if (trailing != null) ...[
+          SizedBox(width: columnSpacing),
+          trailing!,
+        ],
       ],
     );
   }
@@ -151,44 +225,156 @@ class InventoryEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(40),
-        child: Column(
+    final responsive = context.responsive;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        /*
+         * The widget may be placed inside a very short area.
+         *
+         * Your original implementation used:
+         *
+         *   Padding.all(40)
+         *
+         * which consumes 80px vertically before the content
+         * even begins.
+         *
+         * On the device Flutter reported a maximum height of
+         * approximately 125px, which caused the 82px overflow.
+         */
+
+        final availableHeight = constraints.hasBoundedHeight
+            ? constraints.maxHeight
+            : double.infinity;
+
+        final isVeryShort =
+            availableHeight.isFinite && availableHeight < 150;
+
+        final isCompactHeight =
+            availableHeight.isFinite && availableHeight < 220;
+
+        final horizontalPadding = responsive.value(
+          compact: AppSpacing.lg,
+          tablet: AppSpacing.xxl,
+          desktop: AppSpacing.xxxl,
+        );
+
+        final verticalPadding = isVeryShort
+            ? AppSpacing.sm
+            : isCompactHeight
+                ? AppSpacing.md
+                : responsive.value(
+                    compact: AppSpacing.xxl,
+                    tablet: AppSpacing.xxxl,
+                    desktop: AppSpacing.xxxl,
+                  );
+
+        final iconSize = isVeryShort
+            ? 40.0
+            : isCompactHeight
+                ? 52.0
+                : responsive.value(
+                    compact: 64.0,
+                    tablet: 72.0,
+                    desktop: 72.0,
+                  );
+
+        final iconGraphicSize = isVeryShort
+            ? 22.0
+            : isCompactHeight
+                ? 26.0
+                : responsive.value(
+                    compact: 30.0,
+                    tablet: 34.0,
+                    desktop: 34.0,
+                  );
+
+        final iconRadius = isVeryShort
+            ? AppRadius.md
+            : isCompactHeight
+                ? AppRadius.lg
+                : AppRadius.xl;
+
+        final titleStyle = isVeryShort
+            ? AppTextStyles.small.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w700,
+              )
+            : isCompactHeight
+                ? AppTextStyles.body.copyWith(
+                    fontWeight: FontWeight.w600,
+                  )
+                : responsive.value(
+                    compact: AppTextStyles.title,
+                    tablet: AppTextStyles.title,
+                    desktop: AppTextStyles.heading,
+                  );
+
+        final iconTitleSpacing = isVeryShort
+            ? AppSpacing.sm
+            : isCompactHeight
+                ? AppSpacing.sm
+                : AppSpacing.lg;
+
+        final actionSpacing = isCompactHeight
+            ? AppSpacing.sm
+            : AppSpacing.lg;
+
+        final content = Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 72,
-              height: 72,
+              width: iconSize,
+              height: iconSize,
               decoration: BoxDecoration(
                 color: AppColors.primaryLight,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(iconRadius),
               ),
               child: Icon(
                 icon,
-                size: 34,
+                size: iconGraphicSize,
                 color: AppColors.primary,
               ),
             ),
-            const SizedBox(height: 18),
+
+            SizedBox(height: iconTitleSpacing),
+
             Text(
               title,
-              style: AppTextStyles.title,
+              style: titleStyle,
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 6),
-            Text(
-              message,
-              style: AppTextStyles.bodySecondary,
-              textAlign: TextAlign.center,
-            ),
+
+            if (!isVeryShort) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                message,
+                style: AppTextStyles.bodySecondary,
+                textAlign: TextAlign.center,
+              ),
+            ],
+
             if (action != null) ...[
-              const SizedBox(height: 20),
+              SizedBox(height: actionSpacing),
               action!,
             ],
           ],
-        ),
-      ),
+        );
+
+        /*
+         * If the parent gives us a very small bounded height,
+         * allow the empty state to scroll instead of overflowing.
+         */
+        return Center(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(
+              horizontal: horizontalPadding,
+              vertical: verticalPadding,
+            ),
+            child: content,
+          ),
+        );
+      },
     );
   }
 }

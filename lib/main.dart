@@ -43,9 +43,7 @@ Future<void> main() async {
 
   final userCount = await userDao.getUserCount();
 
-  debugPrint(
-    'Existing user accounts: $userCount',
-  );
+  debugPrint('Existing user accounts: $userCount');
 
   // ------------------------------------------------------------
   // START APP
@@ -69,9 +67,7 @@ Future<void> _configureDedicatedTerminal() async {
     // Keep screen awake while the inventory terminal is active.
     // ----------------------------------------------------------
 
-    await SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.immersiveSticky,
-    );
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
     // ----------------------------------------------------------
     // Force portrait orientation.
@@ -85,13 +81,9 @@ Future<void> _configureDedicatedTerminal() async {
       DeviceOrientation.landscapeRight,
     ]);
 
-    debugPrint(
-      'Dedicated inventory terminal configured',
-    );
+    debugPrint('Dedicated inventory terminal configured');
   } catch (e) {
-    debugPrint(
-      'Failed to configure dedicated terminal: $e',
-    );
+    debugPrint('Failed to configure dedicated terminal: $e');
   }
 }
 
@@ -110,16 +102,14 @@ class SupermarketApp extends StatefulWidget {
   });
 
   @override
-  State<SupermarketApp> createState() =>
-      _SupermarketAppState();
+  State<SupermarketApp> createState() => _SupermarketAppState();
 }
 
 // ============================================================
 // APPLICATION STATE
 // ============================================================
 
-class _SupermarketAppState
-    extends State<SupermarketApp> {
+class _SupermarketAppState extends State<SupermarketApp> {
   ThemeMode _themeMode = ThemeMode.system;
 
   bool _themeLoaded = false;
@@ -137,8 +127,7 @@ class _SupermarketAppState
 
   Future<void> _loadTheme() async {
     try {
-      final savedTheme =
-          await widget.settingsDao.getSetting(
+      final savedTheme = await widget.settingsDao.getSetting(
         BusinessSettings.themeMode,
       );
 
@@ -166,9 +155,7 @@ class _SupermarketAppState
         _themeLoaded = true;
       });
     } catch (e) {
-      debugPrint(
-        'Failed to load theme setting: $e',
-      );
+      debugPrint('Failed to load theme setting: $e');
 
       if (!mounted) return;
 
@@ -195,21 +182,16 @@ class _SupermarketAppState
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
         themeMode: ThemeMode.system,
-        home: const Scaffold(
-          body: Center(
-            child: CircularProgressIndicator(),
-          ),
-        ),
+        home: const Scaffold(body: Center(child: CircularProgressIndicator())),
       );
     }
 
     return MaterialApp.router(
-      title: 'Supermarket Inventory',
+      title: 'Creator Yard',
 
       // --------------------------------------------------------
       // THEMES
       // --------------------------------------------------------
-
       theme: AppTheme.light,
 
       darkTheme: AppTheme.dark,
@@ -219,11 +201,7 @@ class _SupermarketAppState
       // --------------------------------------------------------
       // ROUTER
       // --------------------------------------------------------
-
-      routerConfig: appRouter(
-        needsInitialSetup:
-            widget.needsInitialSetup,
-      ),
+      routerConfig: appRouter(needsInitialSetup: widget.needsInitialSetup),
 
       debugShowCheckedModeBanner: false,
     );
