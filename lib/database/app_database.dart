@@ -48,6 +48,9 @@ import 'daos/staff_purchase_dao.dart';
 import 'tables/staff_debt_payment_table.dart';
 import 'daos/staff_debt_payment_dao.dart';
 
+import 'tables/sale_email_queue_table.dart';
+import 'daos/sale_email_queue_dao.dart';
+
 import 'default_settings.dart';
 
 part 'app_database.g.dart';
@@ -188,6 +191,16 @@ SupplierPaymentAllocationDao getSupplierPaymentAllocationDao() {
   return _supplierPaymentAllocationDao!;
 }
 
+//single shared SaleEmailQueueDao
+SaleEmailQueueDao? _emailQueueDao;
+
+SaleEmailQueueDao getSaleEmailQueueDao() {
+  _emailQueueDao ??= SaleEmailQueueDao(getDatabase());
+
+  return _emailQueueDao!;
+
+}
+
 @DriftDatabase(
   tables: [
     Users,
@@ -205,6 +218,7 @@ SupplierPaymentAllocationDao getSupplierPaymentAllocationDao() {
     SupplierDeliveryItems,
     SupplierPayments,
     SupplierPaymentAllocations,
+    SaleEmailQueues,
   ],
 
   daos: [
@@ -223,13 +237,14 @@ SupplierPaymentAllocationDao getSupplierPaymentAllocationDao() {
     SupplierDeliveryItemDao,
     SupplierPaymentDao,
     SupplierPaymentAllocationDao,
+    SaleEmailQueueDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 24; // bump version when schema changes
+  int get schemaVersion => 25; // bump version when schema changes
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -357,6 +372,10 @@ class AppDatabase extends _$AppDatabase {
 
       if (from <= 23) {
         await m.addColumn(stockMovements, stockMovements.deliveryId);
+      }
+
+      if (from <= 24) {
+        await m.createTable(saleEmailQueues);
       }
 
       // if you add more versions later, handle them here

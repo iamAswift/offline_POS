@@ -1,5 +1,6 @@
 // lib/main.dart
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -8,6 +9,8 @@ import 'core/theme/theme.dart';
 import 'database/app_database.dart';
 import 'database/business_settings.dart';
 import 'database/daos/settings_dao.dart';
+import 'core/email/sale_email_worker.dart';
+import 'core/system/installation_registration_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,6 +38,26 @@ Future<void> main() async {
   // Force database to open.
   await db.customSelect('SELECT 1').get();
 
+  final settingsDao = SettingsDao(db);
+
+  try {
+    await InstallationRegistrationService.register(settingsDao);
+
+    debugPrint('Creator Yard installation registered successfully.');
+  } catch (e, stackTrace) {
+    debugPrint('Creator Yard installation registration failed: $e');
+    debugPrint('$stackTrace');
+  }
+
+  // ------------------------------------------------------------
+  // PROCESS PENDING SALE EMAILS
+  // ------------------------------------------------------------
+  //
+  // Run independently so email delivery never delays app startup.
+  //
+
+  unawaited(SaleEmailWorker().processPendingJobs());
+
   // ------------------------------------------------------------
   // CHECK WHETHER THE SYSTEM HAS AN OWNER
   // ------------------------------------------------------------
@@ -50,10 +73,7 @@ Future<void> main() async {
   // ------------------------------------------------------------
 
   runApp(
-    SupermarketApp(
-      needsInitialSetup: userCount == 0,
-      settingsDao: SettingsDao(db),
-    ),
+    SupermarketApp(needsInitialSetup: userCount == 0, settingsDao: settingsDao),
   );
 }
 

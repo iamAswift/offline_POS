@@ -7278,6 +7278,671 @@ class SupplierPaymentAllocationsCompanion
   }
 }
 
+class $SaleEmailQueuesTable extends SaleEmailQueues
+    with TableInfo<$SaleEmailQueuesTable, SaleEmailQueue> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SaleEmailQueuesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _saleIdMeta = const VerificationMeta('saleId');
+  @override
+  late final GeneratedColumn<int> saleId = GeneratedColumn<int>(
+    'sale_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _recipientMeta = const VerificationMeta(
+    'recipient',
+  );
+  @override
+  late final GeneratedColumn<String> recipient = GeneratedColumn<String>(
+    'recipient',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _subjectMeta = const VerificationMeta(
+    'subject',
+  );
+  @override
+  late final GeneratedColumn<String> subject = GeneratedColumn<String>(
+    'subject',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _bodyMeta = const VerificationMeta('body');
+  @override
+  late final GeneratedColumn<String> body = GeneratedColumn<String>(
+    'body',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('pending'),
+  );
+  static const VerificationMeta _attemptsMeta = const VerificationMeta(
+    'attempts',
+  );
+  @override
+  late final GeneratedColumn<int> attempts = GeneratedColumn<int>(
+    'attempts',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _lastAttemptAtMeta = const VerificationMeta(
+    'lastAttemptAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastAttemptAt =
+      GeneratedColumn<DateTime>(
+        'last_attempt_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _sentAtMeta = const VerificationMeta('sentAt');
+  @override
+  late final GeneratedColumn<DateTime> sentAt = GeneratedColumn<DateTime>(
+    'sent_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastErrorMeta = const VerificationMeta(
+    'lastError',
+  );
+  @override
+  late final GeneratedColumn<String> lastError = GeneratedColumn<String>(
+    'last_error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    saleId,
+    recipient,
+    subject,
+    body,
+    status,
+    attempts,
+    createdAt,
+    lastAttemptAt,
+    sentAt,
+    lastError,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sale_email_queues';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SaleEmailQueue> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('sale_id')) {
+      context.handle(
+        _saleIdMeta,
+        saleId.isAcceptableOrUnknown(data['sale_id']!, _saleIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_saleIdMeta);
+    }
+    if (data.containsKey('recipient')) {
+      context.handle(
+        _recipientMeta,
+        recipient.isAcceptableOrUnknown(data['recipient']!, _recipientMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_recipientMeta);
+    }
+    if (data.containsKey('subject')) {
+      context.handle(
+        _subjectMeta,
+        subject.isAcceptableOrUnknown(data['subject']!, _subjectMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_subjectMeta);
+    }
+    if (data.containsKey('body')) {
+      context.handle(
+        _bodyMeta,
+        body.isAcceptableOrUnknown(data['body']!, _bodyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_bodyMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('attempts')) {
+      context.handle(
+        _attemptsMeta,
+        attempts.isAcceptableOrUnknown(data['attempts']!, _attemptsMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('last_attempt_at')) {
+      context.handle(
+        _lastAttemptAtMeta,
+        lastAttemptAt.isAcceptableOrUnknown(
+          data['last_attempt_at']!,
+          _lastAttemptAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sent_at')) {
+      context.handle(
+        _sentAtMeta,
+        sentAt.isAcceptableOrUnknown(data['sent_at']!, _sentAtMeta),
+      );
+    }
+    if (data.containsKey('last_error')) {
+      context.handle(
+        _lastErrorMeta,
+        lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SaleEmailQueue map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SaleEmailQueue(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      saleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sale_id'],
+      )!,
+      recipient: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recipient'],
+      )!,
+      subject: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}subject'],
+      )!,
+      body: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}body'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      attempts: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}attempts'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      lastAttemptAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_attempt_at'],
+      ),
+      sentAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}sent_at'],
+      ),
+      lastError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_error'],
+      ),
+    );
+  }
+
+  @override
+  $SaleEmailQueuesTable createAlias(String alias) {
+    return $SaleEmailQueuesTable(attachedDatabase, alias);
+  }
+}
+
+class SaleEmailQueue extends DataClass implements Insertable<SaleEmailQueue> {
+  final int id;
+
+  /// The sale this notification belongs to.
+  final int saleId;
+
+  /// Owner/recipient email address.
+  final String recipient;
+
+  /// Email subject.
+  final String subject;
+
+  /// Email body.
+  final String body;
+
+  /// Queue lifecycle:
+  /// pending -> sending -> sent
+  /// sending -> failed -> pending
+  final String status;
+
+  /// Number of delivery attempts.
+  final int attempts;
+
+  /// When this job was created.
+  final DateTime createdAt;
+
+  /// Last time delivery was attempted.
+  final DateTime? lastAttemptAt;
+
+  /// When the email was successfully sent.
+  final DateTime? sentAt;
+
+  /// Last delivery error, if any.
+  final String? lastError;
+  const SaleEmailQueue({
+    required this.id,
+    required this.saleId,
+    required this.recipient,
+    required this.subject,
+    required this.body,
+    required this.status,
+    required this.attempts,
+    required this.createdAt,
+    this.lastAttemptAt,
+    this.sentAt,
+    this.lastError,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['sale_id'] = Variable<int>(saleId);
+    map['recipient'] = Variable<String>(recipient);
+    map['subject'] = Variable<String>(subject);
+    map['body'] = Variable<String>(body);
+    map['status'] = Variable<String>(status);
+    map['attempts'] = Variable<int>(attempts);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || lastAttemptAt != null) {
+      map['last_attempt_at'] = Variable<DateTime>(lastAttemptAt);
+    }
+    if (!nullToAbsent || sentAt != null) {
+      map['sent_at'] = Variable<DateTime>(sentAt);
+    }
+    if (!nullToAbsent || lastError != null) {
+      map['last_error'] = Variable<String>(lastError);
+    }
+    return map;
+  }
+
+  SaleEmailQueuesCompanion toCompanion(bool nullToAbsent) {
+    return SaleEmailQueuesCompanion(
+      id: Value(id),
+      saleId: Value(saleId),
+      recipient: Value(recipient),
+      subject: Value(subject),
+      body: Value(body),
+      status: Value(status),
+      attempts: Value(attempts),
+      createdAt: Value(createdAt),
+      lastAttemptAt: lastAttemptAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastAttemptAt),
+      sentAt: sentAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sentAt),
+      lastError: lastError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastError),
+    );
+  }
+
+  factory SaleEmailQueue.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SaleEmailQueue(
+      id: serializer.fromJson<int>(json['id']),
+      saleId: serializer.fromJson<int>(json['saleId']),
+      recipient: serializer.fromJson<String>(json['recipient']),
+      subject: serializer.fromJson<String>(json['subject']),
+      body: serializer.fromJson<String>(json['body']),
+      status: serializer.fromJson<String>(json['status']),
+      attempts: serializer.fromJson<int>(json['attempts']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      lastAttemptAt: serializer.fromJson<DateTime?>(json['lastAttemptAt']),
+      sentAt: serializer.fromJson<DateTime?>(json['sentAt']),
+      lastError: serializer.fromJson<String?>(json['lastError']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'saleId': serializer.toJson<int>(saleId),
+      'recipient': serializer.toJson<String>(recipient),
+      'subject': serializer.toJson<String>(subject),
+      'body': serializer.toJson<String>(body),
+      'status': serializer.toJson<String>(status),
+      'attempts': serializer.toJson<int>(attempts),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'lastAttemptAt': serializer.toJson<DateTime?>(lastAttemptAt),
+      'sentAt': serializer.toJson<DateTime?>(sentAt),
+      'lastError': serializer.toJson<String?>(lastError),
+    };
+  }
+
+  SaleEmailQueue copyWith({
+    int? id,
+    int? saleId,
+    String? recipient,
+    String? subject,
+    String? body,
+    String? status,
+    int? attempts,
+    DateTime? createdAt,
+    Value<DateTime?> lastAttemptAt = const Value.absent(),
+    Value<DateTime?> sentAt = const Value.absent(),
+    Value<String?> lastError = const Value.absent(),
+  }) => SaleEmailQueue(
+    id: id ?? this.id,
+    saleId: saleId ?? this.saleId,
+    recipient: recipient ?? this.recipient,
+    subject: subject ?? this.subject,
+    body: body ?? this.body,
+    status: status ?? this.status,
+    attempts: attempts ?? this.attempts,
+    createdAt: createdAt ?? this.createdAt,
+    lastAttemptAt: lastAttemptAt.present
+        ? lastAttemptAt.value
+        : this.lastAttemptAt,
+    sentAt: sentAt.present ? sentAt.value : this.sentAt,
+    lastError: lastError.present ? lastError.value : this.lastError,
+  );
+  SaleEmailQueue copyWithCompanion(SaleEmailQueuesCompanion data) {
+    return SaleEmailQueue(
+      id: data.id.present ? data.id.value : this.id,
+      saleId: data.saleId.present ? data.saleId.value : this.saleId,
+      recipient: data.recipient.present ? data.recipient.value : this.recipient,
+      subject: data.subject.present ? data.subject.value : this.subject,
+      body: data.body.present ? data.body.value : this.body,
+      status: data.status.present ? data.status.value : this.status,
+      attempts: data.attempts.present ? data.attempts.value : this.attempts,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      lastAttemptAt: data.lastAttemptAt.present
+          ? data.lastAttemptAt.value
+          : this.lastAttemptAt,
+      sentAt: data.sentAt.present ? data.sentAt.value : this.sentAt,
+      lastError: data.lastError.present ? data.lastError.value : this.lastError,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SaleEmailQueue(')
+          ..write('id: $id, ')
+          ..write('saleId: $saleId, ')
+          ..write('recipient: $recipient, ')
+          ..write('subject: $subject, ')
+          ..write('body: $body, ')
+          ..write('status: $status, ')
+          ..write('attempts: $attempts, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('lastAttemptAt: $lastAttemptAt, ')
+          ..write('sentAt: $sentAt, ')
+          ..write('lastError: $lastError')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    saleId,
+    recipient,
+    subject,
+    body,
+    status,
+    attempts,
+    createdAt,
+    lastAttemptAt,
+    sentAt,
+    lastError,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SaleEmailQueue &&
+          other.id == this.id &&
+          other.saleId == this.saleId &&
+          other.recipient == this.recipient &&
+          other.subject == this.subject &&
+          other.body == this.body &&
+          other.status == this.status &&
+          other.attempts == this.attempts &&
+          other.createdAt == this.createdAt &&
+          other.lastAttemptAt == this.lastAttemptAt &&
+          other.sentAt == this.sentAt &&
+          other.lastError == this.lastError);
+}
+
+class SaleEmailQueuesCompanion extends UpdateCompanion<SaleEmailQueue> {
+  final Value<int> id;
+  final Value<int> saleId;
+  final Value<String> recipient;
+  final Value<String> subject;
+  final Value<String> body;
+  final Value<String> status;
+  final Value<int> attempts;
+  final Value<DateTime> createdAt;
+  final Value<DateTime?> lastAttemptAt;
+  final Value<DateTime?> sentAt;
+  final Value<String?> lastError;
+  const SaleEmailQueuesCompanion({
+    this.id = const Value.absent(),
+    this.saleId = const Value.absent(),
+    this.recipient = const Value.absent(),
+    this.subject = const Value.absent(),
+    this.body = const Value.absent(),
+    this.status = const Value.absent(),
+    this.attempts = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.lastAttemptAt = const Value.absent(),
+    this.sentAt = const Value.absent(),
+    this.lastError = const Value.absent(),
+  });
+  SaleEmailQueuesCompanion.insert({
+    this.id = const Value.absent(),
+    required int saleId,
+    required String recipient,
+    required String subject,
+    required String body,
+    this.status = const Value.absent(),
+    this.attempts = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.lastAttemptAt = const Value.absent(),
+    this.sentAt = const Value.absent(),
+    this.lastError = const Value.absent(),
+  }) : saleId = Value(saleId),
+       recipient = Value(recipient),
+       subject = Value(subject),
+       body = Value(body);
+  static Insertable<SaleEmailQueue> custom({
+    Expression<int>? id,
+    Expression<int>? saleId,
+    Expression<String>? recipient,
+    Expression<String>? subject,
+    Expression<String>? body,
+    Expression<String>? status,
+    Expression<int>? attempts,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? lastAttemptAt,
+    Expression<DateTime>? sentAt,
+    Expression<String>? lastError,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (saleId != null) 'sale_id': saleId,
+      if (recipient != null) 'recipient': recipient,
+      if (subject != null) 'subject': subject,
+      if (body != null) 'body': body,
+      if (status != null) 'status': status,
+      if (attempts != null) 'attempts': attempts,
+      if (createdAt != null) 'created_at': createdAt,
+      if (lastAttemptAt != null) 'last_attempt_at': lastAttemptAt,
+      if (sentAt != null) 'sent_at': sentAt,
+      if (lastError != null) 'last_error': lastError,
+    });
+  }
+
+  SaleEmailQueuesCompanion copyWith({
+    Value<int>? id,
+    Value<int>? saleId,
+    Value<String>? recipient,
+    Value<String>? subject,
+    Value<String>? body,
+    Value<String>? status,
+    Value<int>? attempts,
+    Value<DateTime>? createdAt,
+    Value<DateTime?>? lastAttemptAt,
+    Value<DateTime?>? sentAt,
+    Value<String?>? lastError,
+  }) {
+    return SaleEmailQueuesCompanion(
+      id: id ?? this.id,
+      saleId: saleId ?? this.saleId,
+      recipient: recipient ?? this.recipient,
+      subject: subject ?? this.subject,
+      body: body ?? this.body,
+      status: status ?? this.status,
+      attempts: attempts ?? this.attempts,
+      createdAt: createdAt ?? this.createdAt,
+      lastAttemptAt: lastAttemptAt ?? this.lastAttemptAt,
+      sentAt: sentAt ?? this.sentAt,
+      lastError: lastError ?? this.lastError,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (saleId.present) {
+      map['sale_id'] = Variable<int>(saleId.value);
+    }
+    if (recipient.present) {
+      map['recipient'] = Variable<String>(recipient.value);
+    }
+    if (subject.present) {
+      map['subject'] = Variable<String>(subject.value);
+    }
+    if (body.present) {
+      map['body'] = Variable<String>(body.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (attempts.present) {
+      map['attempts'] = Variable<int>(attempts.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (lastAttemptAt.present) {
+      map['last_attempt_at'] = Variable<DateTime>(lastAttemptAt.value);
+    }
+    if (sentAt.present) {
+      map['sent_at'] = Variable<DateTime>(sentAt.value);
+    }
+    if (lastError.present) {
+      map['last_error'] = Variable<String>(lastError.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SaleEmailQueuesCompanion(')
+          ..write('id: $id, ')
+          ..write('saleId: $saleId, ')
+          ..write('recipient: $recipient, ')
+          ..write('subject: $subject, ')
+          ..write('body: $body, ')
+          ..write('status: $status, ')
+          ..write('attempts: $attempts, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('lastAttemptAt: $lastAttemptAt, ')
+          ..write('sentAt: $sentAt, ')
+          ..write('lastError: $lastError')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -7302,6 +7967,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $SupplierPaymentAllocationsTable supplierPaymentAllocations =
       $SupplierPaymentAllocationsTable(this);
+  late final $SaleEmailQueuesTable saleEmailQueues = $SaleEmailQueuesTable(
+    this,
+  );
   late final UserDao userDao = UserDao(this as AppDatabase);
   late final ProductDao productDao = ProductDao(this as AppDatabase);
   late final StockMovementDao stockMovementDao = StockMovementDao(
@@ -7331,6 +7999,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final SupplierPaymentAllocationDao supplierPaymentAllocationDao =
       SupplierPaymentAllocationDao(this as AppDatabase);
+  late final SaleEmailQueueDao saleEmailQueueDao = SaleEmailQueueDao(
+    this as AppDatabase,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -7351,6 +8022,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     supplierDeliveryItems,
     supplierPayments,
     supplierPaymentAllocations,
+    saleEmailQueues,
   ];
 }
 
@@ -14609,6 +15281,322 @@ typedef $$SupplierPaymentAllocationsTableProcessedTableManager =
       SupplierPaymentAllocation,
       PrefetchHooks Function({bool paymentId, bool deliveryId})
     >;
+typedef $$SaleEmailQueuesTableCreateCompanionBuilder =
+    SaleEmailQueuesCompanion Function({
+      Value<int> id,
+      required int saleId,
+      required String recipient,
+      required String subject,
+      required String body,
+      Value<String> status,
+      Value<int> attempts,
+      Value<DateTime> createdAt,
+      Value<DateTime?> lastAttemptAt,
+      Value<DateTime?> sentAt,
+      Value<String?> lastError,
+    });
+typedef $$SaleEmailQueuesTableUpdateCompanionBuilder =
+    SaleEmailQueuesCompanion Function({
+      Value<int> id,
+      Value<int> saleId,
+      Value<String> recipient,
+      Value<String> subject,
+      Value<String> body,
+      Value<String> status,
+      Value<int> attempts,
+      Value<DateTime> createdAt,
+      Value<DateTime?> lastAttemptAt,
+      Value<DateTime?> sentAt,
+      Value<String?> lastError,
+    });
+
+class $$SaleEmailQueuesTableFilterComposer
+    extends Composer<_$AppDatabase, $SaleEmailQueuesTable> {
+  $$SaleEmailQueuesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get saleId => $composableBuilder(
+    column: $table.saleId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recipient => $composableBuilder(
+    column: $table.recipient,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get subject => $composableBuilder(
+    column: $table.subject,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get attempts => $composableBuilder(
+    column: $table.attempts,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastAttemptAt => $composableBuilder(
+    column: $table.lastAttemptAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get sentAt => $composableBuilder(
+    column: $table.sentAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SaleEmailQueuesTableOrderingComposer
+    extends Composer<_$AppDatabase, $SaleEmailQueuesTable> {
+  $$SaleEmailQueuesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get saleId => $composableBuilder(
+    column: $table.saleId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recipient => $composableBuilder(
+    column: $table.recipient,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get subject => $composableBuilder(
+    column: $table.subject,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get attempts => $composableBuilder(
+    column: $table.attempts,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastAttemptAt => $composableBuilder(
+    column: $table.lastAttemptAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get sentAt => $composableBuilder(
+    column: $table.sentAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SaleEmailQueuesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SaleEmailQueuesTable> {
+  $$SaleEmailQueuesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get saleId =>
+      $composableBuilder(column: $table.saleId, builder: (column) => column);
+
+  GeneratedColumn<String> get recipient =>
+      $composableBuilder(column: $table.recipient, builder: (column) => column);
+
+  GeneratedColumn<String> get subject =>
+      $composableBuilder(column: $table.subject, builder: (column) => column);
+
+  GeneratedColumn<String> get body =>
+      $composableBuilder(column: $table.body, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<int> get attempts =>
+      $composableBuilder(column: $table.attempts, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastAttemptAt => $composableBuilder(
+    column: $table.lastAttemptAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get sentAt =>
+      $composableBuilder(column: $table.sentAt, builder: (column) => column);
+
+  GeneratedColumn<String> get lastError =>
+      $composableBuilder(column: $table.lastError, builder: (column) => column);
+}
+
+class $$SaleEmailQueuesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SaleEmailQueuesTable,
+          SaleEmailQueue,
+          $$SaleEmailQueuesTableFilterComposer,
+          $$SaleEmailQueuesTableOrderingComposer,
+          $$SaleEmailQueuesTableAnnotationComposer,
+          $$SaleEmailQueuesTableCreateCompanionBuilder,
+          $$SaleEmailQueuesTableUpdateCompanionBuilder,
+          (
+            SaleEmailQueue,
+            BaseReferences<
+              _$AppDatabase,
+              $SaleEmailQueuesTable,
+              SaleEmailQueue
+            >,
+          ),
+          SaleEmailQueue,
+          PrefetchHooks Function()
+        > {
+  $$SaleEmailQueuesTableTableManager(
+    _$AppDatabase db,
+    $SaleEmailQueuesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SaleEmailQueuesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SaleEmailQueuesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SaleEmailQueuesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> saleId = const Value.absent(),
+                Value<String> recipient = const Value.absent(),
+                Value<String> subject = const Value.absent(),
+                Value<String> body = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<int> attempts = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime?> lastAttemptAt = const Value.absent(),
+                Value<DateTime?> sentAt = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+              }) => SaleEmailQueuesCompanion(
+                id: id,
+                saleId: saleId,
+                recipient: recipient,
+                subject: subject,
+                body: body,
+                status: status,
+                attempts: attempts,
+                createdAt: createdAt,
+                lastAttemptAt: lastAttemptAt,
+                sentAt: sentAt,
+                lastError: lastError,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int saleId,
+                required String recipient,
+                required String subject,
+                required String body,
+                Value<String> status = const Value.absent(),
+                Value<int> attempts = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime?> lastAttemptAt = const Value.absent(),
+                Value<DateTime?> sentAt = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+              }) => SaleEmailQueuesCompanion.insert(
+                id: id,
+                saleId: saleId,
+                recipient: recipient,
+                subject: subject,
+                body: body,
+                status: status,
+                attempts: attempts,
+                createdAt: createdAt,
+                lastAttemptAt: lastAttemptAt,
+                sentAt: sentAt,
+                lastError: lastError,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SaleEmailQueuesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SaleEmailQueuesTable,
+      SaleEmailQueue,
+      $$SaleEmailQueuesTableFilterComposer,
+      $$SaleEmailQueuesTableOrderingComposer,
+      $$SaleEmailQueuesTableAnnotationComposer,
+      $$SaleEmailQueuesTableCreateCompanionBuilder,
+      $$SaleEmailQueuesTableUpdateCompanionBuilder,
+      (
+        SaleEmailQueue,
+        BaseReferences<_$AppDatabase, $SaleEmailQueuesTable, SaleEmailQueue>,
+      ),
+      SaleEmailQueue,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -14647,4 +15635,6 @@ class $AppDatabaseManager {
         _db,
         _db.supplierPaymentAllocations,
       );
+  $$SaleEmailQueuesTableTableManager get saleEmailQueues =>
+      $$SaleEmailQueuesTableTableManager(_db, _db.saleEmailQueues);
 }

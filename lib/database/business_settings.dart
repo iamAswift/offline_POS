@@ -214,4 +214,10 @@ class BusinessSettings {
 
   static const String supplierAllowPaymentDeletion =
       'supplier_allow_payment_deletion';
+
+  // ============================================================
+  // CREATOR YARD SYSTEM
+  // ============================================================
+
+  static const String installationId = 'creator_yard_installation_id';
 }
