@@ -32,6 +32,10 @@ class SaleEmailWorker {
   /// the same email job from consuming more than one credit.
   ///
   /// Only one worker run is allowed at a time.
+  ///
+  /// Retryable failures are returned to "pending" so a later worker run
+  /// can retry them. We intentionally process only one batch per run to
+  /// avoid repeatedly hammering the email provider during an outage.
   Future<void> processPendingJobs({int limit = 20}) async {
     if (_isRunning) {
       debugPrint(
@@ -57,22 +61,20 @@ class SaleEmailWorker {
       // application previously stopped or crashed.
       await _queueDao.resetSendingJobs();
 
-      while (true) {
-        final jobs = await _queueDao.getPendingJobs(limit: limit);
+      final jobs = await _queueDao.getPendingJobs(limit: limit);
 
-        if (jobs.isEmpty) {
-          debugPrint('SaleEmailWorker: No pending email jobs.');
-          break;
-        }
+      if (jobs.isEmpty) {
+        debugPrint('SaleEmailWorker: No pending email jobs.');
+        return;
+      }
 
-        debugPrint(
-          'SaleEmailWorker: Processing '
-          '${jobs.length} pending email job(s).',
-        );
+      debugPrint(
+        'SaleEmailWorker: Processing '
+        '${jobs.length} pending email job(s).',
+      );
 
-        for (final job in jobs) {
-          await _processJob(job, installationId);
-        }
+      for (final job in jobs) {
+        await _processJob(job, installationId);
       }
     } catch (e, stackTrace) {
       debugPrint('SaleEmailWorker: Failed to process email queue: $e');
@@ -107,12 +109,48 @@ class SaleEmailWorker {
       await _queueDao.markSent(job.id);
 
       debugPrint('SaleEmailWorker: Job #${job.id} sent successfully.');
-    } catch (e, stackTrace) {
+    } on EmailServiceException catch (e, stackTrace) {
+      if (e.retryable) {
+        // The backend may already have reserved the credit and
+        // Resend may have accepted the email before the failure
+        // became visible to the app.
+        //
+        // Keep the same job ID so the next attempt uses the same
+        // SALE-EMAIL-{job.id} reference and the same Resend
+        // idempotency key.
+        await _queueDao.retrySendingJob(job.id);
+
+        debugPrint(
+          'SaleEmailWorker: Job #${job.id} '
+          'will be retried. Error: ${e.message}',
+        );
+        debugPrint('$stackTrace');
+        return;
+      }
+
       final error = e.toString();
 
       await _queueDao.markFailed(job.id, error);
 
-      debugPrint('SaleEmailWorker: Job #${job.id} failed: $error');
+      debugPrint(
+        'SaleEmailWorker: Job #${job.id} failed permanently: '
+        '$error',
+      );
+      debugPrint('$stackTrace');
+    } catch (e, stackTrace) {
+      // Unexpected local errors are treated as retryable.
+      //
+      // We deliberately do not refund anything here because the
+      // provider state may be unknown. The same job ID can safely
+      // be retried through the backend idempotency mechanism.
+      final error = e.toString();
+
+      await _queueDao.retrySendingJob(job.id);
+
+      debugPrint(
+        'SaleEmailWorker: Job #${job.id} encountered an '
+        'unexpected error and will be retried: $error',
+      );
       debugPrint('$stackTrace');
     }
   }

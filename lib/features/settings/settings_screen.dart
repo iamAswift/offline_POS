@@ -13,6 +13,7 @@ import 'pos_settings_screen.dart';
 import 'receipt_settings_screen.dart';
 import 'security_settings_screen.dart';
 import 'reports_settings_screen.dart';
+import 'email_credits_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final SettingsDao settingsDao;
@@ -123,6 +124,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ReportsSettingsScreen(settingsDao: widget.settingsDao),
+      ),
+    );
+  }
+
+  void _openEmailCredits() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => EmailCreditsScreen(settingsDao: widget.settingsDao),
       ),
     );
   }
@@ -596,6 +605,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           );
         },
       ),
+
+      _navigationCard(
+        icon: Icons.email_outlined,
+        title: 'Email Credits',
+        subtitle:
+            'View your Creator Yard Email Credits balance and usage history.',
+        onTap: _openEmailCredits,
+      ),
     ];
 
     // ----------------------------------------------------------
@@ -620,7 +637,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final spacing = AppSpacing.md;
+        const spacing = AppSpacing.md;
 
         final columns = responsive.isTablet ? 2 : 2;
 
@@ -658,7 +675,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ? const SizedBox(
                       width: AppSpacing.lg,
                       height: AppSpacing.lg,
-                      child:  CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.save),
               label: Text(responsive.isCompact ? 'Save' : 'Save'),
@@ -686,7 +703,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       // ==================================================
                       // PAGE HEADER
                       // ==================================================
-                      const Text('Settings', style: AppTextStyles.dashboardTitle),
+                      const Text(
+                        'Settings',
+                        style: AppTextStyles.dashboardTitle,
+                      ),
 
                       const SizedBox(height: AppSpacing.xs),
 
@@ -842,7 +862,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ? const SizedBox(
                                   width: AppSpacing.xl,
                                   height: AppSpacing.xl,
-                                  child:  CircularProgressIndicator(
+                                  child: CircularProgressIndicator(
                                     strokeWidth: 2,
                                   ),
                                 )

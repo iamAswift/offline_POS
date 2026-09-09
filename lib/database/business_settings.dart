@@ -220,4 +220,10 @@ class BusinessSettings {
   // ============================================================
 
   static const String installationId = 'creator_yard_installation_id';
+
+  // ============================================================
+  // EMAIL
+  // ===========================================================
+
+  static const String emailEnabled = 'email_enabled';
 }

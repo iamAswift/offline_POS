@@ -148,6 +148,20 @@ class SaleEmailQueueDao extends DatabaseAccessor<AppDatabase>
     );
   }
 
+  Future<bool> retrySendingJob(int id) async {
+    final updated =
+        await (update(
+          saleEmailQueues,
+        )..where((t) => t.id.equals(id) & t.status.equals('sending'))).write(
+          const SaleEmailQueuesCompanion(
+            status: Value('pending'),
+            lastError: Value(null),
+          ),
+        );
+
+    return updated > 0;
+  }
+
   // ============================================================
   // RECOVERY
   // ============================================================

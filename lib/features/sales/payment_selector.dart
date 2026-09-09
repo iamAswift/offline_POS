@@ -12,17 +12,10 @@ class PaymentSelector extends StatelessWidget {
 
   final PosSettings posSettings;
 
-  final Function(
-    double cash,
-    double pos,
-    double transfer,
-  ) onPaymentConfirmed;
+  final Function(double cash, double pos, double transfer) onPaymentConfirmed;
 
-  final Function(
-    double cashReceived,
-    double cashApplied,
-    double change,
-  )? onCashPaymentDetails;
+  final Function(double cashReceived, double cashApplied, double change)?
+  onCashPaymentDetails;
 
   final int total;
 
@@ -52,10 +45,7 @@ class PaymentSelector extends StatelessWidget {
   // PAYMENT POPUP
   // ============================================================
 
-  void _showPaymentPopup(
-    BuildContext context,
-    String method,
-  ) {
+  void _showPaymentPopup(BuildContext context, String method) {
     if (!_isPaymentMethodEnabled(method) && method != 'split') {
       _showError(
         context,
@@ -102,164 +92,131 @@ class PaymentSelector extends StatelessWidget {
           posSettings: posSettings,
         );
       },
-    ).then(
-      (result) {
-        // ========================================================
-        // The bottom sheet has returned its final result.
+    ).then((result) {
+      // ========================================================
+      // The bottom sheet has returned its final result.
+      //
+      // The controllers are NOT disposed here.
+      //
+      // _PaymentBottomSheetState.dispose() owns that lifecycle.
+      // ========================================================
+
+      if (result == null) {
+        return;
+      }
+
+      final resultMethod = result['method'] as String?;
+
+      if (resultMethod == null || resultMethod.trim().isEmpty) {
+        return;
+      }
+
+      // ========================================================
+      // Update selected payment method only after the sheet
+      // has returned its result.
+      // ========================================================
+
+      onMethodSelected(resultMethod);
+
+      // ========================================================
+      // CASH
+      // ========================================================
+
+      if (resultMethod == 'cash') {
+        final cashReceived = (result['cashReceived'] as num?)?.toDouble() ?? 0;
+
+        final cashApplied = (result['cashApplied'] as num?)?.toDouble() ?? 0;
+
+        final change = (result['change'] as num?)?.toDouble() ?? 0;
+
+        onCashPaymentDetails?.call(cashReceived, cashApplied, change);
+
+        // IMPORTANT:
         //
-        // The controllers are NOT disposed here.
+        // Only the amount applied to the sale is passed to
+        // SalesScreen.
         //
-        // _PaymentBottomSheetState.dispose() owns that lifecycle.
-        // ========================================================
+        // Example:
+        //
+        // Sale = ₦7,500
+        // Cash received = ₦10,000
+        // Change = ₦2,500
+        //
+        // SalesScreen receives:
+        //
+        // cash = ₦7,500
+        // pos = ₦0
+        // transfer = ₦0
+        //
 
-        if (result == null) {
-          return;
-        }
+        onPaymentConfirmed(cashApplied, 0, 0);
 
-        final resultMethod = result['method'] as String?;
+        return;
+      }
 
-        if (resultMethod == null || resultMethod.trim().isEmpty) {
-          return;
-        }
+      // ========================================================
+      // POS
+      // ========================================================
 
-        // ========================================================
-        // Update selected payment method only after the sheet
-        // has returned its result.
-        // ========================================================
+      if (resultMethod == 'pos') {
+        final pos = (result['pos'] as num?)?.toDouble() ?? 0;
 
-        onMethodSelected(resultMethod);
+        onPaymentConfirmed(0, pos, 0);
 
-        // ========================================================
-        // CASH
-        // ========================================================
+        return;
+      }
 
-        if (resultMethod == 'cash') {
-          final cashReceived =
-              (result['cashReceived'] as num?)?.toDouble() ?? 0;
+      // ========================================================
+      // TRANSFER
+      // ========================================================
 
-          final cashApplied =
-              (result['cashApplied'] as num?)?.toDouble() ?? 0;
+      if (resultMethod == 'transfer') {
+        final transfer = (result['transfer'] as num?)?.toDouble() ?? 0;
 
-          final change =
-              (result['change'] as num?)?.toDouble() ?? 0;
+        onPaymentConfirmed(0, 0, transfer);
 
-          onCashPaymentDetails?.call(
-            cashReceived,
-            cashApplied,
-            change,
-          );
+        return;
+      }
 
-          // IMPORTANT:
-          //
-          // Only the amount applied to the sale is passed to
-          // SalesScreen.
-          //
-          // Example:
-          //
-          // Sale = ₦7,500
-          // Cash received = ₦10,000
-          // Change = ₦2,500
-          //
-          // SalesScreen receives:
-          //
-          // cash = ₦7,500
-          // pos = ₦0
-          // transfer = ₦0
-          //
+      // ========================================================
+      // SPLIT
+      // ========================================================
 
-          onPaymentConfirmed(
-            cashApplied,
-            0,
-            0,
-          );
+      if (resultMethod == 'split') {
+        final cash = (result['cash'] as num?)?.toDouble() ?? 0;
 
-          return;
-        }
+        final pos = (result['pos'] as num?)?.toDouble() ?? 0;
 
-        // ========================================================
-        // POS
-        // ========================================================
+        final transfer = (result['transfer'] as num?)?.toDouble() ?? 0;
 
-        if (resultMethod == 'pos') {
-          final pos =
-              (result['pos'] as num?)?.toDouble() ?? 0;
+        // The bottom sheet knows this is a split payment,
+        // so keep the parent SalesScreen payment method
+        // synchronized before completing the sale.
+        onMethodSelected('split');
 
-          onPaymentConfirmed(
-            0,
-            pos,
-            0,
-          );
+        onPaymentConfirmed(cash, pos, transfer);
 
-          return;
-        }
-
-        // ========================================================
-        // TRANSFER
-        // ========================================================
-
-        if (resultMethod == 'transfer') {
-          final transfer =
-              (result['transfer'] as num?)?.toDouble() ?? 0;
-
-          onPaymentConfirmed(
-            0,
-            0,
-            transfer,
-          );
-
-          return;
-        }
-
-        // ========================================================
-        // SPLIT
-        // ========================================================
-
-        if (resultMethod == 'split') {
-          final cash =
-              (result['cash'] as num?)?.toDouble() ?? 0;
-
-          final pos =
-              (result['pos'] as num?)?.toDouble() ?? 0;
-
-          final transfer =
-              (result['transfer'] as num?)?.toDouble() ?? 0;
-
-          onPaymentConfirmed(
-            cash,
-            pos,
-            transfer,
-          );
-
-          return;
-        }
-      },
-    );
+        return;
+      }
+    });
   }
 
   // ============================================================
   // ERROR
   // ============================================================
 
-  void _showError(
-    BuildContext context,
-    String message,
-  ) {
+  void _showError(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
         backgroundColor: AppColors.danger,
         margin: const EdgeInsets.all(10),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(
-            AppRadius.sm,
-          ),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
         ),
         content: Text(
           message,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
         ),
       ),
     );
@@ -274,18 +231,11 @@ class PaymentSelector extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 8,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.055),
-        borderRadius: BorderRadius.circular(
-          AppRadius.sm,
-        ),
-        border: Border.all(
-          color: color.withValues(alpha: 0.14),
-        ),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        border: Border.all(color: color.withValues(alpha: 0.14)),
       ),
       child: Row(
         children: [
@@ -296,17 +246,12 @@ class PaymentSelector extends StatelessWidget {
               color: color.withValues(alpha: 0.10),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              Icons.receipt_long_outlined,
-              color: color,
-              size: 15,
-            ),
+            child: Icon(Icons.receipt_long_outlined, color: color, size: 15),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'TOTAL DUE',
@@ -345,26 +290,15 @@ class PaymentSelector extends StatelessWidget {
   }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 9,
-        vertical: 7,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(
-          AppRadius.sm,
-        ),
-        border: Border.all(
-          color: color.withValues(alpha: 0.18),
-        ),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
       ),
       child: Row(
         children: [
-          Icon(
-            icon,
-            color: color,
-            size: 15,
-          ),
+          Icon(icon, color: color, size: 15),
           const SizedBox(width: 7),
           Expanded(
             child: Text(
@@ -407,9 +341,7 @@ class PaymentSelector extends StatelessWidget {
       controller: controller,
       autofocus: autofocus,
       onChanged: onChanged,
-      keyboardType: const TextInputType.numberWithOptions(
-        decimal: true,
-      ),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
       style: AppTextStyles.body.copyWith(
         fontSize: 15,
         fontWeight: FontWeight.w700,
@@ -417,11 +349,7 @@ class PaymentSelector extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: Icon(
-          icon,
-          color: color,
-          size: 19,
-        ),
+        prefixIcon: Icon(icon, color: color, size: 19),
         filled: true,
         fillColor: color.withValues(alpha: 0.045),
         isDense: true,
@@ -430,29 +358,16 @@ class PaymentSelector extends StatelessWidget {
           vertical: 11,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(
-            AppRadius.sm,
-          ),
-          borderSide: BorderSide(
-            color: color.withValues(alpha: 0.18),
-          ),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderSide: BorderSide(color: color.withValues(alpha: 0.18)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(
-            AppRadius.sm,
-          ),
-          borderSide: BorderSide(
-            color: color.withValues(alpha: 0.18),
-          ),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderSide: BorderSide(color: color.withValues(alpha: 0.18)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(
-            AppRadius.sm,
-          ),
-          borderSide: BorderSide(
-            color: color,
-            width: 1.3,
-          ),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderSide: BorderSide(color: color, width: 1.3),
         ),
       ),
     );
@@ -470,51 +385,29 @@ class PaymentSelector extends StatelessWidget {
   }) {
     return TextField(
       controller: controller,
-      keyboardType: const TextInputType.numberWithOptions(
-        decimal: true,
-      ),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
       style: AppTextStyles.body.copyWith(
         fontSize: 13,
         fontWeight: FontWeight.w700,
       ),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(
-          icon,
-          color: color,
-          size: 17,
-        ),
+        prefixIcon: Icon(icon, color: color, size: 17),
         filled: true,
         fillColor: color.withValues(alpha: 0.045),
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 8,
-          vertical: 9,
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(
-            AppRadius.sm,
-          ),
-          borderSide: BorderSide(
-            color: color.withValues(alpha: 0.18),
-          ),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderSide: BorderSide(color: color.withValues(alpha: 0.18)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(
-            AppRadius.sm,
-          ),
-          borderSide: BorderSide(
-            color: color.withValues(alpha: 0.18),
-          ),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderSide: BorderSide(color: color.withValues(alpha: 0.18)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(
-            AppRadius.sm,
-          ),
-          borderSide: BorderSide(
-            color: color,
-            width: 1.3,
-          ),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderSide: BorderSide(color: color, width: 1.3),
         ),
       ),
     );
@@ -538,30 +431,18 @@ class PaymentSelector extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(
-            AppRadius.sm,
-          ),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           onTap: () {
-            _showPaymentPopup(
-              context,
-              method,
-            );
+            _showPaymentPopup(context, method);
           },
           child: AnimatedContainer(
-            duration: const Duration(
-              milliseconds: 140,
-            ),
-            padding: const EdgeInsets.symmetric(
-              horizontal: 7,
-              vertical: 4,
-            ),
+            duration: const Duration(milliseconds: 140),
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
             decoration: BoxDecoration(
               color: isSelected
                   ? color.withValues(alpha: 0.10)
                   : AppColors.surface,
-              borderRadius: BorderRadius.circular(
-                AppRadius.sm,
-              ),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
               border: Border.all(
                 color: isSelected
                     ? color.withValues(alpha: 0.35)
@@ -573,9 +454,7 @@ class PaymentSelector extends StatelessWidget {
                 Icon(
                   icon,
                   size: 17,
-                  color: isSelected
-                      ? color
-                      : AppColors.textSecondary,
+                  color: isSelected ? color : AppColors.textSecondary,
                 ),
                 const SizedBox(width: 6),
                 Expanded(
@@ -588,18 +467,12 @@ class PaymentSelector extends StatelessWidget {
                       fontWeight: isSelected
                           ? FontWeight.w800
                           : FontWeight.w600,
-                      color: isSelected
-                          ? color
-                          : AppColors.textPrimary,
+                      color: isSelected ? color : AppColors.textPrimary,
                     ),
                   ),
                 ),
                 if (isSelected)
-                  Icon(
-                    Icons.check_circle,
-                    size: 14,
-                    color: color,
-                  ),
+                  Icon(Icons.check_circle, size: 14, color: color),
               ],
             ),
           ),
@@ -669,17 +542,9 @@ class PaymentSelector extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: AppColors.danger.withValues(
-            alpha: 0.06,
-          ),
-          borderRadius: BorderRadius.circular(
-            AppRadius.sm,
-          ),
-          border: Border.all(
-            color: AppColors.danger.withValues(
-              alpha: 0.15,
-            ),
-          ),
+          color: AppColors.danger.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          border: Border.all(color: AppColors.danger.withValues(alpha: 0.15)),
         ),
         child: Row(
           children: [
@@ -707,18 +572,16 @@ class PaymentSelector extends StatelessWidget {
     return Wrap(
       spacing: 6,
       runSpacing: 6,
-      children: enabledMethods.map(
-        (widget) {
-          return SizedBox(
-            width: enabledMethods.length == 1
-                ? double.infinity
-                : enabledMethods.length == 2
-                ? 170
-                : 125,
-            child: widget,
-          );
-        },
-      ).toList(),
+      children: enabledMethods.map((widget) {
+        return SizedBox(
+          width: enabledMethods.length == 1
+              ? double.infinity
+              : enabledMethods.length == 2
+              ? 170
+              : 125,
+          child: widget,
+        );
+      }).toList(),
     );
   }
 
@@ -840,12 +703,10 @@ class _PaymentBottomSheet extends StatefulWidget {
   });
 
   @override
-  State<_PaymentBottomSheet> createState() =>
-      _PaymentBottomSheetState();
+  State<_PaymentBottomSheet> createState() => _PaymentBottomSheetState();
 }
 
-class _PaymentBottomSheetState
-    extends State<_PaymentBottomSheet> {
+class _PaymentBottomSheetState extends State<_PaymentBottomSheet> {
   // ============================================================
   // CONTROLLERS
   // ============================================================
@@ -881,8 +742,7 @@ class _PaymentBottomSheetState
     if (widget.method == 'cash') {
       cashController.text = widget.total.toString();
 
-      cashEntered.value =
-          widget.total.toDouble();
+      cashEntered.value = widget.total.toDouble();
     }
 
     if (widget.method == 'pos') {
@@ -890,8 +750,7 @@ class _PaymentBottomSheetState
     }
 
     if (widget.method == 'transfer') {
-      transferController.text =
-          widget.total.toString();
+      transferController.text = widget.total.toString();
     }
   }
 
@@ -920,30 +779,21 @@ class _PaymentBottomSheetState
   // ============================================================
 
   bool _isPaymentMethodEnabled(String method) {
-    return widget.posSettings.isPaymentMethodEnabled(
-      method,
-    );
+    return widget.posSettings.isPaymentMethodEnabled(method);
   }
 
   bool get _splitEnabled {
-    return widget
-            .posSettings
-            .enabledPaymentMethodCount >=
-        2;
+    return widget.posSettings.enabledPaymentMethodCount >= 2;
   }
 
   // ============================================================
   // CONFIRM PAYMENT
   // ============================================================
 
-  void _confirmPayment(
-    BuildContext context,
-    BuildContext sheetContext,
-  ) {
+  void _confirmPayment(BuildContext context, BuildContext sheetContext) {
     final method = widget.method;
 
-    if (method != 'split' &&
-        !_isPaymentMethodEnabled(method)) {
+    if (method != 'split' && !_isPaymentMethodEnabled(method)) {
       _showError(
         context,
         '${PosSettings.paymentMethodLabel(method)} '
@@ -961,23 +811,11 @@ class _PaymentBottomSheetState
       return;
     }
 
-    final cashEnteredAmount =
-        double.tryParse(
-              cashController.text.trim(),
-            ) ??
-            0;
+    final cashEnteredAmount = double.tryParse(cashController.text.trim()) ?? 0;
 
-    final pos =
-        double.tryParse(
-              posController.text.trim(),
-            ) ??
-            0;
+    final pos = double.tryParse(posController.text.trim()) ?? 0;
 
-    final transfer =
-        double.tryParse(
-              transferController.text.trim(),
-            ) ??
-            0;
+    final transfer = double.tryParse(transferController.text.trim()) ?? 0;
 
     final due = widget.total.toDouble();
 
@@ -987,10 +825,7 @@ class _PaymentBottomSheetState
 
     if (method == 'cash') {
       if (cashEnteredAmount <= 0) {
-        _showError(
-          context,
-          'Please enter the cash received.',
-        );
+        _showError(context, 'Please enter the cash received.');
         return;
       }
 
@@ -1005,8 +840,7 @@ class _PaymentBottomSheetState
 
       final cashApplied = due;
 
-      final change =
-          cashEnteredAmount - cashApplied;
+      final change = cashEnteredAmount - cashApplied;
 
       // ========================================================
       // Return result.
@@ -1014,15 +848,12 @@ class _PaymentBottomSheetState
       // DO NOT call parent callbacks directly from this widget.
       // ========================================================
 
-      Navigator.pop(
-        sheetContext,
-        <String, dynamic>{
-          'method': method,
-          'cashReceived': cashEnteredAmount,
-          'cashApplied': cashApplied,
-          'change': change,
-        },
-      );
+      Navigator.pop(sheetContext, <String, dynamic>{
+        'method': method,
+        'cashReceived': cashEnteredAmount,
+        'cashApplied': cashApplied,
+        'change': change,
+      });
 
       return;
     }
@@ -1033,10 +864,7 @@ class _PaymentBottomSheetState
 
     if (method == 'pos') {
       if (pos <= 0) {
-        _showError(
-          context,
-          'Please enter the POS amount.',
-        );
+        _showError(context, 'Please enter the POS amount.');
         return;
       }
 
@@ -1050,13 +878,10 @@ class _PaymentBottomSheetState
         return;
       }
 
-      Navigator.pop(
-        sheetContext,
-        <String, dynamic>{
-          'method': method,
-          'pos': pos,
-        },
-      );
+      Navigator.pop(sheetContext, <String, dynamic>{
+        'method': method,
+        'pos': pos,
+      });
 
       return;
     }
@@ -1067,10 +892,7 @@ class _PaymentBottomSheetState
 
     if (method == 'transfer') {
       if (transfer <= 0) {
-        _showError(
-          context,
-          'Please enter the transfer amount.',
-        );
+        _showError(context, 'Please enter the transfer amount.');
         return;
       }
 
@@ -1084,13 +906,10 @@ class _PaymentBottomSheetState
         return;
       }
 
-      Navigator.pop(
-        sheetContext,
-        <String, dynamic>{
-          'method': method,
-          'transfer': transfer,
-        },
-      );
+      Navigator.pop(sheetContext, <String, dynamic>{
+        'method': method,
+        'transfer': transfer,
+      });
 
       return;
     }
@@ -1100,22 +919,15 @@ class _PaymentBottomSheetState
     // ==========================================================
 
     if (method == 'split') {
-      final paymentTotal =
-          cashEnteredAmount +
-          pos +
-          transfer;
+      final paymentTotal = cashEnteredAmount + pos + transfer;
 
       if (paymentTotal <= 0) {
-        _showError(
-          context,
-          'Please enter at least one payment amount.',
-        );
+        _showError(context, 'Please enter at least one payment amount.');
         return;
       }
 
       if ((paymentTotal - due).abs() > 0.01) {
-        final difference =
-            due - paymentTotal;
+        final difference = due - paymentTotal;
 
         if (difference > 0) {
           _showError(
@@ -1138,30 +950,18 @@ class _PaymentBottomSheetState
       // Validate enabled methods.
       // ========================================================
 
-      if (cashEnteredAmount > 0 &&
-          !_isPaymentMethodEnabled('cash')) {
-        _showError(
-          context,
-          'Cash is disabled in POS settings.',
-        );
+      if (cashEnteredAmount > 0 && !_isPaymentMethodEnabled('cash')) {
+        _showError(context, 'Cash is disabled in POS settings.');
         return;
       }
 
-      if (pos > 0 &&
-          !_isPaymentMethodEnabled('pos')) {
-        _showError(
-          context,
-          'POS is disabled in POS settings.',
-        );
+      if (pos > 0 && !_isPaymentMethodEnabled('pos')) {
+        _showError(context, 'POS is disabled in POS settings.');
         return;
       }
 
-      if (transfer > 0 &&
-          !_isPaymentMethodEnabled('transfer')) {
-        _showError(
-          context,
-          'Transfer is disabled in POS settings.',
-        );
+      if (transfer > 0 && !_isPaymentMethodEnabled('transfer')) {
+        _showError(context, 'Transfer is disabled in POS settings.');
         return;
       }
 
@@ -1169,15 +969,12 @@ class _PaymentBottomSheetState
       // Return split payment result.
       // ========================================================
 
-      Navigator.pop(
-        sheetContext,
-        <String, dynamic>{
-          'method': method,
-          'cash': cashEnteredAmount,
-          'pos': pos,
-          'transfer': transfer,
-        },
-      );
+      Navigator.pop(sheetContext, <String, dynamic>{
+        'method': method,
+        'cash': cashEnteredAmount,
+        'pos': pos,
+        'transfer': transfer,
+      });
 
       return;
     }
@@ -1186,36 +983,25 @@ class _PaymentBottomSheetState
     // INVALID METHOD
     // ==========================================================
 
-    _showError(
-      context,
-      'Invalid payment method.',
-    );
+    _showError(context, 'Invalid payment method.');
   }
 
   // ============================================================
   // ERROR
   // ============================================================
 
-  void _showError(
-    BuildContext context,
-    String message,
-  ) {
+  void _showError(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
         backgroundColor: AppColors.danger,
         margin: const EdgeInsets.all(10),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(
-            AppRadius.sm,
-          ),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
         ),
         content: Text(
           message,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
         ),
       ),
     );
@@ -1238,9 +1024,7 @@ class _PaymentBottomSheetState
       controller: controller,
       autofocus: autofocus,
       onChanged: onChanged,
-      keyboardType: const TextInputType.numberWithOptions(
-        decimal: true,
-      ),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
       style: AppTextStyles.body.copyWith(
         fontSize: 15,
         fontWeight: FontWeight.w700,
@@ -1248,11 +1032,7 @@ class _PaymentBottomSheetState
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: Icon(
-          icon,
-          color: color,
-          size: 19,
-        ),
+        prefixIcon: Icon(icon, color: color, size: 19),
         filled: true,
         fillColor: color.withValues(alpha: 0.045),
         isDense: true,
@@ -1261,29 +1041,16 @@ class _PaymentBottomSheetState
           vertical: 11,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(
-            AppRadius.sm,
-          ),
-          borderSide: BorderSide(
-            color: color.withValues(alpha: 0.18),
-          ),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderSide: BorderSide(color: color.withValues(alpha: 0.18)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(
-            AppRadius.sm,
-          ),
-          borderSide: BorderSide(
-            color: color.withValues(alpha: 0.18),
-          ),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderSide: BorderSide(color: color.withValues(alpha: 0.18)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(
-            AppRadius.sm,
-          ),
-          borderSide: BorderSide(
-            color: color,
-            width: 1.3,
-          ),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderSide: BorderSide(color: color, width: 1.3),
         ),
       ),
     );
@@ -1330,8 +1097,7 @@ class _PaymentBottomSheetState
     }
 
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Split Payment',
@@ -1352,35 +1118,26 @@ class _PaymentBottomSheetState
         Wrap(
           spacing: 6,
           runSpacing: 6,
-          children: enabled.map(
-            (field) {
-              return SizedBox(
-                width: enabled.length == 1
-                    ? double.infinity
-                    : enabled.length == 2
-                    ? 205
-                    : 165,
-                child: field,
-              );
-            },
-          ).toList(),
+          children: enabled.map((field) {
+            return SizedBox(
+              width: enabled.length == 1
+                  ? double.infinity
+                  : enabled.length == 2
+                  ? 205
+                  : 165,
+              child: field,
+            );
+          }).toList(),
         ),
         const SizedBox(height: 7),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 8,
-            vertical: 6,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           decoration: BoxDecoration(
             color: AppColors.warningLight,
-            borderRadius: BorderRadius.circular(
-              AppRadius.sm,
-            ),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
             border: Border.all(
-              color: AppColors.warning.withValues(
-                alpha: 0.15,
-              ),
+              color: AppColors.warning.withValues(alpha: 0.15),
             ),
           ),
           child: Row(
@@ -1420,51 +1177,29 @@ class _PaymentBottomSheetState
   ) {
     return TextField(
       controller: controller,
-      keyboardType: const TextInputType.numberWithOptions(
-        decimal: true,
-      ),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
       style: AppTextStyles.body.copyWith(
         fontSize: 13,
         fontWeight: FontWeight.w700,
       ),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(
-          icon,
-          color: color,
-          size: 17,
-        ),
+        prefixIcon: Icon(icon, color: color, size: 17),
         filled: true,
         fillColor: color.withValues(alpha: 0.045),
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 8,
-          vertical: 9,
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(
-            AppRadius.sm,
-          ),
-          borderSide: BorderSide(
-            color: color.withValues(alpha: 0.18),
-          ),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderSide: BorderSide(color: color.withValues(alpha: 0.18)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(
-            AppRadius.sm,
-          ),
-          borderSide: BorderSide(
-            color: color.withValues(alpha: 0.18),
-          ),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderSide: BorderSide(color: color.withValues(alpha: 0.18)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(
-            AppRadius.sm,
-          ),
-          borderSide: BorderSide(
-            color: color,
-            width: 1.3,
-          ),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderSide: BorderSide(color: color, width: 1.3),
         ),
       ),
     );
@@ -1479,18 +1214,11 @@ class _PaymentBottomSheetState
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 8,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.055),
-        borderRadius: BorderRadius.circular(
-          AppRadius.sm,
-        ),
-        border: Border.all(
-          color: color.withValues(alpha: 0.14),
-        ),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        border: Border.all(color: color.withValues(alpha: 0.14)),
       ),
       child: Row(
         children: [
@@ -1501,17 +1229,12 @@ class _PaymentBottomSheetState
               color: color.withValues(alpha: 0.10),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              Icons.receipt_long_outlined,
-              color: color,
-              size: 15,
-            ),
+            child: Icon(Icons.receipt_long_outlined, color: color, size: 15),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'TOTAL DUE',
@@ -1550,26 +1273,15 @@ class _PaymentBottomSheetState
   }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 9,
-        vertical: 7,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(
-          AppRadius.sm,
-        ),
-        border: Border.all(
-          color: color.withValues(alpha: 0.18),
-        ),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
       ),
       child: Row(
         children: [
-          Icon(
-            icon,
-            color: color,
-            size: 15,
-          ),
+          Icon(icon, color: color, size: 15),
           const SizedBox(width: 7),
           Expanded(
             child: Text(
@@ -1671,61 +1383,45 @@ class _PaymentBottomSheetState
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth =
-        MediaQuery.of(context).size.width;
+    final screenWidth = MediaQuery.of(context).size.width;
 
     final isTablet = screenWidth >= 600;
 
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.only(
-          bottom: MediaQuery.of(
-            context,
-          ).viewInsets.bottom,
+          bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
         child: Center(
           child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: isTablet ? 500 : 410,
-            ),
+            constraints: BoxConstraints(maxWidth: isTablet ? 500 : 410),
             child: Material(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(
-                isTablet
-                    ? AppRadius.lg
-                    : AppRadius.md,
+                isTablet ? AppRadius.lg : AppRadius.md,
               ),
               clipBehavior: Clip.antiAlias,
               child: SingleChildScrollView(
                 padding: EdgeInsets.fromLTRB(
-                  isTablet
-                      ? AppSpacing.md
-                      : AppSpacing.sm,
+                  isTablet ? AppSpacing.md : AppSpacing.sm,
                   AppSpacing.xs,
-                  isTablet
-                      ? AppSpacing.md
-                      : AppSpacing.sm,
+                  isTablet ? AppSpacing.md : AppSpacing.sm,
                   AppSpacing.sm,
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // ==================================================
                     // HANDLE
                     // ==================================================
-
                     Center(
                       child: Container(
                         width: 30,
                         height: 3,
                         decoration: BoxDecoration(
                           color: AppColors.border,
-                          borderRadius:
-                              BorderRadius.circular(
-                            AppRadius.round,
-                          ),
+                          borderRadius: BorderRadius.circular(AppRadius.round),
                         ),
                       ),
                     ),
@@ -1735,7 +1431,6 @@ class _PaymentBottomSheetState
                     // ==================================================
                     // HEADER
                     // ==================================================
-
                     Row(
                       children: [
                         Container(
@@ -1744,21 +1439,12 @@ class _PaymentBottomSheetState
                           decoration: BoxDecoration(
                             color: _paymentColor(
                               widget.method,
-                            ).withValues(
-                              alpha: 0.10,
-                            ),
-                            borderRadius:
-                                BorderRadius.circular(
-                              AppRadius.sm,
-                            ),
+                            ).withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
                           ),
                           child: Icon(
-                            _paymentIcon(
-                              widget.method,
-                            ),
-                            color: _paymentColor(
-                              widget.method,
-                            ),
+                            _paymentIcon(widget.method),
+                            color: _paymentColor(widget.method),
                             size: 18,
                           ),
                         ),
@@ -1767,30 +1453,19 @@ class _PaymentBottomSheetState
 
                         Expanded(
                           child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment
-                                    .start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 'Complete Payment',
-                                style:
-                                    AppTextStyles.title
-                                        .copyWith(
+                                style: AppTextStyles.title.copyWith(
                                   fontSize: 15,
-                                  fontWeight:
-                                      FontWeight.w800,
+                                  fontWeight: FontWeight.w800,
                                 ),
                               ),
                               Text(
-                                PosSettings
-                                    .paymentMethodLabel(
-                                  widget.method,
-                                ),
-                                style:
-                                    AppTextStyles.small
-                                        .copyWith(
-                                  color: AppColors
-                                      .textSecondary,
+                                PosSettings.paymentMethodLabel(widget.method),
+                                style: AppTextStyles.small.copyWith(
+                                  color: AppColors.textSecondary,
                                   fontSize: 10,
                                 ),
                               ),
@@ -1799,23 +1474,16 @@ class _PaymentBottomSheetState
                         ),
 
                         IconButton(
-                          visualDensity:
-                              VisualDensity.compact,
+                          visualDensity: VisualDensity.compact,
                           padding: EdgeInsets.zero,
-                          constraints:
-                              const BoxConstraints(
+                          constraints: const BoxConstraints(
                             minWidth: 30,
                             minHeight: 30,
                           ),
                           onPressed: () {
-                            Navigator.pop(
-                              context,
-                            );
+                            Navigator.pop(context);
                           },
-                          icon: const Icon(
-                            Icons.close,
-                            size: 18,
-                          ),
+                          icon: const Icon(Icons.close, size: 18),
                         ),
                       ],
                     ),
@@ -1825,7 +1493,6 @@ class _PaymentBottomSheetState
                     // ==================================================
                     // TOTAL
                     // ==================================================
-
                     _buildTotalCard(),
 
                     const SizedBox(height: 9),
@@ -1833,91 +1500,59 @@ class _PaymentBottomSheetState
                     // ==================================================
                     // CASH
                     // ==================================================
-
                     if (widget.method == 'cash')
                       Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildAmountField(
                             label: 'Cash Received',
-                            hint:
-                                'Enter amount received',
-                            controller:
-                                cashController,
-                            icon:
-                                Icons.payments_outlined,
-                            color:
-                                AppColors.success,
+                            hint: 'Enter amount received',
+                            controller: cashController,
+                            icon: Icons.payments_outlined,
+                            color: AppColors.success,
                             onChanged: (value) {
                               cashEntered.value =
-                                  double.tryParse(
-                                        value.trim(),
-                                      ) ??
-                                      0;
+                                  double.tryParse(value.trim()) ?? 0;
                             },
                           ),
 
                           const SizedBox(height: 6),
 
-                          ValueListenableBuilder<
-                              double>(
-                            valueListenable:
-                                cashEntered,
-                            builder: (
-                              context,
-                              amount,
-                              _,
-                            ) {
-                              final due =
-                                  widget.total
-                                      .toDouble();
+                          ValueListenableBuilder<double>(
+                            valueListenable: cashEntered,
+                            builder: (context, amount, _) {
+                              final due = widget.total.toDouble();
 
-                              final difference =
-                                  amount - due;
+                              final difference = amount - due;
 
-                              if (amount > 0 &&
-                                  amount < due) {
+                              if (amount > 0 && amount < due) {
                                 return _buildPaymentStatus(
-                                  label:
-                                      'AMOUNT REMAINING',
-                                  amount:
-                                      due - amount,
-                                  color:
-                                      AppColors.danger,
-                                  icon: Icons
-                                      .warning_amber_outlined,
+                                  label: 'AMOUNT REMAINING',
+                                  amount: due - amount,
+                                  color: AppColors.danger,
+                                  icon: Icons.warning_amber_outlined,
                                 );
                               }
 
-                              if ((amount - due)
-                                      .abs() <=
-                                  0.01) {
+                              if ((amount - due).abs() <= 0.01) {
                                 return _buildPaymentStatus(
-                                  label:
-                                      'EXACT PAYMENT',
+                                  label: 'EXACT PAYMENT',
                                   amount: due,
-                                  color:
-                                      AppColors.success,
-                                  icon: Icons
-                                      .check_circle_outline,
+                                  color: AppColors.success,
+                                  icon: Icons.check_circle_outline,
                                 );
                               }
 
                               if (difference > 0) {
                                 return _buildPaymentStatus(
                                   label: 'CHANGE',
-                                  amount:
-                                      difference,
-                                  color:
-                                      AppColors.success,
-                                  icon: Icons
-                                      .payments_outlined,
+                                  amount: difference,
+                                  color: AppColors.success,
+                                  icon: Icons.payments_outlined,
                                 );
                               }
 
-                              return const SizedBox
-                                  .shrink();
+                              return const SizedBox.shrink();
                             },
                           ),
                         ],
@@ -1926,78 +1561,52 @@ class _PaymentBottomSheetState
                     // ==================================================
                     // POS
                     // ==================================================
-
                     if (widget.method == 'pos')
                       _buildAmountField(
                         label: 'POS Amount',
                         hint: 'Enter POS amount',
                         controller: posController,
-                        icon:
-                            Icons.credit_card_outlined,
+                        icon: Icons.credit_card_outlined,
                         color: AppColors.primary,
                       ),
 
                     // ==================================================
                     // TRANSFER
                     // ==================================================
-
                     if (widget.method == 'transfer')
                       _buildAmountField(
                         label: 'Transfer Amount',
-                        hint:
-                            'Enter transfer amount',
-                        controller:
-                            transferController,
-                        icon: Icons
-                            .account_balance_outlined,
-                        color:
-                            AppColors.inventory,
+                        hint: 'Enter transfer amount',
+                        controller: transferController,
+                        icon: Icons.account_balance_outlined,
+                        color: AppColors.inventory,
                       ),
 
                     // ==================================================
                     // SPLIT
                     // ==================================================
-
-                    if (widget.method == 'split')
-                      _buildSplitPayment(),
+                    if (widget.method == 'split') _buildSplitPayment(),
 
                     const SizedBox(height: 9),
 
                     // ==================================================
                     // ACTIONS
                     // ==================================================
-
                     Row(
                       children: [
                         Expanded(
                           child: SizedBox(
                             height: 40,
-                            child:
-                                OutlinedButton(
+                            child: OutlinedButton(
                               onPressed: () {
-                                Navigator.pop(
-                                  context,
-                                );
+                                Navigator.pop(context);
                               },
-                              style:
-                                  OutlinedButton
-                                      .styleFrom(
-                                foregroundColor:
-                                    AppColors
-                                        .textPrimary,
-                                side:
-                                    const BorderSide(
-                                  color:
-                                      AppColors
-                                          .border,
-                                ),
-                                padding:
-                                    EdgeInsets.zero,
-                                shape:
-                                    RoundedRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius
-                                          .circular(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.textPrimary,
+                                side: const BorderSide(color: AppColors.border),
+                                padding: EdgeInsets.zero,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
                                     AppRadius.sm,
                                   ),
                                 ),
@@ -2005,8 +1614,7 @@ class _PaymentBottomSheetState
                               child: const Text(
                                 'Cancel',
                                 style: TextStyle(
-                                  fontWeight:
-                                      FontWeight.w700,
+                                  fontWeight: FontWeight.w700,
                                   fontSize: 12,
                                 ),
                               ),
@@ -2020,46 +1628,31 @@ class _PaymentBottomSheetState
                           flex: 2,
                           child: SizedBox(
                             height: 40,
-                            child:
-                                ElevatedButton.icon(
+                            child: ElevatedButton.icon(
                               icon: const Icon(
-                                Icons
-                                    .check_circle_outline,
+                                Icons.check_circle_outline,
                                 size: 17,
                               ),
                               label: const Text(
                                 'Complete Sale',
                                 style: TextStyle(
-                                  fontWeight:
-                                      FontWeight.w800,
+                                  fontWeight: FontWeight.w800,
                                   fontSize: 12,
                                 ),
                               ),
-                              style:
-                                  ElevatedButton
-                                      .styleFrom(
-                                backgroundColor:
-                                    AppColors
-                                        .success,
-                                foregroundColor:
-                                    Colors.white,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.success,
+                                foregroundColor: Colors.white,
                                 elevation: 0,
-                                padding:
-                                    EdgeInsets.zero,
-                                shape:
-                                    RoundedRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius
-                                          .circular(
+                                padding: EdgeInsets.zero,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
                                     AppRadius.sm,
                                   ),
                                 ),
                               ),
                               onPressed: () {
-                                _confirmPayment(
-                                  context,
-                                  context,
-                                );
+                                _confirmPayment(context, context);
                               },
                             ),
                           ),

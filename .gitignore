@@ -43,3 +43,22 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Local credentials
+credentials.json
+credentials/
+*.credentials
+*.credentials.json
+
+# Local databases / development data
+*.db
+*.sqlite
+*.sqlite3
+
+# Local IDE / tooling state
+.vscode/

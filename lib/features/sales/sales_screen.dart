@@ -15,6 +15,7 @@ import '../../core/business/business_identity.dart';
 import '../../core/pos/pos_settings_service.dart';
 
 import '../../database/app_database.dart';
+import '../../database/business_settings.dart';
 import '../../database/daos/settings_dao.dart';
 import '../../database/daos/sales_dao.dart';
 import '../../database/daos/product_dao.dart';
@@ -304,7 +305,20 @@ class _SalesScreenState extends State<SalesScreen> {
     // 2. VERIFY PAYMENT METHOD IS ENABLED
     // ==========================================================
 
-    if (!_isPaymentMethodEnabled(normalizedPaymentMethod)) {
+    //
+    // "split" is a payment mode, not an individual payment
+    // method stored in POS settings.
+    //
+    // POS settings only control the underlying methods:
+    // cash, pos, and transfer.
+    //
+    // Split itself is validated later by checking:
+    // 1. The combined amount equals the sale total.
+    // 2. Every payment component used is enabled.
+    //
+
+    if (normalizedPaymentMethod != 'split' &&
+        !_isPaymentMethodEnabled(normalizedPaymentMethod)) {
       _showMessage(
         '${_formatPaymentMethodName(normalizedPaymentMethod)} '
         'is disabled in POS settings.',
@@ -696,82 +710,99 @@ class _SalesScreenState extends State<SalesScreen> {
       // A queue failure must never make a successful sale appear
       // unsuccessful or prevent the receipt from being shown.
       //
-      final businessEmail = await BusinessIdentity.getBusinessEmail(
-        settingsDao,
+      final emailEnabledSetting = await settingsDao.getSetting(
+        BusinessSettings.emailEnabled,
       );
 
-      if (businessEmail.trim().isNotEmpty && completedSales.isNotEmpty) {
-        try {
-          final receiptSaleId = completedSales.first.id;
+      // Missing setting defaults to true so existing installations
+      // continue sending sale emails exactly as before.
+      final emailEnabled =
+          emailEnabledSetting == null ||
+          emailEnabledSetting.toLowerCase() == 'true';
 
-          final emailLines = <String>[
-            'Creator Yard',
-            'SALE RECEIPT',
-            '',
-            'Receipt: #$receiptSaleId',
-            '',
-            'Items:',
-          ];
+      if (!emailEnabled) {
+        debugPrint(
+          'Sale email is disabled. '
+          'Skipping email queue for completed sale.',
+        );
+      } else {
+        final businessEmail = await BusinessIdentity.getBusinessEmail(
+          settingsDao,
+        );
 
-          for (final entry in entries) {
-            final product = _findProduct(entry.key);
+        if (businessEmail.trim().isNotEmpty && completedSales.isNotEmpty) {
+          try {
+            final receiptSaleId = completedSales.first.id;
 
-            if (product == null || entry.value <= 0) {
-              continue;
+            final emailLines = <String>[
+              'Creator Yard',
+              'SALE RECEIPT',
+              '',
+              'Receipt: #$receiptSaleId',
+              '',
+              'Items:',
+            ];
+
+            for (final entry in entries) {
+              final product = _findProduct(entry.key);
+
+              if (product == null || entry.value <= 0) {
+                continue;
+              }
+
+              final qty = entry.value;
+              final unitPrice = product.sellingPrice.toInt();
+              final lineTotal = qty * unitPrice;
+
+              emailLines.add(
+                '- ${product.name} x $qty '
+                '@ ₦${_formatMoney(unitPrice)} '
+                '= ₦${_formatMoney(lineTotal)}',
+              );
             }
 
-            final qty = entry.value;
-            final unitPrice = product.sellingPrice.toInt();
-            final lineTotal = qty * unitPrice;
+            emailLines.addAll([
+              '',
+              'Total: ₦${_formatMoney(cartTotal)}',
+              '',
+              'Payment: '
+                  '${_formatPaymentMethodName(normalizedPaymentMethod)}',
+            ]);
 
-            emailLines.add(
-              '- ${product.name} x $qty '
-              '@ ₦${_formatMoney(unitPrice)} '
-              '= ₦${_formatMoney(lineTotal)}',
+            if (processedCash > 0) {
+              emailLines.add('Cash: ₦${_formatMoney(processedCash)}');
+            }
+
+            if (processedPos > 0) {
+              emailLines.add('POS: ₦${_formatMoney(processedPos)}');
+            }
+
+            if (processedTransfer > 0) {
+              emailLines.add('Transfer: ₦${_formatMoney(processedTransfer)}');
+            }
+
+            emailLines.add('');
+            emailLines.add('Thank you.');
+
+            await getSaleEmailQueueDao().createJob(
+              saleId: receiptSaleId,
+              recipient: businessEmail.trim(),
+              subject: 'Sale Receipt #$receiptSaleId',
+              body: emailLines.join('\n'),
             );
+
+            debugPrint(
+              'Sale email queued successfully for sale '
+              '#$receiptSaleId.',
+            );
+
+            unawaited(SaleEmailWorker().processPendingJobs());
+          } catch (e, stackTrace) {
+            // The sale is already completed. Email queue problems
+            // must never interrupt the receipt/sale flow.
+            debugPrint('Sale email queue failed: $e');
+            debugPrint('$stackTrace');
           }
-
-          emailLines.addAll([
-            '',
-            'Total: ₦${_formatMoney(cartTotal)}',
-            '',
-            'Payment: '
-                '${_formatPaymentMethodName(normalizedPaymentMethod)}',
-          ]);
-
-          if (processedCash > 0) {
-            emailLines.add('Cash: ₦${_formatMoney(processedCash)}');
-          }
-
-          if (processedPos > 0) {
-            emailLines.add('POS: ₦${_formatMoney(processedPos)}');
-          }
-
-          if (processedTransfer > 0) {
-            emailLines.add('Transfer: ₦${_formatMoney(processedTransfer)}');
-          }
-
-          emailLines.add('');
-          emailLines.add('Thank you.');
-
-          await getSaleEmailQueueDao().createJob(
-            saleId: receiptSaleId,
-            recipient: businessEmail.trim(),
-            subject: 'Sale Receipt #$receiptSaleId',
-            body: emailLines.join('\n'),
-          );
-
-          debugPrint(
-            'Sale email queued successfully for sale '
-            '#$receiptSaleId.',
-          );
-
-          unawaited(SaleEmailWorker().processPendingJobs());
-        } catch (e, stackTrace) {
-          // The sale is already completed. Email queue problems
-          // must never interrupt the receipt/sale flow.
-          debugPrint('Sale email queue failed: $e');
-          debugPrint('$stackTrace');
         }
       }
 
@@ -1891,6 +1922,16 @@ class _SalesScreenState extends State<SalesScreen> {
                             'Invalid payment method selected.',
                             isError: true,
                           );
+                          return;
+                        }
+
+                        // "split" is a payment mode, not an individually
+                        // enabled payment method. It is valid when at least
+                        // two underlying payment methods are enabled.
+                        if (normalized == 'split') {
+                          setState(() {
+                            paymentMethod = 'split';
+                          });
                           return;
                         }
 
