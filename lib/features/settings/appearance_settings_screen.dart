@@ -26,7 +26,7 @@ class _AppearanceSettingsScreenState
   // STATE
   // ============================================================
 
-  String _themeMode = 'system';
+  String _themeMode = 'light';
 
   String _accentColor = 'blue';
 
@@ -93,7 +93,7 @@ class _AppearanceSettingsScreenState
           await widget.settingsDao.getSetting(
                 BusinessSettings.themeMode,
               ) ??
-              'system';
+              'light';
 
       final accentColor =
           await widget.settingsDao.getSetting(
@@ -124,7 +124,7 @@ class _AppearanceSettingsScreenState
       setState(() {
         _themeMode = _isValidTheme(themeMode)
             ? themeMode
-            : 'system';
+            : 'light';
 
         _accentColor = _isValidAccentColor(
           accentColor,

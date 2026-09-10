@@ -183,7 +183,7 @@ class SupermarketApp extends StatefulWidget {
 // ============================================================
 
 class _SupermarketAppState extends State<SupermarketApp> {
-  ThemeMode _themeMode = ThemeMode.system;
+  ThemeMode _themeMode = ThemeMode.light;
 
   bool _themeLoaded = false;
 
@@ -216,8 +216,10 @@ class _SupermarketAppState extends State<SupermarketApp> {
           break;
 
         case 'system':
-        default:
           themeMode = ThemeMode.system;
+          break;
+        default:
+          themeMode = ThemeMode.light;
           break;
       }
 
@@ -233,7 +235,7 @@ class _SupermarketAppState extends State<SupermarketApp> {
       if (!mounted) return;
 
       setState(() {
-        _themeMode = ThemeMode.system;
+        _themeMode = ThemeMode.light;
         _themeLoaded = true;
       });
     }
@@ -254,7 +256,7 @@ class _SupermarketAppState extends State<SupermarketApp> {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
-        themeMode: ThemeMode.system,
+        themeMode: ThemeMode.light,
         home: const Scaffold(body: Center(child: CircularProgressIndicator())),
       );
     }
