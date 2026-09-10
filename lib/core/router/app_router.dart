@@ -36,31 +36,26 @@ import 'package:supermarket_inventory/database/daos/staff_purchase_dao.dart';
 
 import '../navigation/main_scaffold.dart';
 import '../session.dart';
+import '../licensing/license_state.dart';
+import '../../features/licensing/license_access_screen.dart';
 
 GoRouter appRouter({
   required bool needsInitialSetup,
+  required LicenseState? licenseState,
 }) {
   return GoRouter(
     // ==========================================================
     // INITIAL LOCATION
     // ==========================================================
-
-    initialLocation:
-        needsInitialSetup
-            ? '/initial-setup'
-            : '/',
+    initialLocation: needsInitialSetup ? '/initial-setup' : '/',
 
     routes: [
       // ==========================================================
       // LOGIN
       // ==========================================================
-
       GoRoute(
         path: '/',
-        builder: (
-          context,
-          state,
-        ) {
+        builder: (context, state) {
           return const LoginScreen();
         },
       ),
@@ -68,13 +63,9 @@ GoRouter appRouter({
       // ==========================================================
       // INITIAL SETUP
       // ==========================================================
-
       GoRoute(
         path: '/initial-setup',
-        builder: (
-          context,
-          state,
-        ) {
+        builder: (context, state) {
           return const InitialSetupScreen();
         },
       ),
@@ -86,28 +77,21 @@ GoRouter appRouter({
       //
       // DashboardScreen MUST NOT create another sidebar.
       // ==========================================================
-
       ShellRoute(
-        builder: (
-          context,
-          state,
-          child,
-        ) {
-          return MainScaffold(
-            child: child,
-          );
+        builder: (context, state, child) {
+          if (licenseState != null && !licenseState.hasAccess) {
+            return LicenseAccessScreen(licenseState: licenseState);
+          }
+
+          return MainScaffold(child: child);
         },
         routes: [
           // ======================================================
           // DASHBOARD
           // ======================================================
-
           GoRoute(
             path: '/dashboard',
-            builder: (
-              context,
-              state,
-            ) {
+            builder: (context, state) {
               return const DashboardScreen();
             },
           ),
@@ -115,13 +99,9 @@ GoRouter appRouter({
           // ======================================================
           // PRODUCTS
           // ======================================================
-
           GoRoute(
             path: '/products',
-            builder: (
-              context,
-              state,
-            ) {
+            builder: (context, state) {
               return const ProductsScreen();
             },
           ),
@@ -129,13 +109,9 @@ GoRouter appRouter({
           // ======================================================
           // CATEGORIES
           // ======================================================
-
           GoRoute(
             path: '/categories',
-            builder: (
-              context,
-              state,
-            ) {
+            builder: (context, state) {
               return const CategoryScreen();
             },
           ),
@@ -143,13 +119,9 @@ GoRouter appRouter({
           // ======================================================
           // SUPPLIERS
           // ======================================================
-
           GoRoute(
             path: '/suppliers',
-            builder: (
-              context,
-              state,
-            ) {
+            builder: (context, state) {
               return const SuppliersScreen();
             },
           ),
@@ -157,13 +129,9 @@ GoRouter appRouter({
           // ======================================================
           // SALES
           // ======================================================
-
           GoRoute(
             path: '/sales',
-            builder: (
-              context,
-              state,
-            ) {
+            builder: (context, state) {
               return const SalesScreen();
             },
           ),
@@ -171,51 +139,29 @@ GoRouter appRouter({
           // ======================================================
           // REPORTS
           // ======================================================
-
           GoRoute(
             path: '/reports',
-            builder: (
-              context,
-              state,
-            ) {
-              return ReportsDashboard(
-                settingsDao:
-                    SettingsDao(
-                  getDatabase(),
-                ),
-              );
+            builder: (context, state) {
+              return ReportsDashboard(settingsDao: SettingsDao(getDatabase()));
             },
           ),
 
           // ======================================================
           // SETTINGS
           // ======================================================
-
           GoRoute(
             path: '/settings',
-            builder: (
-              context,
-              state,
-            ) {
-              return SettingsScreen(
-                settingsDao:
-                    SettingsDao(
-                  getDatabase(),
-                ),
-              );
+            builder: (context, state) {
+              return SettingsScreen(settingsDao: SettingsDao(getDatabase()));
             },
           ),
 
           // ======================================================
           // USERS
           // ======================================================
-
           GoRoute(
             path: '/users',
-            builder: (
-              context,
-              state,
-            ) {
+            builder: (context, state) {
               return const UserListScreen();
             },
           ),
@@ -223,13 +169,9 @@ GoRouter appRouter({
           // ======================================================
           // CREATE USER
           // ======================================================
-
           GoRoute(
             path: '/users/create',
-            builder: (
-              context,
-              state,
-            ) {
+            builder: (context, state) {
               return const CreateUserScreen();
             },
           ),
@@ -237,49 +179,31 @@ GoRouter appRouter({
           // ======================================================
           // USER PROFILE
           // ======================================================
-
           GoRoute(
             path: '/userProfile',
-            builder: (
-              context,
-              state,
-            ) {
-              final userId =
-                  state.extra as int;
+            builder: (context, state) {
+              final userId = state.extra as int;
 
-              return UserProfileScreen(
-                userId: userId,
-              );
+              return UserProfileScreen(userId: userId);
             },
           ),
 
           // ======================================================
           // INVENTORY DASHBOARD
           // ======================================================
-
           GoRoute(
             path: '/inventory-dashboard',
-            builder: (
-              context,
-              state,
-            ) {
-              return InventoryDashboardScreen(
-                productDao:
-                    getProductDao(),
-              );
+            builder: (context, state) {
+              return InventoryDashboardScreen(productDao: getProductDao());
             },
           ),
 
           // ======================================================
           // RECEIVE STOCK
           // ======================================================
-
           GoRoute(
             path: '/receive-stock',
-            builder: (
-              context,
-              state,
-            ) {
+            builder: (context, state) {
               return const ReceiveStockScreen();
             },
           ),
@@ -287,13 +211,9 @@ GoRouter appRouter({
           // ======================================================
           // STOCK ADJUSTMENT
           // ======================================================
-
           GoRoute(
             path: '/stock-adjustment',
-            builder: (
-              context,
-              state,
-            ) {
+            builder: (context, state) {
               return const StockAdjustmentScreen();
             },
           ),
@@ -301,13 +221,9 @@ GoRouter appRouter({
           // ======================================================
           // ATTENDANCE
           // ======================================================
-
           GoRoute(
             path: '/attendance',
-            builder: (
-              context,
-              state,
-            ) {
+            builder: (context, state) {
               return const AttendanceScreen();
             },
           ),
@@ -315,13 +231,9 @@ GoRouter appRouter({
           // ======================================================
           // STAFF PURCHASE
           // ======================================================
-
           GoRoute(
             path: '/staff-purchase',
-            builder: (
-              context,
-              state,
-            ) {
+            builder: (context, state) {
               return const StaffPurchaseScreen();
             },
           ),
@@ -329,31 +241,19 @@ GoRouter appRouter({
           // ======================================================
           // STAFF DEBT MANAGEMENT
           // ======================================================
-
           GoRoute(
             path: '/staff-debt-management',
-            builder: (
-              context,
-              state,
-            ) {
-              final currentUserId =
-                  Session.currentUserId;
+            builder: (context, state) {
+              final currentUserId = Session.currentUserId;
 
               if (currentUserId == null) {
                 return const LoginScreen();
               }
 
               return StaffDebtManagementScreen(
-                debtPaymentDao:
-                    StaffDebtPaymentDao(
-                  getDatabase(),
-                ),
-                staffPurchaseDao:
-                    StaffPurchaseDao(
-                  getDatabase(),
-                ),
-                recordedBy:
-                    currentUserId,
+                debtPaymentDao: StaffDebtPaymentDao(getDatabase()),
+                staffPurchaseDao: StaffPurchaseDao(getDatabase()),
+                recordedBy: currentUserId,
               );
             },
           ),

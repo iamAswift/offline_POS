@@ -11,6 +11,9 @@ import 'database/business_settings.dart';
 import 'database/daos/settings_dao.dart';
 import 'core/email/sale_email_worker.dart';
 import 'core/system/installation_registration_service.dart';
+import 'core/licensing/demo_license_service.dart';
+import 'core/licensing/license_repository.dart';
+import 'core/licensing/license_state.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,6 +53,50 @@ Future<void> main() async {
   }
 
   // ------------------------------------------------------------
+  // INITIALIZE LOCAL DEMO LICENSING
+  // ------------------------------------------------------------
+  //
+  // Establishes the 14-day demo state on first installation
+  // and reuses the existing state on subsequent launches.
+  //
+  // Commercial license authority will remain outside the
+  // public Flutter application.
+  //
+
+  final licenseRepository = LicenseRepository(
+    provider: DemoLicenseService(settingsDao: settingsDao),
+  );
+
+  LicenseState? licenseState;
+
+  try {
+    licenseState = await licenseRepository.initialize();
+
+    debugPrint(
+      'Creator Yard license state: '
+      '${licenseState.status.name}',
+    );
+
+    debugPrint(
+      'Creator Yard license installation: '
+      '${licenseState.installationId}',
+    );
+
+    if (licenseState.demoExpiresAt != null) {
+      debugPrint(
+        'Creator Yard demo expires: '
+        '${licenseState.demoExpiresAt!.toIso8601String()}',
+      );
+    }
+  } catch (e, stackTrace) {
+    // Licensing initialization must not prevent the application
+    // from starting. Access enforcement will be introduced
+    // separately after this persistence layer is verified.
+    debugPrint('Creator Yard licensing initialization failed: $e');
+    debugPrint('$stackTrace');
+  }
+
+  // ------------------------------------------------------------
   // PROCESS PENDING SALE EMAILS
   // ------------------------------------------------------------
   //
@@ -73,7 +120,11 @@ Future<void> main() async {
   // ------------------------------------------------------------
 
   runApp(
-    SupermarketApp(needsInitialSetup: userCount == 0, settingsDao: settingsDao),
+    SupermarketApp(
+      needsInitialSetup: userCount == 0,
+      settingsDao: settingsDao,
+      licenseState: licenseState,
+    ),
   );
 }
 
@@ -114,11 +165,13 @@ Future<void> _configureDedicatedTerminal() async {
 class SupermarketApp extends StatefulWidget {
   final bool needsInitialSetup;
   final SettingsDao settingsDao;
+  final LicenseState? licenseState;
 
   const SupermarketApp({
     super.key,
     required this.needsInitialSetup,
     required this.settingsDao,
+    required this.licenseState,
   });
 
   @override
@@ -221,7 +274,10 @@ class _SupermarketAppState extends State<SupermarketApp> {
       // --------------------------------------------------------
       // ROUTER
       // --------------------------------------------------------
-      routerConfig: appRouter(needsInitialSetup: widget.needsInitialSetup),
+      routerConfig: appRouter(
+        needsInitialSetup: widget.needsInitialSetup,
+        licenseState: widget.licenseState,
+      ),
 
       debugShowCheckedModeBanner: false,
     );

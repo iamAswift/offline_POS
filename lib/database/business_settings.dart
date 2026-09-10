@@ -21,6 +21,33 @@ class BusinessSettings {
   static const String businessType = 'business_type';
 
   // ============================================================
+  // LICENSING / DEMO
+  // ============================================================
+
+  /// Current local licensing state.
+  ///
+  /// Expected values:
+  /// - demo
+  /// - licensed
+  /// - expired
+  /// - clock_tampered
+  static const String licenseStatus = 'license_status';
+
+  /// Stable identifier generated for this installation.
+  static const String licenseInstallationId = 'license_installation_id';
+
+  /// UTC timestamp when the 14-day demo started.
+  static const String demoStartedAt = 'demo_started_at';
+
+  /// UTC timestamp when the 14-day demo expires.
+  static const String demoExpiresAt = 'demo_expires_at';
+
+  /// Last successfully observed UTC timestamp.
+  ///
+  /// Used later to detect obvious system-clock rollback.
+  static const String licenseLastSeenAt = 'license_last_seen_at';
+
+  // ============================================================
   // APPEARANCE
   // ============================================================
 
